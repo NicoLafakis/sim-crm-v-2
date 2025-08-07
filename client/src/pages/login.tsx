@@ -56,8 +56,8 @@ export default function Login() {
     <div className="min-h-screen bg-gray-200 flex flex-col items-center justify-center font-gameboy"
          style={{
            backgroundImage: `
-             linear-gradient(to right, #B0B0B0 1px, transparent 1px),
-             linear-gradient(to bottom, #B0B0B0 1px, transparent 1px)
+             linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
+             linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
            `,
            backgroundSize: '16px 16px'
          }}>
@@ -71,21 +71,24 @@ export default function Login() {
       </div>
       
       {/* Main Console Frame */}
-      <div className="bg-gray-500 rounded-3xl p-6 shadow-2xl relative"
+      <div className="bg-gray-500 p-6 shadow-2xl relative"
            style={{ 
              background: 'linear-gradient(145deg, #8A8A8A, #6A6A6A)',
-             clipPath: 'polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%)'
+             clipPath: 'polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%)',
+             borderRadius: '4px',
+             width: '400px',
+             height: '300px'
            }}>
         
         {/* Inner Black Border */}
-        <div className="bg-black rounded-lg p-1">
+        <div className="bg-black p-1" style={{ borderRadius: '4px' }}>
           
           {/* Game Boy Screen */}
-          <div className="bg-yellow-500 rounded p-6" 
+          <div className="bg-yellow-500 p-6" 
                style={{ 
                  backgroundColor: '#9BBB58',
-                 width: '320px',
-                 height: '240px'
+                 borderRadius: '4px',
+                 height: '100%'
                }}>
             
             <form onSubmit={handleSubmit} className="h-full flex flex-col justify-center space-y-6">
