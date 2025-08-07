@@ -87,12 +87,12 @@ export default function Login() {
             
             <form onSubmit={handleSubmit} className="h-full flex flex-col justify-center space-y-6">
               
-              {/* Agent ID Field */}
+              {/* Player Name Field */}
               <div>
-                <label className="block text-green-900 text-xs mb-2 font-bold uppercase tracking-wide">AGENT ID</label>
+                <label className="block text-green-900 text-xs mb-2 font-bold uppercase tracking-wide">Player Name</label>
                 <input
                   type="text"
-                  placeholder="Enter Agent ID"
+                  placeholder="Enter Player Name"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full p-3 bg-green-300 text-green-900 text-xs border-2 border-green-700 rounded"
@@ -103,7 +103,7 @@ export default function Login() {
               
               {/* Passcode Field */}
               <div>
-                <label className="block text-green-900 text-xs mb-2 font-bold uppercase tracking-wide">PASSCODE</label>
+                <label className="block text-green-900 text-xs mb-2 font-bold uppercase tracking-wide">Passcode</label>
                 <input
                   type="password"
                   placeholder="Enter Passcode"
