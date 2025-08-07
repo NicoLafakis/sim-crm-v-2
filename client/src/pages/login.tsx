@@ -65,7 +65,7 @@ export default function Login() {
       {/* SimCRM. Title */}
       <div className="mb-8">
         <h1 className="text-3xl tracking-wider">
-          <span className="text-blue-800">SimCRM</span>
+          <span style={{ color: '#000782' }}>SimCRM</span>
           <span className="text-red-800">.</span>
         </h1>
       </div>
