@@ -132,7 +132,7 @@ export default function Login() {
       </div>
       
       {/* Signup Text */}
-      <div className="text-center text-sm text-gray-700 mt-6 mb-4">
+      <div className="text-center text-sm text-gray-700 mt-6 mb-4" style={{ fontSize: '.75rem', color: '#555', marginTop: '.5rem', marginBottom: '2rem' }}>
         {isRegistering ? (
           <>
             have an account?{' '}
