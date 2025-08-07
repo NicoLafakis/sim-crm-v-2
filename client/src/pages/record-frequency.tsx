@@ -124,12 +124,30 @@ export default function RecordFrequency() {
                       borderColor: obj.enabled ? 'rgb(120, 120, 120)' : 'rgb(80, 80, 80)',
                       boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)'
                     }}
-                    onClick={(e) => {
+                    onMouseDown={(e) => {
                       if (!obj.enabled) return;
+                      
                       const rect = e.currentTarget.getBoundingClientRect();
-                      const clickY = e.clientY - rect.top;
+                      const startY = e.clientY;
                       const containerHeight = rect.height;
-                      // Convert click position to value (inverted because 0 is at bottom)
+                      
+                      const handleMouseMove = (moveEvent: MouseEvent) => {
+                        const currentY = moveEvent.clientY - rect.top;
+                        const newValue = Math.round(100 - (currentY / containerHeight) * 100);
+                        const clampedValue = Math.max(0, Math.min(100, newValue));
+                        handleSliderChange(index, clampedValue);
+                      };
+                      
+                      const handleMouseUp = () => {
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('mouseup', handleMouseUp);
+                      };
+                      
+                      document.addEventListener('mousemove', handleMouseMove);
+                      document.addEventListener('mouseup', handleMouseUp);
+                      
+                      // Set initial position
+                      const clickY = e.clientY - rect.top;
                       const newValue = Math.round(100 - (clickY / containerHeight) * 100);
                       const clampedValue = Math.max(0, Math.min(100, newValue));
                       handleSliderChange(index, clampedValue);
