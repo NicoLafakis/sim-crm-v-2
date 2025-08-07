@@ -13,6 +13,7 @@ export default function RecordFrequency() {
   const [customFields, setCustomFields] = useState(false);
   const [specificOwnership, setSpecificOwnership] = useState(false);
   const [distributionWeights, setDistributionWeights] = useState(false);
+  const [timeSpan, setTimeSpan] = useState('30 days');
   
   const labels = ['Contacts', 'Companies', 'Deals', 'Tickets', 'Notes'];
   const disabledLabels = ['Tasks', 'Calls'];
@@ -370,6 +371,49 @@ export default function RecordFrequency() {
           .back-button:hover {
             opacity: 0.75;
           }
+
+          .timespan-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+          }
+
+          .timespan-label {
+            color: #4ade80;
+            font-family: 'Quantico';
+            font-size: 14px;
+            font-weight: bold;
+          }
+
+          .timespan-dropdown {
+            background: #1a1f2e;
+            border: 2px solid #4ade80;
+            color: #4ade80;
+            padding: 8px 12px;
+            font-family: 'Quantico';
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+            min-width: 120px;
+          }
+
+          .timespan-dropdown:hover {
+            background: #2d3748;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+          }
+
+          .timespan-dropdown option {
+            background: #1a1f2e;
+            color: #4ade80;
+            font-family: 'Quantico';
+          }
+
+          .timespan-dropdown option:disabled {
+            color: #6b7280;
+            background: #0f1419;
+          }
         `}</style>
 
         <div className="title">Record Frequency</div>
@@ -377,6 +421,28 @@ export default function RecordFrequency() {
         <div className="header-row">
           <div className="player-info">Player: {localStorage.getItem('username') || 'Guest'}</div>
           <div className="records-info">Records: {recordsDisplay}</div>
+        </div>
+
+        {/* TimeSpan Dropdown */}
+        <div className="timespan-container">
+          <label className="timespan-label" htmlFor="timespan-select">Time Span:</label>
+          <select
+            id="timespan-select"
+            className="timespan-dropdown"
+            value={timeSpan}
+            onChange={(e) => setTimeSpan(e.target.value)}
+            data-testid="dropdown-timespan"
+          >
+            <option value="1 day">1 day</option>
+            <option value="7 days">7 days</option>
+            <option value="14 days">14 days</option>
+            <option value="30 days">30 days</option>
+            <option value="60 days">60 days</option>
+            <option value="90 days" disabled>90 days (unavailable)</option>
+            <option value="120 days" disabled>120 days (unavailable)</option>
+            <option value="190 days" disabled>190 days (unavailable)</option>
+            <option value="Custom" disabled>Custom (unavailable)</option>
+          </select>
         </div>
 
         <div className="sliders-grid">
