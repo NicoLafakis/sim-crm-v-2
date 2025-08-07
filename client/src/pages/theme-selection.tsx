@@ -410,7 +410,7 @@ export default function ThemeSelection() {
         
         <button
           onClick={() => setLocation('/hubspot-setup')}
-          className="px-6 py-2 font-bold tracking-wide transition-all"
+          className="px-6 py-2 transition-all"
           style={{ 
             color: 'rgb(200, 220, 140)',
             textDecoration: 'underline',
@@ -420,7 +420,7 @@ export default function ThemeSelection() {
           }}
           data-testid="button-back"
         >
-          ← Back to HubSpot Setup
+          ← Back To HubSpot Setup
         </button>
       </div>
     </div>

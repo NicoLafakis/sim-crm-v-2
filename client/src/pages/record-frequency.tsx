@@ -359,8 +359,9 @@ export default function RecordFrequency() {
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
+            font-family: 'Open Sans', sans-serif;
+            font-size: 0.75rem;
+            line-height: 1rem;
             margin-bottom: 20px;
             transition: opacity 0.2s;
           }
@@ -496,7 +497,7 @@ export default function RecordFrequency() {
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <button
             onClick={() => setLocation('/industry-selection')}
-            className="px-6 py-2 font-bold tracking-wide transition-all"
+            className="px-6 py-2 transition-all"
             style={{ 
               color: 'rgb(200, 220, 140)',
               textDecoration: 'underline',
@@ -506,7 +507,7 @@ export default function RecordFrequency() {
             }}
             data-testid="button-back"
           >
-            ← Back to Industries
+            ← Back To Industries
           </button>
         </div>
 

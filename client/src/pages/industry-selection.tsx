@@ -118,14 +118,17 @@ export default function IndustrySelection() {
           <div className="flex justify-center space-x-4">
             <button
               onClick={() => setLocation('/theme-selection')}
-              className="px-6 py-2 text-sm font-bold uppercase tracking-wide transition-all"
+              className="px-6 py-2 transition-all"
               style={{ 
                 color: 'rgb(200, 220, 140)',
-                textDecoration: 'underline'
+                textDecoration: 'underline',
+                fontFamily: 'Open Sans, sans-serif',
+                fontSize: '0.75rem',
+                lineHeight: '1rem'
               }}
               data-testid="button-back"
             >
-              ← Back to Themes
+              ← Back To Themes
             </button>
             
             <button
