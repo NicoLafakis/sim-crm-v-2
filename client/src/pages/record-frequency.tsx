@@ -176,11 +176,12 @@ export default function RecordFrequency() {
 
           .slider-input {
             position: absolute;
-            width: 40px;
-            height: 160px;
+            width: 100%;
+            height: 100%;
             opacity: 0;
             cursor: grab;
-            transform: rotate(270deg);
+            -webkit-appearance: slider-vertical;
+            writing-mode: bt-lr;
           }
 
           .slider-value {
@@ -250,13 +251,13 @@ export default function RecordFrequency() {
           .checkbox {
             width: 16px;
             height: 16px;
-            background: ${autoMode ? '#4ade80' : '#2d3748'};
-            border: 1px solid ${autoMode ? '#22c55e' : '#4a5568'};
-            cursor: ${autoMode ? 'default' : 'pointer'};
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            cursor: default;
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: ${autoMode ? 0.5 : 1};
+            opacity: 0.5;
           }
 
           .checkbox.checked::after {
@@ -372,7 +373,7 @@ export default function RecordFrequency() {
         <div className="title">Record Frequency</div>
 
         <div className="header-row">
-          <div className="player-info">Player: Player1</div>
+          <div className="player-info">Player: {localStorage.getItem('username') || 'Guest'}</div>
           <div className="records-info">Records: {recordsDisplay}</div>
         </div>
 
@@ -498,7 +499,7 @@ export default function RecordFrequency() {
             className="back-button"
             data-testid="button-back"
           >
-            ← Back To Industries
+            ← Back to Industries
           </button>
         </div>
 
