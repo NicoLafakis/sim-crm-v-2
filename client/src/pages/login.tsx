@@ -93,7 +93,7 @@ export default function Login() {
                alignItems: 'center',
                justifyContent: 'center',
                flexWrap: 'wrap',
-               margin: '6% auto',
+               margin: 'auto',
                width: '350px',
                boxShadow: 'inset 4px 4px 5px 0px #444'
              }}>
