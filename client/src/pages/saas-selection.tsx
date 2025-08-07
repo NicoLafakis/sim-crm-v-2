@@ -21,25 +21,25 @@ export default function SaasSelection() {
     <div className="min-h-screen font-gameboy" 
          style={{ 
            backgroundColor: 'rgb(34, 78, 34)',
-           backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
+           backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
            backgroundSize: '20px 20px'
          }}>
-      
+
       {/* Header */}
       <div className="text-center pt-8 pb-6" style={{ 
         backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
+        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
         backgroundSize: '20px 20px'
       }}>
         <h1 className="text-2xl font-bold uppercase tracking-wider mb-2" style={{ color: 'rgb(200, 220, 140)' }}>
           Select a SaaS Tool
         </h1>
       </div>
-      
+
       {/* CRM Section */}
       <div className="px-8 mb-8" style={{ 
         backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
+        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
         backgroundSize: '20px 20px'
       }}>
         <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
@@ -57,7 +57,7 @@ export default function SaasSelection() {
               HubSpot
             </div>
           </button>
-          
+
           {/* Salesforce - Disabled */}
           <button
             onClick={() => handleSaasSelect('salesforce')}
@@ -70,7 +70,7 @@ export default function SaasSelection() {
               Salesforce
             </div>
           </button>
-          
+
           {/* Zoho CRM - Disabled */}
           <button
             onClick={() => handleSaasSelect('zoho')}
@@ -83,7 +83,7 @@ export default function SaasSelection() {
               Zoho CRM
             </div>
           </button>
-          
+
           {/* Pipedrive - Disabled */}
           <button
             onClick={() => handleSaasSelect('pipedrive')}
@@ -98,11 +98,11 @@ export default function SaasSelection() {
           </button>
         </div>
       </div>
-      
+
       {/* Marketing Automation Section */}
       <div className="px-8 mb-8" style={{ 
         backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
+        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
         backgroundSize: '20px 20px'
       }}>
         <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
@@ -121,7 +121,7 @@ export default function SaasSelection() {
               Marketo
             </div>
           </button>
-          
+
           {/* Mailchimp - Disabled */}
           <button
             onClick={() => handleSaasSelect('mailchimp')}
@@ -134,7 +134,7 @@ export default function SaasSelection() {
               Mailchimp
             </div>
           </button>
-          
+
           {/* ActiveCampaign - Disabled */}
           <button
             onClick={() => handleSaasSelect('activecampaign')}
@@ -147,7 +147,7 @@ export default function SaasSelection() {
               ActiveCampaign
             </div>
           </button>
-          
+
           {/* Klaviyo - Disabled */}
           <button
             onClick={() => handleSaasSelect('klaviyo')}
@@ -162,11 +162,11 @@ export default function SaasSelection() {
           </button>
         </div>
       </div>
-      
+
       {/* Project Management Section */}
       <div className="px-8 mb-8" style={{ 
         backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
+        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
         backgroundSize: '20px 20px'
       }}>
         <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
@@ -185,7 +185,7 @@ export default function SaasSelection() {
               Monday.com
             </div>
           </button>
-          
+
           {/* Asana - Disabled */}
           <button
             onClick={() => handleSaasSelect('asana')}
@@ -198,7 +198,7 @@ export default function SaasSelection() {
               Asana
             </div>
           </button>
-          
+
           {/* Trello - Disabled */}
           <button
             onClick={() => handleSaasSelect('trello')}
@@ -211,7 +211,7 @@ export default function SaasSelection() {
               Trello
             </div>
           </button>
-          
+
           {/* Notion - Disabled */}
           <button
             onClick={() => handleSaasSelect('notion')}
