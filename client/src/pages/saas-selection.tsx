@@ -26,14 +26,22 @@ export default function SaasSelection() {
          }}>
       
       {/* Header */}
-      <div className="text-center pt-8 pb-6" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
+      <div className="text-center pt-8 pb-6" style={{ 
+        backgroundColor: 'rgb(34, 78, 34)',
+        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
+        backgroundSize: '20px 20px'
+      }}>
         <h1 className="text-2xl font-bold uppercase tracking-wider mb-2" style={{ color: 'rgb(200, 220, 140)' }}>
           Select a SaaS Tool
         </h1>
       </div>
       
       {/* CRM Section */}
-      <div className="px-8 mb-8" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
+      <div className="px-8 mb-8" style={{ 
+        backgroundColor: 'rgb(34, 78, 34)',
+        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
+        backgroundSize: '20px 20px'
+      }}>
         <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
           CRM
         </h2>
@@ -92,7 +100,11 @@ export default function SaasSelection() {
       </div>
       
       {/* Marketing Automation Section */}
-      <div className="px-8 mb-8" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
+      <div className="px-8 mb-8" style={{ 
+        backgroundColor: 'rgb(34, 78, 34)',
+        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
+        backgroundSize: '20px 20px'
+      }}>
         <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
           Marketing Automation
         </h2>
@@ -152,7 +164,11 @@ export default function SaasSelection() {
       </div>
       
       {/* Project Management Section */}
-      <div className="px-8 mb-8" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
+      <div className="px-8 mb-8" style={{ 
+        backgroundColor: 'rgb(34, 78, 34)',
+        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
+        backgroundSize: '20px 20px'
+      }}>
         <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
           Project Management
         </h2>
