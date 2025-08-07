@@ -19,7 +19,11 @@ export default function SaasSelection() {
 
   return (
     <div className="min-h-screen font-gameboy" 
-         style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
+         style={{ 
+           backgroundColor: 'rgb(34, 78, 34)',
+           backgroundImage: 'linear-gradient(rgba(50, 94, 50, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(50, 94, 50, 0.3) 1px, transparent 1px)',
+           backgroundSize: '20px 20px'
+         }}>
       
       {/* Header */}
       <div className="text-center pt-8 pb-6" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
