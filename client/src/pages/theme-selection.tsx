@@ -417,7 +417,7 @@ export default function ThemeSelection() {
           }}
           data-testid="button-back"
         >
-          ← Back To HubSpot Setup
+          ← Back to HubSpot Setup
         </button>
       </div>
     </div>
