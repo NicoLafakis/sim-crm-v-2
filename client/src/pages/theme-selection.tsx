@@ -17,6 +17,11 @@ export default function ThemeSelection() {
       title: "Theme Selected",
       description: `${themeId} theme selected. Ready to proceed to simulation setup!`,
     });
+
+    // Auto-navigate after selection
+    setTimeout(() => {
+      handleProceedToSimulation();
+    }, 800);
   };
 
   const handleProceedToSimulation = () => {
@@ -412,7 +417,7 @@ export default function ThemeSelection() {
           }}
           data-testid="button-back"
         >
-          ← Back to HubSpot Setup
+          ← Back To HubSpot Setup
         </button>
       </div>
     </div>

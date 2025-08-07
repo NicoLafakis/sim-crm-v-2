@@ -26,6 +26,15 @@ export default function IndustrySelection() {
 
   const handleIndustrySelect = (industry: string) => {
     setSelectedIndustry(industry);
+    toast({
+      title: "Industry Selected",
+      description: `${industry} industry selected for simulation!`,
+    });
+
+    // Auto-navigate after selection
+    setTimeout(() => {
+      handleContinue();
+    }, 800);
   };
 
   const handleContinue = () => {
@@ -116,7 +125,7 @@ export default function IndustrySelection() {
               }}
               data-testid="button-back"
             >
-              ← Back to Themes
+              ← Back To Themes
             </button>
             
             <button
