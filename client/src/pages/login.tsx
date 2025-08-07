@@ -28,7 +28,7 @@ export default function Login() {
         description: isRegistering ? "Account created successfully!" : "Logged in successfully!",
       });
       
-      setLocation('/profile');
+      setLocation('/saas-selection');
     },
     onError: (error) => {
       toast({

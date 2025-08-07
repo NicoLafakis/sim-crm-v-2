@@ -5,7 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
-import Profile from "@/pages/profile";
+import SaasSelection from "@/pages/saas-selection";
+import HubSpotSetup from "@/pages/hubspot-setup";
 import ThemeSelection from "@/pages/theme-selection";
 import IndustrySelection from "@/pages/industry-selection";
 import FrequencySelection from "@/pages/frequency-selection";
@@ -17,7 +18,8 @@ function Router() {
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
-      <Route path="/profile" component={Profile} />
+      <Route path="/saas-selection" component={SaasSelection} />
+      <Route path="/hubspot-setup" component={HubSpotSetup} />
       <Route path="/theme-selection" component={ThemeSelection} />
       <Route path="/industry-selection" component={IndustrySelection} />
       <Route path="/frequency-selection" component={FrequencySelection} />
