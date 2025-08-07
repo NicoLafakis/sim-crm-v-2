@@ -23,14 +23,14 @@ export default function SaasSelection() {
       
       {/* Header */}
       <div className="text-center pt-8 pb-6" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
-        <h1 className="text-2xl font-bold uppercase tracking-wider mb-2" style={{ color: 'rgb(155, 187, 88)' }}>
+        <h1 className="text-2xl font-bold uppercase tracking-wider mb-2" style={{ color: 'rgb(200, 220, 140)' }}>
           Select a SaaS Tool
         </h1>
       </div>
       
       {/* CRM Section */}
       <div className="px-8 mb-8" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
-        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(155, 187, 88)' }}>
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
           CRM
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
@@ -89,7 +89,7 @@ export default function SaasSelection() {
       
       {/* Marketing Automation Section */}
       <div className="px-8 mb-8" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
-        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(155, 187, 88)' }}>
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
           Marketing Automation
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
@@ -149,7 +149,7 @@ export default function SaasSelection() {
       
       {/* Project Management Section */}
       <div className="px-8 mb-8" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
-        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(155, 187, 88)' }}>
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
           Project Management
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
