@@ -24,9 +24,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           selectedTheme: null,
           selectedIndustry: null,
           selectedFrequency: null,
-          playerTier: "new-player",
-          creditLimit: 150,
-          simulationSettings: null
+          simulationConfig: null
         });
       }
       
@@ -53,9 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selectedTheme: null,
         selectedIndustry: null,
         selectedFrequency: null,
-        playerTier: "new-player",
-        creditLimit: 150,
-        simulationSettings: null
+        simulationConfig: null
       });
       
       res.json({ user, session });
@@ -68,9 +64,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Session management
   app.put("/api/session/:userId", async (req, res) => {
     try {
-      const { userId } = req.params;
-      const updates = req.body;
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
       
+      const updates = req.body;
       const session = await storage.updateSession(userId, updates);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
@@ -85,7 +84,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/session/:userId", async (req, res) => {
     try {
-      const { userId } = req.params;
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
       const session = await storage.getSession(userId);
       
       if (!session) {
@@ -112,7 +115,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/player-tiers/:id", async (req, res) => {
     try {
-      const { id } = req.params;
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid tier ID" });
+      }
+      
       const tier = await storage.getPlayerTier(id);
       
       if (!tier) {
@@ -155,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userId, settings } = req.body;
       
       await storage.updateSession(userId, {
-        simulationSettings: JSON.stringify(settings)
+        simulationConfig: settings
       });
       
       // In production, this would initialize HubSpot data generation
