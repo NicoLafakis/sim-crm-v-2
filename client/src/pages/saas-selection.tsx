@@ -1,17 +1,6 @@
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 
-const saasProducts = [
-  { id: 'hubspot', name: 'HubSpot', icon: '🟠', description: 'Marketing Hub', available: true },
-  { id: 'salesforce', name: 'Salesforce', icon: '☁️', description: 'Sales Cloud', available: false },
-  { id: 'pipedrive', name: 'Pipedrive', icon: '🔵', description: 'CRM Platform', available: false },
-  { id: 'monday', name: 'Monday.com', icon: '📊', description: 'Work OS', available: false },
-  { id: 'zoho', name: 'Zoho CRM', icon: '🔸', description: 'Business Suite', available: false },
-  { id: 'freshworks', name: 'Freshworks', icon: '🌿', description: 'Customer Suite', available: false },
-  { id: 'mailchimp', name: 'Mailchimp', icon: '🐵', description: 'Marketing Platform', available: false },
-  { id: 'active-campaign', name: 'ActiveCampaign', icon: '⚡', description: 'Email Marketing', available: false }
-];
-
 export default function SaasSelection() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -29,151 +18,192 @@ export default function SaasSelection() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-200 flex flex-col items-center justify-center font-gameboy"
-         style={{
-           backgroundImage: `
-             linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
-             linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
-           `,
-           backgroundSize: '16px 16px'
-         }}>
+    <div className="min-h-screen font-gameboy" 
+         style={{ backgroundColor: 'rgb(155, 187, 88)' }}>
       
-      {/* SimCRM. Title */}
-      <div className="mb-8">
-        <h1 className="text-3xl tracking-wider">
-          <span style={{ color: '#000782' }}>SimCRM</span>
-          <span className="text-red-800">.</span>
+      {/* Header */}
+      <div className="text-center pt-8 pb-6">
+        <h1 className="text-green-900 text-2xl font-bold uppercase tracking-wider mb-2">
+          Select a SaaS Tool
         </h1>
       </div>
       
-      {/* Main Console Frame */}
-      <div className="bg-gray-500 p-6 relative"
-           style={{ 
-             background: 'linear-gradient(145deg, #8A8A8A, #6A6A6A)',
-             width: '800px',
-             height: '600px',
-             borderBottomRightRadius: '70px',
-             borderTopRightRadius: '20px',
-             borderTopLeftRadius: '20px',
-             borderBottomLeftRadius: '20px'
-           }}>
-        
-        {/* Game Boy Screen */}
-        <div className="bg-yellow-500 p-8" 
-             style={{ 
-               backgroundColor: 'rgb(155, 187, 88)',
-               borderRadius: '4px',
-               height: '530px',
-               display: 'flex',
-               flexDirection: 'column',
-               margin: 'auto',
-               width: '700px',
-               boxShadow: 'inset 4px 4px 5px 0px #444'
-             }}>
-          
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h2 className="text-green-900 text-2xl font-bold uppercase tracking-wide mb-4">
-              Select a SaaS Product
-            </h2>
-          </div>
-          
-          {/* CRM & Marketing Platforms */}
-          <div className="mb-8">
-            <h3 className="text-green-800 text-lg font-bold uppercase tracking-wide text-center mb-4">
-              CRM & Marketing
-            </h3>
-            <div className="grid grid-cols-4 gap-4">
-              {saasProducts.slice(0, 4).map((product) => (
-                <button
-                  key={product.id}
-                  onClick={() => handleSaasSelect(product.id)}
-                  disabled={!product.available}
-                  className={`p-4 rounded border-2 transition-all text-center relative ${
-                    product.available
-                      ? 'border-green-700 bg-green-100 hover:bg-green-200 cursor-pointer'
-                      : 'border-gray-600 bg-gray-400 cursor-not-allowed opacity-60'
-                  }`}
-                  style={{ 
-                    backgroundColor: product.available ? '#C8E0B0' : '#9CA3AF',
-                    borderColor: product.available ? '#15803d' : '#4B5563'
-                  }}
-                  data-testid={`saas-${product.id}`}
-                >
-                  <div className="text-2xl mb-2">{product.icon}</div>
-                  <div className={`font-bold text-xs mb-1 ${
-                    product.available ? 'text-green-900' : 'text-gray-600'
-                  }`}>
-                    {product.name}
-                  </div>
-                  <div className={`text-xs ${
-                    product.available ? 'text-green-800' : 'text-gray-500'
-                  }`}>
-                    {product.description}
-                  </div>
-                  {!product.available && (
-                    <div className="absolute top-1 right-1 text-red-800 text-xs font-bold">
-                      LOCKED
-                    </div>
-                  )}
-                </button>
-              ))}
+      {/* CRM Section */}
+      <div className="px-8 mb-8">
+        <h2 className="text-green-800 text-lg font-bold uppercase tracking-wide text-center mb-6">
+          CRM
+        </h2>
+        <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
+          {/* HubSpot - Available */}
+          <button
+            onClick={() => handleSaasSelect('hubspot')}
+            className="h-24 rounded border-2 border-blue-600 bg-blue-900 text-white cursor-pointer hover:bg-blue-800 text-center flex flex-col justify-center items-center transition-all"
+            data-testid="saas-hubspot"
+          >
+            <div className="text-lg mb-1">⚙️</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              HubSpot
             </div>
-          </div>
+          </button>
           
-          {/* Sales & Support Tools */}
-          <div className="mb-6">
-            <h3 className="text-green-800 text-lg font-bold uppercase tracking-wide text-center mb-4">
-              Sales & Support
-            </h3>
-            <div className="grid grid-cols-4 gap-4">
-              {saasProducts.slice(4, 8).map((product) => (
-                <button
-                  key={product.id}
-                  onClick={() => handleSaasSelect(product.id)}
-                  disabled={!product.available}
-                  className={`p-4 rounded border-2 transition-all text-center relative ${
-                    product.available
-                      ? 'border-green-700 bg-green-100 hover:bg-green-200 cursor-pointer'
-                      : 'border-gray-600 bg-gray-400 cursor-not-allowed opacity-60'
-                  }`}
-                  style={{ 
-                    backgroundColor: product.available ? '#C8E0B0' : '#9CA3AF',
-                    borderColor: product.available ? '#15803d' : '#4B5563'
-                  }}
-                  data-testid={`saas-${product.id}`}
-                >
-                  <div className="text-2xl mb-2">{product.icon}</div>
-                  <div className={`font-bold text-xs mb-1 ${
-                    product.available ? 'text-green-900' : 'text-gray-600'
-                  }`}>
-                    {product.name}
-                  </div>
-                  <div className={`text-xs ${
-                    product.available ? 'text-green-800' : 'text-gray-500'
-                  }`}>
-                    {product.description}
-                  </div>
-                  {!product.available && (
-                    <div className="absolute top-1 right-1 text-red-800 text-xs font-bold">
-                      LOCKED
-                    </div>
-                  )}
-                </button>
-              ))}
+          {/* Salesforce - Disabled */}
+          <button
+            onClick={() => handleSaasSelect('salesforce')}
+            disabled
+            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            data-testid="saas-salesforce"
+          >
+            <div className="text-lg mb-1">☁️</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              Salesforce
             </div>
-          </div>
+          </button>
           
-          {/* Back Button */}
-          <div className="text-center mt-auto">
-            <button
-              onClick={() => setLocation('/login')}
-              className="text-green-700 text-xs underline hover:text-green-600"
-              data-testid="button-back"
-            >
-              Back to Login
-            </button>
-          </div>
+          {/* Zoho CRM - Disabled */}
+          <button
+            onClick={() => handleSaasSelect('zoho')}
+            disabled
+            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            data-testid="saas-zoho"
+          >
+            <div className="text-lg mb-1">📊</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              Zoho CRM
+            </div>
+          </button>
+          
+          {/* Pipedrive - Disabled */}
+          <button
+            onClick={() => handleSaasSelect('pipedrive')}
+            disabled
+            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            data-testid="saas-pipedrive"
+          >
+            <div className="text-lg mb-1">📈</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              Pipedrive
+            </div>
+          </button>
+        </div>
+      </div>
+      
+      {/* Marketing Automation Section */}
+      <div className="px-8 mb-8">
+        <h2 className="text-green-800 text-lg font-bold uppercase tracking-wide text-center mb-6">
+          Marketing Automation
+        </h2>
+        <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
+          {/* Marketo - Disabled */}
+          <button
+            onClick={() => handleSaasSelect('marketo')}
+            disabled
+            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            data-testid="saas-marketo"
+          >
+            <div className="text-lg mb-1">🎯</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              Marketo
+            </div>
+          </button>
+          
+          {/* Mailchimp - Disabled */}
+          <button
+            onClick={() => handleSaasSelect('mailchimp')}
+            disabled
+            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            data-testid="saas-mailchimp"
+          >
+            <div className="text-lg mb-1">🐒</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              Mailchimp
+            </div>
+          </button>
+          
+          {/* ActiveCampaign - Disabled */}
+          <button
+            onClick={() => handleSaasSelect('activecampaign')}
+            disabled
+            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            data-testid="saas-activecampaign"
+          >
+            <div className="text-lg mb-1">⚡</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              ActiveCampaign
+            </div>
+          </button>
+          
+          {/* Klaviyo - Disabled */}
+          <button
+            onClick={() => handleSaasSelect('klaviyo')}
+            disabled
+            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            data-testid="saas-klaviyo"
+          >
+            <div className="text-lg mb-1">📧</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              Klaviyo
+            </div>
+          </button>
+        </div>
+      </div>
+      
+      {/* Project Management Section */}
+      <div className="px-8 mb-8">
+        <h2 className="text-green-800 text-lg font-bold uppercase tracking-wide text-center mb-6">
+          Project Management
+        </h2>
+        <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
+          {/* Monday.com - Disabled */}
+          <button
+            onClick={() => handleSaasSelect('monday')}
+            disabled
+            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            data-testid="saas-monday"
+          >
+            <div className="text-lg mb-1">📋</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              Monday.com
+            </div>
+          </button>
+          
+          {/* Asana - Disabled */}
+          <button
+            onClick={() => handleSaasSelect('asana')}
+            disabled
+            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            data-testid="saas-asana"
+          >
+            <div className="text-lg mb-1">✅</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              Asana
+            </div>
+          </button>
+          
+          {/* Trello - Disabled */}
+          <button
+            onClick={() => handleSaasSelect('trello')}
+            disabled
+            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            data-testid="saas-trello"
+          >
+            <div className="text-lg mb-1">📝</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              Trello
+            </div>
+          </button>
+          
+          {/* Notion - Disabled */}
+          <button
+            onClick={() => handleSaasSelect('notion')}
+            disabled
+            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            data-testid="saas-notion"
+          >
+            <div className="text-lg mb-1">📄</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              Notion
+            </div>
+          </button>
         </div>
       </div>
     </div>
