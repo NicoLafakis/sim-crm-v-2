@@ -45,7 +45,7 @@ export default function RecordFrequency() {
 
   const handleAutoChange = (newValue: number) => {
     const val = parseInt(newValue.toString());
-    const maxPerSlider = Math.floor(maxTotal / 5);
+    const maxPerSlider = 30; // Fixed max for auto mode
     const limitedValue = Math.min(val, maxPerSlider);
     setAutoValue(limitedValue);
   };
@@ -369,7 +369,7 @@ export default function RecordFrequency() {
           }
         `}</style>
 
-        <div className="title">Simulation Setup</div>
+        <div className="title">Record Frequency</div>
 
         <div className="header-row">
           <div className="player-info">Player: Player1</div>
@@ -421,7 +421,7 @@ export default function RecordFrequency() {
                   type="range"
                   className="slider-input"
                   min="0"
-                  max="50"
+                  max={maxTotal}
                   value={values[index]}
                   onChange={(e) => handleSliderChange(index, parseInt(e.target.value))}
                   disabled={autoMode}
@@ -429,7 +429,7 @@ export default function RecordFrequency() {
                 />
                 <div 
                   className={`slider-thumb ${autoMode ? 'disabled-thumb' : ''}`}
-                  style={{ bottom: `${values[index] / 50 * 80}%` }}
+                  style={{ bottom: `${values[index] / maxTotal * 80}%` }}
                 />
               </div>
               <div className="slider-label">{label}</div>
@@ -455,42 +455,38 @@ export default function RecordFrequency() {
           <div className="options-grid">
             <div className="option-item">
               <div 
-                className={`option-checkbox ${customObjects ? 'checked' : ''}`}
-                onClick={() => !autoMode && setCustomObjects(!customObjects)}
-                style={{ opacity: autoMode ? 0.5 : 1 }}
+                className="option-checkbox"
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
               />
               <div className="option-label">Custom Objects</div>
-              {autoMode && <div className="locked-indicator">LOCKED</div>}
+              <div className="locked-indicator">LOCKED</div>
             </div>
             
             <div className="option-item">
               <div 
-                className={`option-checkbox ${customFields ? 'checked' : ''}`}
-                onClick={() => !autoMode && setCustomFields(!customFields)}
-                style={{ opacity: autoMode ? 0.5 : 1 }}
+                className="option-checkbox"
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
               />
               <div className="option-label">Custom Fields</div>
-              {autoMode && <div className="locked-indicator">LOCKED</div>}
+              <div className="locked-indicator">LOCKED</div>
             </div>
             
             <div className="option-item">
               <div 
-                className={`option-checkbox ${specificOwnership ? 'checked' : ''}`}
-                onClick={() => !autoMode && setSpecificOwnership(!specificOwnership)}
-                style={{ opacity: autoMode ? 0.5 : 1 }}
+                className="option-checkbox"
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
               />
               <div className="option-label">Specific Ownership</div>
-              {autoMode && <div className="locked-indicator">LOCKED</div>}
+              <div className="locked-indicator">LOCKED</div>
             </div>
             
             <div className="option-item">
               <div 
-                className={`option-checkbox ${distributionWeights ? 'checked' : ''}`}
-                onClick={() => !autoMode && setDistributionWeights(!distributionWeights)}
-                style={{ opacity: autoMode ? 0.5 : 1 }}
+                className="option-checkbox"
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
               />
               <div className="option-label">Distribution Weights</div>
-              {autoMode && <div className="locked-indicator">LOCKED</div>}
+              <div className="locked-indicator">LOCKED</div>
             </div>
           </div>
         </div>

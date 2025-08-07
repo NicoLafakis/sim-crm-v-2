@@ -15,12 +15,12 @@ export default function ThemeSelection() {
     setSelectedTheme(themeId);
     toast({
       title: "Theme Selected",
-      description: `${themeId} theme selected. Ready to proceed to simulation setup!`,
+      description: `${themeId} theme selected!`,
     });
 
     // Auto-navigate after selection
     setTimeout(() => {
-      handleProceedToSimulation();
+      setLocation('/industry-selection');
     }, 800);
   };
 
