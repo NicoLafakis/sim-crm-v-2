@@ -71,13 +71,15 @@ export default function Login() {
       </div>
       
       {/* Main Console Frame */}
-      <div className="bg-gray-500 p-6 shadow-2xl relative"
+      <div className="bg-gray-500 p-6 relative"
            style={{ 
              background: 'linear-gradient(145deg, #8A8A8A, #6A6A6A)',
-             clipPath: 'polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%)',
-             borderRadius: '4px',
-             width: '400px',
-             height: '300px'
+             width: '500px',
+             height: '265px',
+             borderBottomRightRadius: '70px',
+             borderTopRightRadius: '20px',
+             borderTopLeftRadius: '20px',
+             borderBottomLeftRadius: '20px'
            }}>
         
         {/* Inner Black Border */}
