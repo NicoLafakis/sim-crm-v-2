@@ -76,67 +76,67 @@ export default function ThemeSelection() {
           Music
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
-          {/* Rock */}
+          {/* Beatles */}
           <button
-            onClick={() => handleThemeSelect('Rock')}
+            onClick={() => handleThemeSelect('Beatles')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Rock' 
+              selectedTheme === 'Beatles' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-rock"
+            data-testid="theme-beatles"
           >
             <div className="text-lg mb-1">🎸</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Rock
+              Beatles
             </div>
           </button>
           
-          {/* Pop */}
+          {/* Madonna */}
           <button
-            onClick={() => handleThemeSelect('Pop')}
+            onClick={() => handleThemeSelect('Madonna')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Pop' 
+              selectedTheme === 'Madonna' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-pop"
+            data-testid="theme-madonna"
           >
             <div className="text-lg mb-1">🎤</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Pop
+              Madonna
             </div>
           </button>
           
-          {/* Hip-Hop */}
+          {/* Drake */}
           <button
-            onClick={() => handleThemeSelect('Hip-Hop')}
+            onClick={() => handleThemeSelect('Drake')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Hip-Hop' 
+              selectedTheme === 'Drake' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-hiphop"
+            data-testid="theme-drake"
           >
             <div className="text-lg mb-1">🎵</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Hip-Hop
+              Drake
             </div>
           </button>
           
-          {/* Electronic */}
+          {/* Daft Punk */}
           <button
-            onClick={() => handleThemeSelect('Electronic')}
+            onClick={() => handleThemeSelect('Daft Punk')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Electronic' 
+              selectedTheme === 'Daft Punk' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-electronic"
+            data-testid="theme-daftpunk"
           >
             <div className="text-lg mb-1">🎹</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Electronic
+              Daft Punk
             </div>
           </button>
         </div>
@@ -152,67 +152,67 @@ export default function ThemeSelection() {
           Movies
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
-          {/* Action */}
+          {/* Star Wars */}
           <button
-            onClick={() => handleThemeSelect('Action')}
+            onClick={() => handleThemeSelect('Star Wars')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Action' 
+              selectedTheme === 'Star Wars' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-action"
+            data-testid="theme-starwars"
           >
-            <div className="text-lg mb-1">💥</div>
+            <div className="text-lg mb-1">⭐</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Action
+              Star Wars
             </div>
           </button>
           
-          {/* Comedy */}
+          {/* Marvel */}
           <button
-            onClick={() => handleThemeSelect('Comedy')}
+            onClick={() => handleThemeSelect('Marvel')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Comedy' 
+              selectedTheme === 'Marvel' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-comedy"
+            data-testid="theme-marvel"
           >
-            <div className="text-lg mb-1">😂</div>
+            <div className="text-lg mb-1">🦸</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Comedy
+              Marvel
             </div>
           </button>
           
-          {/* Drama */}
+          {/* Harry Potter */}
           <button
-            onClick={() => handleThemeSelect('Drama')}
+            onClick={() => handleThemeSelect('Harry Potter')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Drama' 
+              selectedTheme === 'Harry Potter' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-drama"
+            data-testid="theme-harrypotter"
           >
-            <div className="text-lg mb-1">🎭</div>
+            <div className="text-lg mb-1">⚡</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Drama
+              Harry Potter
             </div>
           </button>
           
-          {/* Sci-Fi */}
+          {/* Fast & Furious */}
           <button
-            onClick={() => handleThemeSelect('Sci-Fi')}
+            onClick={() => handleThemeSelect('Fast & Furious')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Sci-Fi' 
+              selectedTheme === 'Fast & Furious' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-scifi"
+            data-testid="theme-fastfurious"
           >
-            <div className="text-lg mb-1">🚀</div>
+            <div className="text-lg mb-1">🏎️</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Sci-Fi
+              Fast & Furious
             </div>
           </button>
         </div>
@@ -228,67 +228,67 @@ export default function ThemeSelection() {
           Video Games
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
-          {/* Action/Adventure */}
+          {/* Zelda */}
           <button
-            onClick={() => handleThemeSelect('Action/Adventure')}
+            onClick={() => handleThemeSelect('Zelda')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Action/Adventure' 
+              selectedTheme === 'Zelda' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-action-adventure"
+            data-testid="theme-zelda"
           >
             <div className="text-lg mb-1">🗡️</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Action/Adventure
+              Zelda
             </div>
           </button>
           
-          {/* Shooter */}
+          {/* Red Dead Redemption */}
           <button
-            onClick={() => handleThemeSelect('Shooter')}
+            onClick={() => handleThemeSelect('Red Dead Redemption')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Shooter' 
+              selectedTheme === 'Red Dead Redemption' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-shooter"
+            data-testid="theme-rdr"
           >
-            <div className="text-lg mb-1">🔫</div>
+            <div className="text-lg mb-1">🤠</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Shooter
+              Red Dead Redemption
             </div>
           </button>
           
-          {/* Sports */}
+          {/* Megaman */}
           <button
-            onClick={() => handleThemeSelect('Sports')}
+            onClick={() => handleThemeSelect('Megaman')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Sports' 
+              selectedTheme === 'Megaman' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-sports"
+            data-testid="theme-megaman"
           >
-            <div className="text-lg mb-1">⚽</div>
+            <div className="text-lg mb-1">🤖</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Sports
+              Megaman
             </div>
           </button>
           
-          {/* RPG */}
+          {/* Final Fantasy */}
           <button
-            onClick={() => handleThemeSelect('RPG')}
+            onClick={() => handleThemeSelect('Final Fantasy')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'RPG' 
+              selectedTheme === 'Final Fantasy' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-rpg"
+            data-testid="theme-ff"
           >
             <div className="text-lg mb-1">⚔️</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              RPG
+              Final Fantasy
             </div>
           </button>
         </div>
@@ -304,67 +304,67 @@ export default function ThemeSelection() {
           TV Shows
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
-          {/* Sitcom */}
+          {/* Friends */}
           <button
-            onClick={() => handleThemeSelect('Sitcom')}
+            onClick={() => handleThemeSelect('Friends')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Sitcom' 
+              selectedTheme === 'Friends' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-sitcom"
+            data-testid="theme-friends"
           >
-            <div className="text-lg mb-1">📺</div>
+            <div className="text-lg mb-1">☕</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Sitcom
+              Friends
             </div>
           </button>
           
-          {/* Drama */}
+          {/* Game of Thrones */}
           <button
-            onClick={() => handleThemeSelect('TV Drama')}
+            onClick={() => handleThemeSelect('Game of Thrones')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'TV Drama' 
+              selectedTheme === 'Game of Thrones' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-tv-drama"
+            data-testid="theme-got"
           >
-            <div className="text-lg mb-1">🎭</div>
+            <div className="text-lg mb-1">🐉</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Drama
+              Game of Thrones
             </div>
           </button>
           
-          {/* Reality TV */}
+          {/* The Office */}
           <button
-            onClick={() => handleThemeSelect('Reality TV')}
+            onClick={() => handleThemeSelect('The Office')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Reality TV' 
+              selectedTheme === 'The Office' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-reality"
+            data-testid="theme-office"
           >
-            <div className="text-lg mb-1">🎬</div>
+            <div className="text-lg mb-1">📄</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Reality TV
+              The Office
             </div>
           </button>
           
-          {/* Documentary */}
+          {/* Breaking Bad */}
           <button
-            onClick={() => handleThemeSelect('Documentary')}
+            onClick={() => handleThemeSelect('Breaking Bad')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Documentary' 
+              selectedTheme === 'Breaking Bad' 
                 ? 'border-yellow-400 bg-yellow-600 text-white' 
                 : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
             } cursor-pointer`}
-            data-testid="theme-documentary"
+            data-testid="theme-breakingbad"
           >
-            <div className="text-lg mb-1">📽️</div>
+            <div className="text-lg mb-1">🧪</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Documentary
+              Breaking Bad
             </div>
           </button>
         </div>
