@@ -10,6 +10,11 @@ export default function HubSpotSetup() {
   const [hubspotToken, setHubspotToken] = useState('');
   const { toast } = useToast();
   const { user, session } = useSession();
+  
+  // Parse URL parameters for redirect context
+  const urlParams = new URLSearchParams(window.location.search);
+  const redirectFrom = urlParams.get('redirect');
+  const selectedTheme = urlParams.get('theme');
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -42,8 +47,14 @@ export default function HubSpotSetup() {
           description: "HubSpot token validated and saved!",
         });
         
-        // Proceed to theme selection
-        setLocation('/theme-selection');
+        // Proceed based on redirect context
+        if (redirectFrom === 'simulation' && selectedTheme) {
+          // User was redirected from theme selection, go back to theme selection
+          setLocation('/theme-selection');
+        } else {
+          // Normal flow, proceed to theme selection
+          setLocation('/theme-selection');
+        }
       }
     },
     onError: (error) => {
@@ -93,8 +104,21 @@ export default function HubSpotSetup() {
           ⚙️ HubSpot Setup
         </h1>
         <div className="text-sm mb-2" style={{ color: 'rgb(200, 220, 140)' }}>
-          Connect your HubSpot account to start simulating
+          {redirectFrom === 'simulation' ? (
+            <>HubSpot connection required to start simulation{selectedTheme && ` with ${selectedTheme} theme`}</>
+          ) : (
+            'Connect your HubSpot account to start simulating'
+          )}
         </div>
+        {redirectFrom === 'simulation' && (
+          <div className="text-xs mt-2 mx-auto max-w-md px-4 py-2 rounded" style={{ 
+            backgroundColor: 'rgba(200, 220, 140, 0.1)', 
+            color: 'rgb(200, 220, 140)',
+            border: '1px solid rgba(200, 220, 140, 0.3)'
+          }}>
+            ⚠️ Redirected from theme selection - connection required for simulations
+          </div>
+        )}
         <div className="text-xs" style={{ color: 'rgb(180, 200, 120)' }}>
           Player: {user.username} | Tier: {user.playerTier} | Credits: {user.creditLimit}
         </div>

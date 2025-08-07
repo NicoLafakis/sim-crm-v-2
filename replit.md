@@ -10,12 +10,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**January 7, 2025** - Database Migration & Security Features Completed
-- Successfully migrated from in-memory storage to PostgreSQL database with comprehensive schema
-- Implemented secure passcode validation requiring 1 capital letter, 1 lowercase letter, and 1 special character
-- Added real-time visual feedback for passcode requirements with Game Boy-themed validation indicators
-- Created robust database structure supporting users, sessions, simulations, API tokens, and player tiers
-- Enhanced authentication system with proper error handling and validation messaging
+**January 7, 2025** - Validation System & Theme Selection Completed
+- Implemented comprehensive HubSpot validation system with prerequisite checking before simulation setup
+- Created theme selection page with 4 categories (Music, Movies, Video Games, TV Shows) matching Game Boy styling
+- Added intelligent redirect flow: users can skip HubSpot setup initially but are redirected back when starting simulations
+- Built useHubSpotValidation hook for real-time connection status checking across the application
+- Enhanced HubSpot setup page with context-aware messaging for redirected users
+- Updated API routes to support validation with /api/hubspot/status endpoint
+- Maintained consistent Game Boy visual design across all new pages and features
 
 ## System Architecture
 

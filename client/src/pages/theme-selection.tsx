@@ -1,15 +1,49 @@
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { useSession } from '@/hooks/use-session';
+import { useHubSpotValidation } from '@/hooks/use-hubspot-validation';
+import { useState } from 'react';
 
 export default function ThemeSelection() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useSession();
+  const { isConnected, isLoading: validationLoading } = useHubSpotValidation();
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
 
   const handleThemeSelect = (themeId: string) => {
-    // For now, just show a toast since we don't have the next page yet
+    setSelectedTheme(themeId);
     toast({
       title: "Theme Selected",
-      description: `You selected ${themeId} theme. Next step coming soon!`,
+      description: `${themeId} theme selected. Ready to proceed to simulation setup!`,
+    });
+  };
+
+  const handleProceedToSimulation = () => {
+    if (!selectedTheme) {
+      toast({
+        title: "No Theme Selected",
+        description: "Please select a theme before proceeding to simulation setup.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isConnected) {
+      toast({
+        title: "HubSpot Connection Required",
+        description: "You need to connect your HubSpot account before starting a simulation.",
+        variant: "destructive",
+      });
+      // Redirect back to HubSpot setup with context
+      setLocation('/hubspot-setup?redirect=simulation&theme=' + selectedTheme);
+      return;
+    }
+
+    // Proceed to simulation setup (when implemented)
+    toast({
+      title: "Proceeding to Simulation",
+      description: "Simulation setup coming soon!",
     });
   };
 
@@ -44,8 +78,12 @@ export default function ThemeSelection() {
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
           {/* Rock - Available */}
           <button
-            onClick={() => handleThemeSelect('rock')}
-            className="h-24 rounded border-2 border-blue-600 bg-blue-900 text-white cursor-pointer hover:bg-blue-800 text-center flex flex-col justify-center items-center transition-all"
+            onClick={() => handleThemeSelect('Rock')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Rock' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
             data-testid="theme-rock"
           >
             <div className="text-lg mb-1">🎸</div>
@@ -287,8 +325,37 @@ export default function ThemeSelection() {
         </div>
       </div>
       
-      {/* Back Button */}
-      <div className="text-center pb-8">
+      {/* Action Buttons */}
+      <div className="text-center pb-8 space-y-4">
+        {selectedTheme && (
+          <div className="mb-4">
+            <button
+              onClick={handleProceedToSimulation}
+              disabled={validationLoading}
+              className={`py-3 px-8 rounded text-sm font-bold transition-colors ${
+                validationLoading
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : isConnected
+                  ? 'bg-green-600 text-white hover:bg-green-500'
+                  : 'bg-yellow-600 text-white hover:bg-yellow-500'
+              }`}
+              data-testid="button-proceed"
+            >
+              {validationLoading 
+                ? 'Checking Connection...' 
+                : isConnected 
+                ? 'Start Simulation Setup' 
+                : 'Connect HubSpot & Continue'
+              }
+            </button>
+            {!isConnected && !validationLoading && (
+              <div className="text-xs mt-2" style={{ color: 'rgb(180, 200, 120)' }}>
+                HubSpot connection required for simulation
+              </div>
+            )}
+          </div>
+        )}
+        
         <button
           onClick={() => setLocation('/hubspot-setup')}
           className="text-xs underline hover:opacity-75 transition-opacity"

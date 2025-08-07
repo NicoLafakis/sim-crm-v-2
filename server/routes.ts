@@ -72,6 +72,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // HubSpot validation route
+  app.get("/api/hubspot/status/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const session = await storage.getSession(userId);
+      const apiToken = await storage.getApiTokenByService(userId, 'hubspot');
+      
+      const hasSessionToken = !!session?.hubspotToken;
+      const hasApiToken = !!apiToken?.accessToken;
+      
+      res.json({
+        connected: hasSessionToken || hasApiToken,
+        hasToken: hasSessionToken || hasApiToken,
+        status: hasSessionToken || hasApiToken ? 'connected' : 'disconnected',
+        tokenSource: hasApiToken ? 'api_tokens' : hasSessionToken ? 'session' : 'none'
+      });
+    } catch (error) {
+      console.error("HubSpot status check error:", error);
+      res.status(500).json({ message: "Failed to check HubSpot status" });
+    }
+  });
+
   // Session management
   app.put("/api/session/:userId", async (req, res) => {
     try {
