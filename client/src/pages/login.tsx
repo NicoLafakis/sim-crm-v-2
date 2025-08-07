@@ -83,7 +83,13 @@ export default function Login() {
            }}>
         
         {/* Inner Black Border */}
-        <div className="bg-black p-1" style={{ borderRadius: '4px' }}>
+        <div className="bg-black p-1" style={{ 
+          borderRadius: '4px',
+          boxShadow: 'inset 5px 6px 4px 1px #333',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
           
           {/* Game Boy Screen */}
           <div className="bg-yellow-500 p-6" 
