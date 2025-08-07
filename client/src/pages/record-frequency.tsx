@@ -117,14 +117,27 @@ export default function RecordFrequency() {
                 <div key={obj.name} className="flex flex-col items-center">
                   
                   {/* Compact Slider Container */}
-                  <div className="relative h-32 w-6 rounded border" style={{
-                    backgroundColor: obj.enabled ? 'rgb(60, 60, 60)' : 'rgb(40, 40, 40)',
-                    borderColor: obj.enabled ? 'rgb(120, 120, 120)' : 'rgb(80, 80, 80)',
-                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)'
-                  }}>
+                  <div 
+                    className={`relative h-32 w-6 rounded border ${obj.enabled ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                    style={{
+                      backgroundColor: obj.enabled ? 'rgb(60, 60, 60)' : 'rgb(40, 40, 40)',
+                      borderColor: obj.enabled ? 'rgb(120, 120, 120)' : 'rgb(80, 80, 80)',
+                      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)'
+                    }}
+                    onClick={(e) => {
+                      if (!obj.enabled) return;
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const clickY = e.clientY - rect.top;
+                      const containerHeight = rect.height;
+                      // Convert click position to value (inverted because 0 is at bottom)
+                      const newValue = Math.round(100 - (clickY / containerHeight) * 100);
+                      const clampedValue = Math.max(0, Math.min(100, newValue));
+                      handleSliderChange(index, clampedValue);
+                    }}
+                  >
                     
                     {/* Track Marks */}
-                    <div className="absolute inset-x-0 h-full">
+                    <div className="absolute inset-x-0 h-full pointer-events-none">
                       {[...Array(6)].map((_, i) => (
                         <div
                           key={i}
@@ -138,7 +151,7 @@ export default function RecordFrequency() {
                       ))}
                     </div>
 
-                    {/* Hidden Input Slider */}
+                    {/* Hidden Input Slider for accessibility */}
                     <input
                       type="range"
                       min="0"
@@ -146,16 +159,17 @@ export default function RecordFrequency() {
                       value={obj.value}
                       onChange={(e) => handleSliderChange(index, parseInt(e.target.value))}
                       disabled={!obj.enabled}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
                       style={{ 
                         WebkitAppearance: 'slider-vertical'
                       } as React.CSSProperties}
                       data-testid={`slider-${obj.name.toLowerCase()}`}
+                      tabIndex={obj.enabled ? 0 : -1}
                     />
                     
                     {/* Compact Slider Handle */}
                     <div
-                      className={`absolute w-5 h-3 rounded-sm border transition-all ${
+                      className={`absolute w-5 h-3 rounded-sm border transition-all pointer-events-none ${
                         obj.enabled 
                           ? 'bg-lime-400 border-lime-300 shadow-sm' 
                           : 'bg-gray-600 border-gray-500'
