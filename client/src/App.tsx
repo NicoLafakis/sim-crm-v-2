@@ -7,7 +7,7 @@ import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import SaasSelection from "@/pages/saas-selection";
 import HubSpotSetup from "@/pages/hubspot-setup";
-import SimulationSetup from "@/pages/simulation-setup";
+import ThemeSelection from "@/pages/theme-selection";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,7 +17,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/saas-selection" component={SaasSelection} />
       <Route path="/hubspot-setup" component={HubSpotSetup} />
-      <Route path="/simulation-setup" component={SimulationSetup} />
+      <Route path="/theme-selection" component={ThemeSelection} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -42,8 +42,8 @@ export default function HubSpotSetup() {
           description: "HubSpot token validated and saved!",
         });
         
-        // Proceed to simulation setup
-        setLocation('/simulation-setup');
+        // Proceed to theme selection
+        setLocation('/theme-selection');
       }
     },
     onError: (error) => {
@@ -68,7 +68,7 @@ export default function HubSpotSetup() {
   };
 
   const handleSkip = () => {
-    setLocation('/simulation-setup');
+    setLocation('/theme-selection');
   };
 
   if (!user) {
