@@ -10,11 +10,13 @@ import ThemeSelection from "@/pages/theme-selection";
 import IndustrySelection from "@/pages/industry-selection";
 import RecordFrequency from "@/pages/record-frequency";
 import NotFound from "@/pages/not-found";
+import DevBypass from "@/components/dev-bypass";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Login} />
+      <Route path="/" component={SaasSelection} />
+      <Route path="/login" component={Login} />
       <Route path="/saas-selection" component={SaasSelection} />
       <Route path="/hubspot-setup" component={HubSpotSetup} />
       <Route path="/theme-selection" component={ThemeSelection} />
@@ -29,8 +31,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <DevBypass>
+          <Toaster />
+          <Router />
+        </DevBypass>
       </TooltipProvider>
     </QueryClientProvider>
   );
