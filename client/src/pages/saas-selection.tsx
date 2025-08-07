@@ -22,15 +22,15 @@ export default function SaasSelection() {
          style={{ backgroundColor: 'rgb(155, 187, 88)' }}>
       
       {/* Header */}
-      <div className="text-center pt-8 pb-6">
-        <h1 className="text-green-900 text-2xl font-bold uppercase tracking-wider mb-2">
+      <div className="text-center pt-8 pb-6" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
+        <h1 className="text-2xl font-bold uppercase tracking-wider mb-2" style={{ color: 'rgb(155, 187, 88)' }}>
           Select a SaaS Tool
         </h1>
       </div>
       
       {/* CRM Section */}
-      <div className="px-8 mb-8">
-        <h2 className="text-green-800 text-lg font-bold uppercase tracking-wide text-center mb-6">
+      <div className="px-8 mb-8" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(155, 187, 88)' }}>
           CRM
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
@@ -88,8 +88,8 @@ export default function SaasSelection() {
       </div>
       
       {/* Marketing Automation Section */}
-      <div className="px-8 mb-8">
-        <h2 className="text-green-800 text-lg font-bold uppercase tracking-wide text-center mb-6">
+      <div className="px-8 mb-8" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(155, 187, 88)' }}>
           Marketing Automation
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
@@ -148,8 +148,8 @@ export default function SaasSelection() {
       </div>
       
       {/* Project Management Section */}
-      <div className="px-8 mb-8">
-        <h2 className="text-green-800 text-lg font-bold uppercase tracking-wide text-center mb-6">
+      <div className="px-8 mb-8" style={{ backgroundColor: 'rgb(34, 78, 34)' }}>
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(155, 187, 88)' }}>
           Project Management
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
