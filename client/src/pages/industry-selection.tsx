@@ -33,7 +33,7 @@ export default function IndustrySelection() {
 
     // Auto-navigate after selection
     setTimeout(() => {
-      setLocation('/record-frequency');
+      handleContinue();
     }, 800);
   };
 
@@ -125,7 +125,7 @@ export default function IndustrySelection() {
               }}
               data-testid="button-back"
             >
-              ← Back to Themes
+              ← Back To Themes
             </button>
             
             <button
