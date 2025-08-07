@@ -104,21 +104,8 @@ export default function HubSpotSetup() {
           ⚙️ HubSpot Setup
         </h1>
         <div className="text-sm mb-2" style={{ color: 'rgb(200, 220, 140)' }}>
-          {redirectFrom === 'simulation' ? (
-            <>HubSpot connection required to start simulation{selectedTheme && ` with ${selectedTheme} theme`}</>
-          ) : (
-            'Connect your HubSpot account to start simulating'
-          )}
+          Connect your HubSpot account to start simulating
         </div>
-        {redirectFrom === 'simulation' && (
-          <div className="text-xs mt-2 mx-auto max-w-md px-4 py-2 rounded" style={{ 
-            backgroundColor: 'rgba(200, 220, 140, 0.1)', 
-            color: 'rgb(200, 220, 140)',
-            border: '1px solid rgba(200, 220, 140, 0.3)'
-          }}>
-            ⚠️ Redirected from theme selection - connection required for simulations
-          </div>
-        )}
         <div className="text-xs" style={{ color: 'rgb(180, 200, 120)' }}>
           Player: {user.username} | Tier: {user.playerTier} | Credits: {user.creditLimit}
         </div>
