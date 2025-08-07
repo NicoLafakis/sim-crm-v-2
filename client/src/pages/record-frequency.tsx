@@ -167,12 +167,15 @@ export default function RecordFrequency() {
             cursor: grab;
             left: 50%;
             transform: translateX(-50%);
+            transition: bottom 0.1s ease-out;
+            pointer-events: none;
           }
 
           .slider-thumb.disabled-thumb {
             background: #4a5568;
             border: 1px solid #2d3748;
             cursor: default;
+            transition: none;
           }
 
           .slider-input {
@@ -182,7 +185,8 @@ export default function RecordFrequency() {
             opacity: 0;
             cursor: grab;
             -webkit-appearance: slider-vertical;
-            writing-mode: bt-lr;
+            writing-mode: vertical-lr;
+            transform: rotate(180deg);
           }
 
           .slider-value {
@@ -456,6 +460,7 @@ export default function RecordFrequency() {
                 className="slider-input"
                 min="0"
                 max="30"
+                step="1"
                 value={autoMode ? autoValue : 0}
                 onChange={(e) => handleAutoChange(parseInt(e.target.value))}
                 disabled={!autoMode}
@@ -491,6 +496,7 @@ export default function RecordFrequency() {
                   className="slider-input"
                   min="0"
                   max={maxTotal}
+                  step="1"
                   value={values[index]}
                   onChange={(e) => handleSliderChange(index, parseInt(e.target.value))}
                   disabled={autoMode}
