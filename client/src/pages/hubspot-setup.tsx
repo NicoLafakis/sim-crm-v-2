@@ -10,7 +10,7 @@ export default function HubSpotSetup() {
   const [hubspotToken, setHubspotToken] = useState('');
   const { toast } = useToast();
   const { user, session } = useSession();
-  
+
   // Parse URL parameters for redirect context
   const urlParams = new URLSearchParams(window.location.search);
   const redirectFrom = urlParams.get('redirect');
@@ -41,12 +41,12 @@ export default function HubSpotSetup() {
           hubspotToken: hubspotToken
         });
         queryClient.invalidateQueries({ queryKey: ['/api/session', user.id] });
-        
+
         toast({
           title: "Success",
           description: "HubSpot token validated and saved!",
         });
-        
+
         // Proceed based on redirect context
         if (redirectFrom === 'simulation' && selectedTheme) {
           // User was redirected from theme selection, go back to theme selection
@@ -87,15 +87,15 @@ export default function HubSpotSetup() {
   }
 
   return (
-    <div className="min-h-screen font-gameboy" 
-         style={{ 
+    <div className="min-h-screen font-gameboy"
+         style={{
            backgroundColor: 'rgb(34, 78, 34)',
            backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
            backgroundSize: '20px 20px'
          }}>
-      
+
       {/* Header */}
-      <div className="text-center pt-8 pb-6" style={{ 
+      <div className="text-center pt-8 pb-6" style={{
         backgroundColor: 'rgb(34, 78, 34)',
         backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
         backgroundSize: '20px 20px'
@@ -110,22 +110,22 @@ export default function HubSpotSetup() {
           Player: {user.username} | Tier: {user.playerTier} | Credits: {user.creditLimit}
         </div>
       </div>
-      
+
       {/* Main Content */}
-      <div className="px-8 pb-8" style={{ 
+      <div className="px-8 pb-8" style={{
         backgroundColor: 'rgb(34, 78, 34)',
         backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
         backgroundSize: '20px 20px'
       }}>
         <div className="max-w-2xl mx-auto">
-          
+
           {/* Setup Instructions Header */}
           <div className="text-center mb-6">
             <h2 className="text-lg font-bold uppercase tracking-wide mb-4" style={{ color: 'rgb(200, 220, 140)' }}>
               API Configuration
             </h2>
           </div>
-          
+
           {/* HubSpot Integration Section */}
           <div className="space-y-6">
             <div>
@@ -142,7 +142,7 @@ export default function HubSpotSetup() {
                 data-testid="input-hubspot-token"
               />
             </div>
-            
+
             <div className="text-xs leading-relaxed" style={{ color: 'rgb(180, 200, 120)' }}>
               <p className="mb-2 font-bold">Quick Setup Instructions:</p>
               <ol className="list-decimal list-inside space-y-1 ml-2">
@@ -153,7 +153,7 @@ export default function HubSpotSetup() {
               </ol>
             </div>
           </div>
-          
+
           {/* Action Buttons */}
           <div className="flex justify-center space-x-4 mt-8">
             <button
@@ -164,7 +164,7 @@ export default function HubSpotSetup() {
             >
               {validateTokenMutation.isPending ? 'CONNECTING...' : 'CONNECT'}
             </button>
-            
+
             <button
               onClick={handleSkip}
               className="bg-gray-600 text-white py-2 px-6 rounded text-sm font-bold hover:bg-gray-500 transition-colors"
@@ -173,16 +173,22 @@ export default function HubSpotSetup() {
               SKIP FOR NOW
             </button>
           </div>
-          
+
           {/* Back Button */}
           <div className="text-center mt-6">
             <button
               onClick={() => setLocation('/saas-selection')}
-              className="text-xs underline hover:opacity-75 transition-opacity"
-              style={{ color: 'rgb(180, 200, 120)' }}
+              className="px-6 py-2 font-bold tracking-wide transition-all"
+              style={{
+                color: 'rgb(200, 220, 140)',
+                textDecoration: 'underline',
+                fontFamily: 'Open Sans, sans-serif',
+                fontSize: '0.75rem',
+                lineHeight: '1rem'
+              }}
               data-testid="button-back"
             >
-              Back to SaaS Selection
+              ← Back to SaaS Selection
             </button>
           </div>
         </div>
