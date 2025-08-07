@@ -18,10 +18,10 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/profile" component={Profile} />
-      <Route path="/theme" component={ThemeSelection} />
-      <Route path="/industry" component={IndustrySelection} />
-      <Route path="/frequency" component={FrequencySelection} />
-      <Route path="/simulation" component={SimulationSetup} />
+      <Route path="/theme-selection" component={ThemeSelection} />
+      <Route path="/industry-selection" component={IndustrySelection} />
+      <Route path="/frequency-selection" component={FrequencySelection} />
+      <Route path="/simulation-setup" component={SimulationSetup} />
       <Route component={NotFound} />
     </Switch>
   );
