@@ -40,11 +40,13 @@ export default function ThemeSelection() {
       return;
     }
 
-    // Proceed to simulation setup (when implemented)
+    // Proceed to industry selection
     toast({
-      title: "Proceeding to Simulation",
-      description: "Simulation setup coming soon!",
+      title: "Theme Selected",
+      description: `Proceeding with ${selectedTheme} theme`,
     });
+    
+    setLocation('/industry-selection');
   };
 
   return (
