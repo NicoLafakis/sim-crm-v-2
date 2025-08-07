@@ -7,9 +7,6 @@ import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import SaasSelection from "@/pages/saas-selection";
 import HubSpotSetup from "@/pages/hubspot-setup";
-import ThemeSelection from "@/pages/theme-selection";
-import IndustrySelection from "@/pages/industry-selection";
-import FrequencySelection from "@/pages/frequency-selection";
 import SimulationSetup from "@/pages/simulation-setup";
 import NotFound from "@/pages/not-found";
 
@@ -20,9 +17,6 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/saas-selection" component={SaasSelection} />
       <Route path="/hubspot-setup" component={HubSpotSetup} />
-      <Route path="/theme-selection" component={ThemeSelection} />
-      <Route path="/industry-selection" component={IndustrySelection} />
-      <Route path="/frequency-selection" component={FrequencySelection} />
       <Route path="/simulation-setup" component={SimulationSetup} />
       <Route component={NotFound} />
     </Switch>

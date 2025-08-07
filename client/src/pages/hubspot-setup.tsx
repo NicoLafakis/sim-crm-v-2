@@ -42,8 +42,8 @@ export default function HubSpotSetup() {
           description: "HubSpot token validated and saved!",
         });
         
-        // Proceed to theme selection
-        setLocation('/theme-selection');
+        // Proceed to simulation setup
+        setLocation('/simulation-setup');
       }
     },
     onError: (error) => {
@@ -68,7 +68,7 @@ export default function HubSpotSetup() {
   };
 
   const handleSkip = () => {
-    setLocation('/theme-selection');
+    setLocation('/simulation-setup');
   };
 
   if (!user) {
@@ -76,66 +76,49 @@ export default function HubSpotSetup() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-200 flex flex-col items-center justify-center font-gameboy"
-         style={{
-           backgroundImage: `
-             linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
-             linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
-           `,
-           backgroundSize: '16px 16px'
+    <div className="min-h-screen font-gameboy" 
+         style={{ 
+           backgroundColor: 'rgb(34, 78, 34)',
+           backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
+           backgroundSize: '20px 20px'
          }}>
       
-      {/* SimCRM. Title */}
-      <div className="mb-8">
-        <h1 className="text-3xl tracking-wider">
-          <span style={{ color: '#000782' }}>SimCRM</span>
-          <span className="text-red-800">.</span>
+      {/* Header */}
+      <div className="text-center pt-8 pb-6" style={{ 
+        backgroundColor: 'rgb(34, 78, 34)',
+        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
+        backgroundSize: '20px 20px'
+      }}>
+        <h1 className="text-2xl font-bold uppercase tracking-wider mb-2" style={{ color: 'rgb(200, 220, 140)' }}>
+          ⚙️ HubSpot Setup
         </h1>
+        <div className="text-sm mb-2" style={{ color: 'rgb(200, 220, 140)' }}>
+          Connect your HubSpot account to start simulating
+        </div>
+        <div className="text-xs" style={{ color: 'rgb(180, 200, 120)' }}>
+          Player: {user.username} | Tier: {user.playerTier} | Credits: {user.creditLimit}
+        </div>
       </div>
       
-      {/* Main Console Frame */}
-      <div className="bg-gray-500 p-6 relative"
-           style={{ 
-             background: 'linear-gradient(145deg, #8A8A8A, #6A6A6A)',
-             width: '600px',
-             height: '500px',
-             borderBottomRightRadius: '70px',
-             borderTopRightRadius: '20px',
-             borderTopLeftRadius: '20px',
-             borderBottomLeftRadius: '20px'
-           }}>
-        
-        {/* Game Boy Screen */}
-        <div className="bg-yellow-500 p-8" 
-             style={{ 
-               backgroundColor: 'rgb(155, 187, 88)',
-               borderRadius: '4px',
-               height: '430px',
-               display: 'flex',
-               flexDirection: 'column',
-               justifyContent: 'center',
-               margin: 'auto',
-               width: '500px',
-               boxShadow: 'inset 4px 4px 5px 0px #444'
-             }}>
+      {/* Main Content */}
+      <div className="px-8 pb-8" style={{ 
+        backgroundColor: 'rgb(34, 78, 34)',
+        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
+        backgroundSize: '20px 20px'
+      }}>
+        <div className="max-w-2xl mx-auto">
           
-          {/* HubSpot Header */}
+          {/* Setup Instructions Header */}
           <div className="text-center mb-6">
-            <h2 className="text-green-900 text-xl font-bold uppercase tracking-wide mb-2">
-              🟠 HubSpot Setup
+            <h2 className="text-lg font-bold uppercase tracking-wide mb-4" style={{ color: 'rgb(200, 220, 140)' }}>
+              API Configuration
             </h2>
-            <div className="text-green-800 text-sm">
-              Connect your HubSpot account to start simulating
-            </div>
-            <div className="text-green-700 text-xs mt-1">
-              Player: {user.username} | Tier: {user.playerTier} | Credits: {user.creditLimit}
-            </div>
           </div>
           
           {/* HubSpot Integration Section */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <label className="block text-green-900 text-sm mb-2 font-bold uppercase tracking-wide">
+              <label className="block text-sm mb-2 font-bold uppercase tracking-wide" style={{ color: 'rgb(200, 220, 140)' }}>
                 HubSpot API Token
               </label>
               <input
@@ -149,7 +132,7 @@ export default function HubSpotSetup() {
               />
             </div>
             
-            <div className="text-green-800 text-xs leading-relaxed">
+            <div className="text-xs leading-relaxed" style={{ color: 'rgb(180, 200, 120)' }}>
               <p className="mb-2 font-bold">Quick Setup Instructions:</p>
               <ol className="list-decimal list-inside space-y-1 ml-2">
                 <li>Go to HubSpot → Settings → Integrations → Private Apps</li>
@@ -161,7 +144,7 @@ export default function HubSpotSetup() {
           </div>
           
           {/* Action Buttons */}
-          <div className="flex justify-center space-x-4 mt-6">
+          <div className="flex justify-center space-x-4 mt-8">
             <button
               onClick={handleSaveToken}
               disabled={validateTokenMutation.isPending}
@@ -181,10 +164,11 @@ export default function HubSpotSetup() {
           </div>
           
           {/* Back Button */}
-          <div className="text-center mt-4">
+          <div className="text-center mt-6">
             <button
               onClick={() => setLocation('/saas-selection')}
-              className="text-green-700 text-xs underline hover:text-green-600"
+              className="text-xs underline hover:opacity-75 transition-opacity"
+              style={{ color: 'rgb(180, 200, 120)' }}
               data-testid="button-back"
             >
               Back to SaaS Selection
