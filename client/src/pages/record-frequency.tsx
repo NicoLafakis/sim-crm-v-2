@@ -211,12 +211,7 @@ export default function RecordFrequency() {
                     <div className="text-xs mt-1">{obj.value}</div>
                   </div>
 
-                  {/* Coming Soon Status */}
-                  {!obj.enabled && (
-                    <div className="text-xs text-red-400 mt-1 text-center">
-                      SOON
-                    </div>
-                  )}
+                  
                 </div>
               ))}
             </div>
