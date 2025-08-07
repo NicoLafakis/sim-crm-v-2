@@ -115,11 +115,16 @@ export type InsertApiToken = typeof apiTokens.$inferInsert;
 export type PlayerTier = typeof playerTiers.$inferSelect;
 export type InsertPlayerTier = typeof playerTiers.$inferInsert;
 
-// Zod schemas
+// Zod schemas with passcode validation
 export const insertUserSchema = createInsertSchema(users).omit({ 
   id: true, 
   createdAt: true, 
   updatedAt: true 
+}).extend({
+  password: z.string()
+    .min(6, "Passcode must be at least 6 characters")
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).*$/, 
+           "Passcode must contain 1 capital letter, 1 lowercase letter, and 1 special character")
 });
 export type InsertUserType = z.infer<typeof insertUserSchema>;
 

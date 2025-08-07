@@ -39,16 +39,43 @@ export default function Login() {
     },
   });
 
+  const validatePasscode = (passcode: string) => {
+    const hasLowerCase = /[a-z]/.test(passcode);
+    const hasUpperCase = /[A-Z]/.test(passcode);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(passcode);
+    
+    return {
+      isValid: hasLowerCase && hasUpperCase && hasSpecialChar && passcode.length >= 6,
+      hasLowerCase,
+      hasUpperCase,
+      hasSpecialChar,
+      hasMinLength: passcode.length >= 6
+    };
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
       toast({
         title: "Error",
-        description: "Please enter both username and password",
+        description: "Please enter both player name and passcode",
         variant: "destructive",
       });
       return;
     }
+
+    if (isRegistering) {
+      const validation = validatePasscode(password);
+      if (!validation.isValid) {
+        toast({
+          title: "Invalid Passcode",
+          description: "Passcode must contain 1 capital letter, 1 lowercase letter, and 1 special character",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     authMutation.mutate({ username, password });
   };
 
@@ -126,6 +153,29 @@ export default function Login() {
                 style={{ backgroundColor: '#B8D4A0' }}
                 data-testid="input-password"
               />
+              {isRegistering && password && (
+                <div className="mt-2 text-xs">
+                  {(() => {
+                    const validation = validatePasscode(password);
+                    return (
+                      <div className="space-y-1">
+                        <div className={`${validation.hasLowerCase ? 'text-green-800' : 'text-red-800'}`}>
+                          {validation.hasLowerCase ? '✓' : '✗'} 1 lowercase letter
+                        </div>
+                        <div className={`${validation.hasUpperCase ? 'text-green-800' : 'text-red-800'}`}>
+                          {validation.hasUpperCase ? '✓' : '✗'} 1 uppercase letter
+                        </div>
+                        <div className={`${validation.hasSpecialChar ? 'text-green-800' : 'text-red-800'}`}>
+                          {validation.hasSpecialChar ? '✓' : '✗'} 1 special character
+                        </div>
+                        <div className={`${validation.hasMinLength ? 'text-green-800' : 'text-red-800'}`}>
+                          {validation.hasMinLength ? '✓' : '✗'} At least 6 characters
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </form>
         </div>

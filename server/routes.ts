@@ -57,6 +57,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ user, session });
     } catch (error) {
       console.error("Registration error:", error);
+      
+      // Handle Zod validation errors
+      if (error instanceof Error && error.name === 'ZodError') {
+        const zodError = error as any;
+        const passwordError = zodError.issues?.find((issue: any) => issue.path.includes('password'));
+        if (passwordError) {
+          return res.status(400).json({ message: passwordError.message });
+        }
+        return res.status(400).json({ message: "Invalid registration data" });
+      }
+      
       res.status(500).json({ message: "Registration failed" });
     }
   });
