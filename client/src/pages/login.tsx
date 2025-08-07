@@ -82,54 +82,44 @@ export default function Login() {
              borderBottomLeftRadius: '20px'
            }}>
         
-        {/* Inner Black Border */}
-        <div className="bg-black p-1" style={{ 
-          borderRadius: '4px',
-          boxShadow: 'inset 5px 6px 4px 1px #333',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
+        {/* Game Boy Screen */}
+        <div className="bg-yellow-500 p-6" 
+             style={{ 
+               backgroundColor: '#9BBB58',
+               borderRadius: '4px',
+               height: '100%'
+             }}>
           
-          {/* Game Boy Screen */}
-          <div className="bg-yellow-500 p-6" 
-               style={{ 
-                 backgroundColor: '#9BBB58',
-                 borderRadius: '4px',
-                 height: '100%'
-               }}>
+          <form onSubmit={handleSubmit} className="h-full flex flex-col justify-center space-y-6">
             
-            <form onSubmit={handleSubmit} className="h-full flex flex-col justify-center space-y-6">
-              
-              {/* Player Name Field */}
-              <div>
-                <label className="block text-green-900 text-xs mb-2 font-bold uppercase tracking-wide">Player Name</label>
-                <input
-                  type="text"
-                  placeholder="Enter Player Name"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full p-3 bg-green-300 text-green-900 text-xs border-2 border-green-700 rounded"
-                  style={{ backgroundColor: '#B8D4A0' }}
-                  data-testid="input-username"
-                />
-              </div>
-              
-              {/* Passcode Field */}
-              <div>
-                <label className="block text-green-900 text-xs mb-2 font-bold uppercase tracking-wide">Passcode</label>
-                <input
-                  type="password"
-                  placeholder="Enter Passcode"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full p-3 bg-green-300 text-green-900 text-xs border-2 border-green-700 rounded"
-                  style={{ backgroundColor: '#B8D4A0' }}
-                  data-testid="input-password"
-                />
-              </div>
-            </form>
-          </div>
+            {/* Player Name Field */}
+            <div>
+              <label className="block text-green-900 text-xs mb-2 font-bold uppercase tracking-wide">Player Name</label>
+              <input
+                type="text"
+                placeholder="Enter Player Name"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full p-3 bg-green-300 text-green-900 text-xs border-2 border-green-700 rounded"
+                style={{ backgroundColor: '#B8D4A0' }}
+                data-testid="input-username"
+              />
+            </div>
+            
+            {/* Passcode Field */}
+            <div>
+              <label className="block text-green-900 text-xs mb-2 font-bold uppercase tracking-wide">Passcode</label>
+              <input
+                type="password"
+                placeholder="Enter Passcode"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 bg-green-300 text-green-900 text-xs border-2 border-green-700 rounded"
+                style={{ backgroundColor: '#B8D4A0' }}
+                data-testid="input-password"
+              />
+            </div>
+          </form>
         </div>
       </div>
       
