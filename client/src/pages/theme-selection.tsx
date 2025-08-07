@@ -76,7 +76,7 @@ export default function ThemeSelection() {
           Music
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
-          {/* Rock - Available */}
+          {/* Rock */}
           <button
             onClick={() => handleThemeSelect('Rock')}
             className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
@@ -92,11 +92,14 @@ export default function ThemeSelection() {
             </div>
           </button>
           
-          {/* Pop - Disabled */}
+          {/* Pop */}
           <button
-            onClick={() => handleThemeSelect('pop')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            onClick={() => handleThemeSelect('Pop')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Pop' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
             data-testid="theme-pop"
           >
             <div className="text-lg mb-1">🎤</div>
@@ -105,24 +108,30 @@ export default function ThemeSelection() {
             </div>
           </button>
           
-          {/* Jazz - Disabled */}
+          {/* Hip-Hop */}
           <button
-            onClick={() => handleThemeSelect('jazz')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
-            data-testid="theme-jazz"
+            onClick={() => handleThemeSelect('Hip-Hop')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Hip-Hop' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
+            data-testid="theme-hiphop"
           >
-            <div className="text-lg mb-1">🎷</div>
+            <div className="text-lg mb-1">🎵</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Jazz
+              Hip-Hop
             </div>
           </button>
           
-          {/* Electronic - Disabled */}
+          {/* Electronic */}
           <button
-            onClick={() => handleThemeSelect('electronic')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            onClick={() => handleThemeSelect('Electronic')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Electronic' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
             data-testid="theme-electronic"
           >
             <div className="text-lg mb-1">🎹</div>
@@ -143,11 +152,14 @@ export default function ThemeSelection() {
           Movies
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
-          {/* Action - Disabled */}
+          {/* Action */}
           <button
-            onClick={() => handleThemeSelect('action')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            onClick={() => handleThemeSelect('Action')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Action' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
             data-testid="theme-action"
           >
             <div className="text-lg mb-1">💥</div>
@@ -156,11 +168,14 @@ export default function ThemeSelection() {
             </div>
           </button>
           
-          {/* Comedy - Disabled */}
+          {/* Comedy */}
           <button
-            onClick={() => handleThemeSelect('comedy')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            onClick={() => handleThemeSelect('Comedy')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Comedy' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
             data-testid="theme-comedy"
           >
             <div className="text-lg mb-1">😂</div>
@@ -169,11 +184,14 @@ export default function ThemeSelection() {
             </div>
           </button>
           
-          {/* Drama - Disabled */}
+          {/* Drama */}
           <button
-            onClick={() => handleThemeSelect('drama')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            onClick={() => handleThemeSelect('Drama')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Drama' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
             data-testid="theme-drama"
           >
             <div className="text-lg mb-1">🎭</div>
@@ -182,11 +200,14 @@ export default function ThemeSelection() {
             </div>
           </button>
           
-          {/* Sci-Fi - Disabled */}
+          {/* Sci-Fi */}
           <button
-            onClick={() => handleThemeSelect('scifi')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            onClick={() => handleThemeSelect('Sci-Fi')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Sci-Fi' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
             data-testid="theme-scifi"
           >
             <div className="text-lg mb-1">🚀</div>
@@ -207,24 +228,30 @@ export default function ThemeSelection() {
           Video Games
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
-          {/* RPG - Disabled */}
+          {/* Action/Adventure */}
           <button
-            onClick={() => handleThemeSelect('rpg')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
-            data-testid="theme-rpg"
+            onClick={() => handleThemeSelect('Action/Adventure')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Action/Adventure' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
+            data-testid="theme-action-adventure"
           >
-            <div className="text-lg mb-1">⚔️</div>
+            <div className="text-lg mb-1">🗡️</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              RPG
+              Action/Adventure
             </div>
           </button>
           
-          {/* Shooter - Disabled */}
+          {/* Shooter */}
           <button
-            onClick={() => handleThemeSelect('shooter')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            onClick={() => handleThemeSelect('Shooter')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Shooter' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
             data-testid="theme-shooter"
           >
             <div className="text-lg mb-1">🔫</div>
@@ -233,29 +260,35 @@ export default function ThemeSelection() {
             </div>
           </button>
           
-          {/* Racing - Disabled */}
+          {/* Sports */}
           <button
-            onClick={() => handleThemeSelect('racing')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
-            data-testid="theme-racing"
+            onClick={() => handleThemeSelect('Sports')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Sports' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
+            data-testid="theme-sports"
           >
-            <div className="text-lg mb-1">🏎️</div>
+            <div className="text-lg mb-1">⚽</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Racing
+              Sports
             </div>
           </button>
           
-          {/* Strategy - Disabled */}
+          {/* RPG */}
           <button
-            onClick={() => handleThemeSelect('strategy')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
-            data-testid="theme-strategy"
+            onClick={() => handleThemeSelect('RPG')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'RPG' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
+            data-testid="theme-rpg"
           >
-            <div className="text-lg mb-1">♟️</div>
+            <div className="text-lg mb-1">⚔️</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Strategy
+              RPG
             </div>
           </button>
         </div>
@@ -271,24 +304,14 @@ export default function ThemeSelection() {
           TV Shows
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
-          {/* Crime - Disabled */}
+          {/* Sitcom */}
           <button
-            onClick={() => handleThemeSelect('crime')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
-            data-testid="theme-crime"
-          >
-            <div className="text-lg mb-1">🔍</div>
-            <div className="text-xs font-bold uppercase tracking-wide">
-              Crime
-            </div>
-          </button>
-          
-          {/* Sitcom - Disabled */}
-          <button
-            onClick={() => handleThemeSelect('sitcom')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            onClick={() => handleThemeSelect('Sitcom')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Sitcom' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
             data-testid="theme-sitcom"
           >
             <div className="text-lg mb-1">📺</div>
@@ -297,24 +320,46 @@ export default function ThemeSelection() {
             </div>
           </button>
           
-          {/* Reality - Disabled */}
+          {/* Drama */}
           <button
-            onClick={() => handleThemeSelect('reality')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            onClick={() => handleThemeSelect('TV Drama')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'TV Drama' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
+            data-testid="theme-tv-drama"
+          >
+            <div className="text-lg mb-1">🎭</div>
+            <div className="text-xs font-bold uppercase tracking-wide">
+              Drama
+            </div>
+          </button>
+          
+          {/* Reality TV */}
+          <button
+            onClick={() => handleThemeSelect('Reality TV')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Reality TV' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
             data-testid="theme-reality"
           >
             <div className="text-lg mb-1">🎬</div>
             <div className="text-xs font-bold uppercase tracking-wide">
-              Reality
+              Reality TV
             </div>
           </button>
           
-          {/* Documentary - Disabled */}
+          {/* Documentary */}
           <button
-            onClick={() => handleThemeSelect('documentary')}
-            disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            onClick={() => handleThemeSelect('Documentary')}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+              selectedTheme === 'Documentary' 
+                ? 'border-yellow-400 bg-yellow-600 text-white' 
+                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
+            } cursor-pointer`}
             data-testid="theme-documentary"
           >
             <div className="text-lg mb-1">📽️</div>
