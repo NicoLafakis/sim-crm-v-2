@@ -55,7 +55,10 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gray-200 flex flex-col items-center justify-center font-gameboy"
          style={{
-           backgroundImage: `radial-gradient(circle, #B0B0B0 1px, transparent 1px)`,
+           backgroundImage: `
+             linear-gradient(to right, #B0B0B0 1px, transparent 1px),
+             linear-gradient(to bottom, #B0B0B0 1px, transparent 1px)
+           `,
            backgroundSize: '16px 16px'
          }}>
       
