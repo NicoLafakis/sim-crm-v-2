@@ -359,9 +359,10 @@ export default function RecordFrequency() {
             background: none;
             border: none;
             cursor: pointer;
-            font-family: 'Open Sans', sans-serif;
+            font-family: 'Quantico';
             font-size: 0.75rem;
             line-height: 1rem;
+            height: 1rem;
             margin-bottom: 20px;
             transition: opacity 0.2s;
           }
@@ -501,9 +502,10 @@ export default function RecordFrequency() {
             style={{ 
               color: 'rgb(200, 220, 140)',
               textDecoration: 'underline',
-              fontFamily: 'Open Sans, sans-serif',
+              fontFamily: 'Quantico',
               fontSize: '0.75rem',
-              lineHeight: '1rem'
+              lineHeight: '1rem',
+              height: '1rem'
             }}
             data-testid="button-back"
           >

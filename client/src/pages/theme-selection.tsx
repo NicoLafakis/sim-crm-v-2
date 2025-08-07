@@ -414,9 +414,10 @@ export default function ThemeSelection() {
           style={{ 
             color: 'rgb(200, 220, 140)',
             textDecoration: 'underline',
-            fontFamily: 'Open Sans, sans-serif',
+            fontFamily: 'Quantico',
             fontSize: '0.75rem',
-            lineHeight: '1rem'
+            lineHeight: '1rem',
+            height: '1rem'
           }}
           data-testid="button-back"
         >
