@@ -53,102 +53,113 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gameboy-light-gray flex items-center justify-center font-gameboy"
+    <div className="min-h-screen bg-gray-200 flex flex-col items-center justify-center font-gameboy"
          style={{
-           backgroundImage: `radial-gradient(circle, var(--gameboy-dark-gray) 1px, transparent 1px)`,
-           backgroundSize: '20px 20px'
+           backgroundImage: `radial-gradient(circle, #B0B0B0 1px, transparent 1px)`,
+           backgroundSize: '16px 16px'
          }}>
       
       {/* SimCRM. Title */}
-      <div className="absolute top-16">
-        <h1 className="text-2xl tracking-wider">
-          <span className="text-gameboy-navy">SimCRM</span>
-          <span className="text-gameboy-maroon">.</span>
+      <div className="mb-8">
+        <h1 className="text-3xl tracking-wider">
+          <span className="text-blue-800">SimCRM</span>
+          <span className="text-red-800">.</span>
         </h1>
       </div>
       
-      {/* Main Gray Rectangle */}
-      <div className="bg-gameboy-console border-4 border-gameboy-console-dark rounded-lg p-8 max-w-sm w-full mx-4 relative"
-           style={{
-             clipPath: 'polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%)'
+      {/* Main Console Frame */}
+      <div className="bg-gray-500 rounded-3xl p-6 shadow-2xl relative"
+           style={{ 
+             background: 'linear-gradient(145deg, #8A8A8A, #6A6A6A)',
+             clipPath: 'polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%)'
            }}>
         
-        {/* Game Boy Screen */}
-        <div className="bg-gameboy-screen border-4 border-gameboy-bg p-6 rounded-lg mb-6"
-             style={{ aspectRatio: '4/3' }}>
-          <form onSubmit={handleSubmit} className="h-full flex flex-col justify-center space-y-4">
+        {/* Inner Black Border */}
+        <div className="bg-black rounded-lg p-1">
+          
+          {/* Game Boy Screen */}
+          <div className="bg-yellow-500 rounded p-6" 
+               style={{ 
+                 backgroundColor: '#9BBB58',
+                 width: '320px',
+                 height: '240px'
+               }}>
             
-            {/* Player Name Field */}
-            <div>
-              <label className="block text-gameboy-bg text-xs mb-1 uppercase">Player Name</label>
-              <input
-                type="text"
-                placeholder="Enter Player Name"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full p-2 bg-gameboy-screen-dark text-gameboy-bg text-xs border-2 border-gameboy-bg rounded pixel-border"
-                data-testid="input-username"
-              />
-            </div>
-            
-            {/* Passcode Field */}
-            <div>
-              <label className="block text-gameboy-bg text-xs mb-1 uppercase">Passcode</label>
-              <input
-                type="password"
-                placeholder="Enter Passcode"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-2 bg-gameboy-screen-dark text-gameboy-bg text-xs border-2 border-gameboy-bg rounded pixel-border"
-                data-testid="input-password"
-              />
-            </div>
-          </form>
+            <form onSubmit={handleSubmit} className="h-full flex flex-col justify-center space-y-6">
+              
+              {/* Agent ID Field */}
+              <div>
+                <label className="block text-green-900 text-xs mb-2 font-bold uppercase tracking-wide">AGENT ID</label>
+                <input
+                  type="text"
+                  placeholder="Enter Agent ID"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full p-3 bg-green-300 text-green-900 text-xs border-2 border-green-700 rounded"
+                  style={{ backgroundColor: '#B8D4A0' }}
+                  data-testid="input-username"
+                />
+              </div>
+              
+              {/* Passcode Field */}
+              <div>
+                <label className="block text-green-900 text-xs mb-2 font-bold uppercase tracking-wide">PASSCODE</label>
+                <input
+                  type="password"
+                  placeholder="Enter Passcode"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full p-3 bg-green-300 text-green-900 text-xs border-2 border-green-700 rounded"
+                  style={{ backgroundColor: '#B8D4A0' }}
+                  data-testid="input-password"
+                />
+              </div>
+            </form>
+          </div>
         </div>
-        
-        {/* Signup Text */}
-        <div className="text-center text-xs text-gameboy-contrast mb-4">
-          {isRegistering ? (
-            <>
-              have an account?{' '}
-              <span 
-                className="underline cursor-pointer" 
-                onClick={() => setIsRegistering(false)}
-                data-testid="link-login"
-              >
-                LOGIN HERE
-              </span>
-            </>
-          ) : (
-            <>
-              no login?{' '}
-              <span 
-                className="underline cursor-pointer" 
-                onClick={() => setIsRegistering(true)}
-                data-testid="link-register"
-              >
-                CREATE YOUR PLAYER PROFILE HERE
-              </span>
-            </>
-          )}
-        </div>
-        
-        {/* Login Button */}
-        <div className="flex justify-center">
-          <button
-            onClick={handleSubmit}
-            disabled={authMutation.isPending}
-            className="bg-gameboy-maroon text-gameboy-screen py-2 px-8 rounded text-xs font-bold hover:opacity-80 transition-opacity disabled:opacity-50"
-            data-testid="button-submit"
-          >
-            {authMutation.isPending 
-              ? 'PROCESSING...' 
-              : isRegistering 
-                ? 'Sign Up' 
-                : 'Login'
-            }
-          </button>
-        </div>
+      </div>
+      
+      {/* Signup Text */}
+      <div className="text-center text-sm text-gray-700 mt-6 mb-4">
+        {isRegistering ? (
+          <>
+            have an account?{' '}
+            <span 
+              className="font-bold cursor-pointer" 
+              onClick={() => setIsRegistering(false)}
+              data-testid="link-login"
+            >
+              LOGIN HERE
+            </span>
+          </>
+        ) : (
+          <>
+            no login? <span 
+              className="font-bold cursor-pointer" 
+              onClick={() => setIsRegistering(true)}
+              data-testid="link-register"
+            >
+              CREATE YOUR ACCOUNT HERE
+            </span>
+          </>
+        )}
+      </div>
+      
+      {/* Login Button */}
+      <div className="flex justify-center">
+        <button
+          onClick={handleSubmit}
+          disabled={authMutation.isPending}
+          className="bg-red-800 text-white py-3 px-12 rounded text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-50 shadow-lg"
+          data-testid="button-submit"
+        >
+          {authMutation.isPending 
+            ? 'PROCESSING...' 
+            : isRegistering 
+              ? 'Sign Up' 
+              : 'Login'
+          }
+        </button>
       </div>
     </div>
   );
