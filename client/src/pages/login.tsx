@@ -85,9 +85,17 @@ export default function Login() {
         {/* Game Boy Screen */}
         <div className="bg-yellow-500 p-6" 
              style={{ 
-               backgroundColor: '#9BBB58',
+               backgroundColor: 'rgb(155, 187, 88)',
                borderRadius: '4px',
-               height: '100%'
+               height: '200px',
+               display: 'flex',
+               alignContent: 'center',
+               alignItems: 'center',
+               justifyContent: 'center',
+               flexWrap: 'wrap',
+               margin: '6% auto',
+               width: '350px',
+               boxShadow: 'inset 4px 4px 5px 0px #444'
              }}>
           
           <form onSubmit={handleSubmit} className="h-full flex flex-col justify-center space-y-6">
