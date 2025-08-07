@@ -105,8 +105,20 @@ export default function IndustrySelection() {
             ))}
           </div>
 
-          {/* Continue Button */}
-          <div className="text-center">
+          {/* Control Buttons */}
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={() => setLocation('/theme-selection')}
+              className="px-6 py-2 text-sm font-bold uppercase tracking-wide transition-all"
+              style={{ 
+                color: 'rgb(200, 220, 140)',
+                textDecoration: 'underline'
+              }}
+              data-testid="button-back"
+            >
+              ← Back to Themes
+            </button>
+            
             <button
               onClick={handleContinue}
               disabled={!selectedIndustry}

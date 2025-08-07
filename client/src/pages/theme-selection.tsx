@@ -391,7 +391,7 @@ export default function ThemeSelection() {
               {validationLoading 
                 ? 'Checking Connection...' 
                 : isConnected 
-                ? 'Start Simulation Setup' 
+                ? 'Continue to Industry Selection' 
                 : 'Connect HubSpot & Continue'
               }
             </button>
@@ -405,11 +405,14 @@ export default function ThemeSelection() {
         
         <button
           onClick={() => setLocation('/hubspot-setup')}
-          className="text-xs underline hover:opacity-75 transition-opacity"
-          style={{ color: 'rgb(180, 200, 120)' }}
+          className="px-6 py-2 text-sm font-bold uppercase tracking-wide transition-all"
+          style={{ 
+            color: 'rgb(200, 220, 140)',
+            textDecoration: 'underline'
+          }}
           data-testid="button-back"
         >
-          Back to HubSpot Setup
+          ← Back to HubSpot Setup
         </button>
       </div>
     </div>

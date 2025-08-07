@@ -95,60 +95,50 @@ export default function RecordFrequency() {
       }}>
         <div className="max-w-5xl mx-auto">
           
-          {/* Equalizer Container */}
-          <div className="rounded-lg border-4 border-gray-700 p-6 mb-8" style={{
-            backgroundColor: 'rgb(20, 20, 20)',
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)'
+          {/* Compact Equalizer Container */}
+          <div className="rounded border-2 border-gray-600 p-4 mb-8 mx-auto max-w-4xl" style={{
+            backgroundColor: 'rgb(45, 45, 45)',
+            boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.1)'
           }}>
             
-            {/* EQ Display */}
-            <div className="text-center mb-6">
-              <div className="text-lg font-bold uppercase tracking-wider" style={{ color: 'rgb(0, 255, 0)' }}>
-                SimCRM Frequency Mixer v1.0
+            {/* Compact EQ Display */}
+            <div className="text-center mb-4">
+              <div className="text-sm font-bold uppercase tracking-wider" style={{ color: 'rgb(0, 255, 0)' }}>
+                SIMCRM EQUALIZER
               </div>
-              <div className="text-xs mt-2" style={{ color: 'rgb(0, 200, 0)' }}>
-                Adjust sliders to control record generation frequency
+              <div className="text-xs mt-1" style={{ color: 'rgb(0, 200, 0)' }}>
+                Record Generation Frequency
               </div>
             </div>
 
-            {/* Sliders Container */}
-            <div className="flex justify-center items-end space-x-6">
+            {/* Compact WinAmp-style Sliders */}
+            <div className="flex justify-center items-end space-x-3 mx-auto max-w-3xl">
               {objectFrequencies.map((obj, index) => (
                 <div key={obj.name} className="flex flex-col items-center">
                   
-                  {/* Object Icon & Name */}
-                  <div className="text-center mb-4">
-                    <div className={`text-2xl mb-2 ${obj.enabled ? '' : 'opacity-30'}`}>
-                      {obj.icon}
-                    </div>
-                    <div className={`text-xs font-bold uppercase tracking-wide ${
-                      obj.enabled ? 'text-green-400' : 'text-gray-600'
-                    }`}>
-                      {obj.name}
-                    </div>
-                  </div>
-
-                  {/* Slider Container */}
-                  <div className="relative h-64 w-12 rounded border-2" style={{
-                    backgroundColor: obj.enabled ? 'rgb(40, 40, 40)' : 'rgb(20, 20, 20)',
-                    borderColor: obj.enabled ? 'rgb(100, 100, 100)' : 'rgb(60, 60, 60)'
+                  {/* Compact Slider Container */}
+                  <div className="relative h-32 w-6 rounded border" style={{
+                    backgroundColor: obj.enabled ? 'rgb(60, 60, 60)' : 'rgb(40, 40, 40)',
+                    borderColor: obj.enabled ? 'rgb(120, 120, 120)' : 'rgb(80, 80, 80)',
+                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)'
                   }}>
                     
-                    {/* Slider Track Marks */}
+                    {/* Track Marks */}
                     <div className="absolute inset-x-0 h-full">
-                      {[...Array(11)].map((_, i) => (
+                      {[...Array(6)].map((_, i) => (
                         <div
                           key={i}
-                          className="absolute inset-x-0 h-px"
+                          className="absolute inset-x-0"
                           style={{
-                            top: `${i * 10}%`,
-                            backgroundColor: obj.enabled ? 'rgb(80, 80, 80)' : 'rgb(40, 40, 40)'
+                            top: `${i * 20}%`,
+                            height: '1px',
+                            backgroundColor: obj.enabled ? 'rgb(100, 100, 100)' : 'rgb(60, 60, 60)'
                           }}
                         />
                       ))}
                     </div>
 
-                    {/* Slider Handle */}
+                    {/* Hidden Input Slider */}
                     <input
                       type="range"
                       min="0"
@@ -163,34 +153,36 @@ export default function RecordFrequency() {
                       data-testid={`slider-${obj.name.toLowerCase()}`}
                     />
                     
-                    {/* Visual Slider Handle */}
+                    {/* Compact Slider Handle */}
                     <div
-                      className={`absolute w-10 h-6 rounded border-2 transition-all ${
+                      className={`absolute w-5 h-3 rounded-sm border transition-all ${
                         obj.enabled 
-                          ? 'bg-green-500 border-green-300 shadow-lg' 
-                          : 'bg-gray-700 border-gray-600'
+                          ? 'bg-lime-400 border-lime-300 shadow-sm' 
+                          : 'bg-gray-600 border-gray-500'
                       }`}
                       style={{
                         left: '50%',
                         transform: 'translateX(-50%)',
                         bottom: `${obj.value}%`,
-                        marginBottom: '-12px'
+                        marginBottom: '-6px'
                       }}
                     />
                   </div>
 
-                  {/* Value Display */}
-                  <div className={`mt-4 text-center ${
-                    obj.enabled ? 'text-green-400' : 'text-gray-600'
+                  {/* Compact Label */}
+                  <div className={`mt-2 text-center ${
+                    obj.enabled ? 'text-lime-400' : 'text-gray-500'
                   }`}>
-                    <div className="text-lg font-bold">{obj.value}</div>
-                    <div className="text-xs">records/day</div>
+                    <div className="text-xs font-bold uppercase tracking-wide">
+                      {obj.name}
+                    </div>
+                    <div className="text-xs mt-1">{obj.value}</div>
                   </div>
 
-                  {/* Status */}
+                  {/* Coming Soon Status */}
                   {!obj.enabled && (
-                    <div className="text-xs text-red-400 mt-2 text-center">
-                      COMING SOON
+                    <div className="text-xs text-red-400 mt-1 text-center">
+                      SOON
                     </div>
                   )}
                 </div>
@@ -201,11 +193,15 @@ export default function RecordFrequency() {
           {/* Control Buttons */}
           <div className="flex justify-center space-x-4">
             <button
-              onClick={() => setLocation('/theme-selection')}
-              className="px-6 py-3 rounded border-2 border-yellow-600 bg-yellow-700 text-white font-bold uppercase tracking-wide text-sm hover:bg-yellow-600 transition-all"
+              onClick={() => setLocation('/industry-selection')}
+              className="px-6 py-2 text-sm font-bold uppercase tracking-wide transition-all"
+              style={{ 
+                color: 'rgb(200, 220, 140)',
+                textDecoration: 'underline'
+              }}
               data-testid="button-back"
             >
-              ← Back to Themes
+              ← Back to Industries
             </button>
             
             <button
