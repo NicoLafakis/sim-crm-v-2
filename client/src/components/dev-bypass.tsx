@@ -8,16 +8,29 @@ export default function DevBypass({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Auto-login with test user for development
     const testUser = {
-      id: 'dev-user-1',
+      id: 1,
       username: 'DevUser',
+      password: 'test123',
+      email: 'dev@example.com',
       playerTier: 'Premium',
-      creditLimit: 1000
+      creditLimit: 1000,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
 
     const testSession = {
-      id: 'dev-session-1',
-      userId: 'dev-user-1',
-      hubspotToken: null
+      id: 1,
+      userId: 1,
+      hubspotToken: null,
+      hubspotRefreshToken: null,
+      selectedTheme: null,
+      selectedIndustry: null,
+      selectedFrequency: null,
+      simulationConfig: null,
+      isActive: true,
+      expiresAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
 
     setUser(testUser);
