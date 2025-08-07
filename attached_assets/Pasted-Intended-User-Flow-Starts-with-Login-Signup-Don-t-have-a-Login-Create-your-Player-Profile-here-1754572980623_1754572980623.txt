@@ -1,0 +1,26 @@
+Intended User Flow:
+- Starts with Login/Signup "Don't have a Login? Create your Player Profile here"
+// Player Name
+// Passcode
+- After login/signup goes to Profile Page so the 'Player' can pick their SaaS connection (currently only HubSpot available - other options grayed out and not accessible for now - provide tiles for the most commonly connected SaaS software platforms)
+// Clicking on the connection opens a modal to enter a token that gets stored for the session(initially HubSpot token, but we want to make this universal down the road where the data is being populated based on an incoming JSON request with fields and an identifier for the type of data and theme of the data - so if there's going to be tokens and passwords and such involved - make sure it's centralized to scale - and not localized) screen with an encrypted field for a private app token. "No credentials?" Link goes to page for directions on setting up a private key
+- Verify and save credentials for session
+- Goes to a "game screen" of simulation themes. So before it was like you were outside the Gameboy, now you're inside the game of the Gameboy. There's a grid 8bit icons representing the themes which are in the categories of: music, movies, tv shows and video games (nothing else, no menu yet) (provide a plethora of options for each category). The categories and sub categories are Russian-doll nested icons.
+- Goes to Industry Selection after selecting the theme, and industries are different business models like: hair salon, SaaS company, law firm, gaming company, aerospace design, etc (provide a plethora)
+- Goes to Record Frequency selection the record frequency where the options for Record Frequency are: 1h, 4hrs, 1day, 1wk, 1mo, custom **locked/grey out for now**
+- Goes to Simulation setup page
+// Setup page looks like a vertical 8bit mixer board
+// Each slider is a different HubSpot Object
+/// Objects: Contacts, Companies, Deals, Tickets, Notes, (all grayed out and not available but visible)-Tasks, Calls
+/// Toggles under each slider allow for auto-distribution of the records. When turned on - all sliders and values become synchronized and stay unless the toggle is turned off
+// Toggles underneath indicate the use of additional options
+/// Custom Objects, Custom Fields, Specific Ownership, Distribution weights (all grayed out and not available but visible)
+// Initial Simulation data on the Simulation Setup page starts with the New Player tier of credits always, it can go higher if the user has that level, or it can go lower.
+- Player tiers (user levels)
+// New Player = 150 Credit limit
+// Level 1 = 325 Credit limit
+// Level 2 = 500 Credit limit
+// Level 3 = 1000 Credit limit
+// Level 4 = Contact Us
+
+For right now, the app will leverage predetermined actions and timing, however, I would like the app to be flexible in-that, down the road I can swap out the coded timers and actions with web hook calls to agents that will end up acting as the contacts with their own agendas, timing, etc...
