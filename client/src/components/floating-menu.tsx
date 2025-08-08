@@ -48,7 +48,7 @@ export default function FloatingMenu() {
   ];
 
   return (
-    <div className="fixed top-6 right-2 z-50">
+    <div className="fixed top-6 right-6 z-50">
       {/* Menu Button - Extended hover area */}
       <div
         className="relative p-4 -m-4"
