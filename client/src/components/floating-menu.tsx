@@ -48,7 +48,7 @@ export default function FloatingMenu() {
   ];
 
   return (
-    <div className="fixed top-6 right-6 z-50">
+    <div className="fixed top-6 right-2 z-50">
       {/* Menu Button - Extended hover area */}
       <div
         className="relative p-4 -m-4"
@@ -75,7 +75,7 @@ export default function FloatingMenu() {
 
         {/* Menu Panel */}
         {isOpen && (
-          <Card className="absolute top-16 right-0 w-64 bg-[#1e2124] border-2 border-[#306230] shadow-xl">
+          <Card className="absolute top-16 right-14 w-64 bg-[#1e2124] border-2 border-[#306230] shadow-xl">
             <CardContent className="p-0">
               {menuItems.map((item, index) => {
                 const Icon = item.icon;
