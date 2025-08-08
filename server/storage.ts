@@ -79,6 +79,19 @@ export interface IStorage {
   // HubSpot association operations
   createHubSpotAssociation(associationData: InsertHubSpotAssociation): Promise<HubSpotAssociation>;
   getHubSpotAssociationsBySimulation(simulationId: number): Promise<HubSpotAssociation[]>;
+  
+  // Additional user operations
+  getUserById(id: number): Promise<User | undefined>;
+  updateUserPassword(userId: number, newPassword: string): Promise<void>;
+  
+  // Additional simulation operations
+  getSimulationsByUser(userId: number): Promise<Simulation[]>;
+  deleteSimulation(simulationId: number): Promise<void>;
+  
+  // Additional token operations
+  getUserTokens(userId: number): Promise<ApiToken[]>;
+  createUserToken(tokenData: InsertApiToken): Promise<ApiToken>;
+  deleteUserToken(tokenId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -370,6 +383,47 @@ export class DatabaseStorage implements IStorage {
       .from(hubspotAssociations)
       .where(eq(hubspotAssociations.simulationId, simulationId))
       .orderBy(hubspotAssociations.createdAt);
+  }
+  
+  // Additional user operations
+  async getUserById(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+  
+  async updateUserPassword(userId: number, newPassword: string): Promise<void> {
+    await db.update(users).set({ password: newPassword }).where(eq(users.id, userId));
+  }
+  
+  // Additional simulation operations
+  async getSimulationsByUser(userId: number): Promise<Simulation[]> {
+    const userSimulations = await db.select().from(simulations)
+      .where(eq(simulations.userId, userId))
+      .orderBy(simulations.startedAt);
+    return userSimulations;
+  }
+  
+  async deleteSimulation(simulationId: number): Promise<void> {
+    await db.delete(simulations).where(eq(simulations.id, simulationId));
+  }
+  
+  // Additional token operations
+  async getUserTokens(userId: number): Promise<ApiToken[]> {
+    const tokens = await db.select().from(apiTokens)
+      .where(eq(apiTokens.userId, userId));
+    return tokens.map(token => ({
+      ...token,
+      maskedToken: token.accessToken.substring(0, 8) + '...' + token.accessToken.slice(-4)
+    }));
+  }
+  
+  async createUserToken(tokenData: InsertApiToken): Promise<ApiToken> {
+    const [token] = await db.insert(apiTokens).values(tokenData).returning();
+    return token;
+  }
+  
+  async deleteUserToken(tokenId: number): Promise<void> {
+    await db.delete(apiTokens).where(eq(apiTokens.id, tokenId));
   }
 }
 

@@ -288,6 +288,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's simulations
+  app.get("/api/user/:userId/simulations", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const simulations = await storage.getSimulationsByUser(userId);
+      res.json(simulations);
+    } catch (error) {
+      console.error("Get user simulations error:", error);
+      res.status(500).json({ message: "Failed to get simulations" });
+    }
+  });
+
+  // Get multiple simulation statuses
+  app.get("/api/simulations/status", async (req, res) => {
+    try {
+      // This would get all simulation statuses from orchestrator
+      // For now, return empty object - to be implemented based on user's active simulations
+      res.json({});
+    } catch (error) {
+      console.error("Get simulation statuses error:", error);
+      res.status(500).json({ message: "Failed to get simulation statuses" });
+    }
+  });
+
+  // Simulation control endpoints
+  app.post("/api/simulation/:simulationId/pause", async (req, res) => {
+    try {
+      const simulationId = parseInt(req.params.simulationId);
+      await storage.updateSimulation(simulationId, { status: 'paused' });
+      res.json({ status: "paused" });
+    } catch (error) {
+      console.error("Pause simulation error:", error);
+      res.status(500).json({ message: "Failed to pause simulation" });
+    }
+  });
+
+  app.post("/api/simulation/:simulationId/resume", async (req, res) => {
+    try {
+      const simulationId = parseInt(req.params.simulationId);
+      await storage.updateSimulation(simulationId, { status: 'running' });
+      res.json({ status: "running" });
+    } catch (error) {
+      console.error("Resume simulation error:", error);
+      res.status(500).json({ message: "Failed to resume simulation" });
+    }
+  });
+
+  app.post("/api/simulation/:simulationId/stop", async (req, res) => {
+    try {
+      const simulationId = parseInt(req.params.simulationId);
+      await storage.updateSimulation(simulationId, { status: 'cancelled' });
+      res.json({ status: "cancelled" });
+    } catch (error) {
+      console.error("Stop simulation error:", error);
+      res.status(500).json({ message: "Failed to stop simulation" });
+    }
+  });
+
+  app.delete("/api/simulation/:simulationId", async (req, res) => {
+    try {
+      const simulationId = parseInt(req.params.simulationId);
+      await storage.deleteSimulation(simulationId);
+      res.json({ message: "Simulation deleted" });
+    } catch (error) {
+      console.error("Delete simulation error:", error);
+      res.status(500).json({ message: "Failed to delete simulation" });
+    }
+  });
+
+  // User tokens endpoints
+  app.get("/api/user/:userId/tokens", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const tokens = await storage.getUserTokens(userId);
+      res.json(tokens);
+    } catch (error) {
+      console.error("Get user tokens error:", error);
+      res.status(500).json({ message: "Failed to get tokens" });
+    }
+  });
+
+  app.post("/api/user/:userId/tokens", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { service, tokenName, token } = req.body;
+      const newToken = await storage.createUserToken({
+        userId,
+        service,
+        accessToken: token
+      });
+      res.json(newToken);
+    } catch (error) {
+      console.error("Create token error:", error);
+      res.status(500).json({ message: "Failed to create token" });
+    }
+  });
+
+  app.delete("/api/user/:userId/tokens/:tokenId", async (req, res) => {
+    try {
+      const tokenId = parseInt(req.params.tokenId);
+      await storage.deleteUserToken(tokenId);
+      res.json({ message: "Token deleted" });
+    } catch (error) {
+      console.error("Delete token error:", error);
+      res.status(500).json({ message: "Failed to delete token" });
+    }
+  });
+
+  // Password change endpoint
+  app.put("/api/user/:userId/password", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { currentPassword, newPassword } = req.body;
+      
+      const user = await storage.getUserById(userId);
+      if (!user || user.password !== currentPassword) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      await storage.updateUserPassword(userId, newPassword);
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Update password error:", error);
+      res.status(500).json({ message: "Failed to update password" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
