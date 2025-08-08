@@ -298,7 +298,7 @@ export default function ProfilePage() {
                       placeholder="pat-na1-..."
                       value={newToken.token}
                       onChange={(e) => setNewToken(prev => ({ ...prev, token: e.target.value }))}
-                      className="pr-10" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}
+                      className="pr-10 placeholder:text-[rgb(200,220,140)]" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}
                       data-testid="input-token-value"
                     />
                     <Button
