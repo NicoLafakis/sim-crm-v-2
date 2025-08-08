@@ -112,26 +112,36 @@ export default function ProgressPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#9bbc0f] flex items-center justify-center">
-        <div className="text-[#1e2124] font-mono text-xl">Loading Runs...</div>
+      <div className="min-h-screen font-gameboy flex items-center justify-center" 
+           style={{ 
+             backgroundColor: 'rgb(34, 78, 34)',
+             backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
+             backgroundSize: '20px 20px'
+           }}>
+        <div className="font-mono text-xl" style={{ color: 'rgb(200, 220, 140)' }}>Loading Runs...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#9bbc0f] p-6">
+    <div className="min-h-screen font-gameboy p-6" 
+         style={{ 
+           backgroundColor: 'rgb(34, 78, 34)',
+           backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
+           backgroundSize: '20px 20px'
+         }}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-mono font-bold text-[#1e2124] mb-4">
+          <h1 className="text-4xl font-mono font-bold mb-4" style={{ color: 'rgb(200, 220, 140)' }}>
             SIMULATION PROGRESS
           </h1>
           <div className="flex items-center justify-between">
-            <div className="text-[#1e2124] font-mono">
+            <div className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>
               Active Runs: {activeRuns.length}/2
             </div>
             {!canStartNewRun && (
-              <Badge variant="secondary" className="bg-[#1e2124] text-[#9bbc0f]">
+              <Badge variant="secondary" className="text-white" style={{ backgroundColor: 'rgb(50, 100, 50)' }}>
                 Maximum runs reached
               </Badge>
             )}
@@ -141,10 +151,10 @@ export default function ProgressPage() {
         {/* Simulations List */}
         <div className="space-y-4">
           {simulations?.length === 0 ? (
-            <Card className="bg-[#1e2124] border-2 border-[#306230] text-[#9bbc0f]">
+            <Card className="border-2 text-white" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)' }}>
               <CardContent className="p-8 text-center">
-                <div className="font-mono text-xl mb-4">NO RUNS FOUND</div>
-                <div className="text-sm opacity-75">Start a new simulation to see it here.</div>
+                <div className="font-mono text-xl mb-4" style={{ color: 'rgb(200, 220, 140)' }}>NO RUNS FOUND</div>
+                <div className="text-sm" style={{ color: 'rgb(180, 200, 120)' }}>Start a new simulation to see it here.</div>
               </CardContent>
             </Card>
           ) : (
@@ -155,7 +165,8 @@ export default function ProgressPage() {
               return (
                 <Card 
                   key={simulation.id}
-                  className="bg-[#1e2124] border-2 border-[#306230] text-[#9bbc0f]"
+                  className="border-2 text-white"
+                  style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)' }}
                   data-testid={`simulation-card-${simulation.id}`}
                 >
                   <Collapsible>
@@ -164,15 +175,15 @@ export default function ProgressPage() {
                       onClick={() => toggleExpanded(simulation.id)}
                       data-testid={`expand-simulation-${simulation.id}`}
                     >
-                      <CardHeader className="cursor-pointer hover:bg-[#306230]/20">
+                      <CardHeader className="cursor-pointer" style={{ '&:hover': { backgroundColor: 'rgba(70, 140, 70, 0.3)' } }}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <div className={`w-3 h-3 rounded-full ${getStatusColor(simulation.status)}`} />
                             <div>
-                              <CardTitle className="text-left font-mono text-xl">
+                              <CardTitle className="text-left font-mono text-xl" style={{ color: 'rgb(200, 220, 140)' }}>
                                 {simulation.name}
                               </CardTitle>
-                              <CardDescription className="text-left text-[#9bbc0f]/75 font-mono">
+                              <CardDescription className="text-left font-mono" style={{ color: 'rgb(180, 200, 120)' }}>
                                 {simulation.theme} • {simulation.industry} • {simulation.frequency}
                               </CardDescription>
                             </div>
@@ -195,7 +206,7 @@ export default function ProgressPage() {
                             </div>
                             <Progress 
                               value={status.progress} 
-                              className="h-2 bg-[#306230]"
+                              className="h-2" style={{ backgroundColor: 'rgb(70, 140, 70)' }}
                             />
                           </div>
                         )}
@@ -207,7 +218,7 @@ export default function ProgressPage() {
                         <div className="space-y-4">
                           {/* Detailed Status */}
                           {status && (
-                            <div className="grid grid-cols-2 gap-4 p-4 bg-[#306230]/20 rounded">
+                            <div className="grid grid-cols-2 gap-4 p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
                               <div>
                                 <div className="text-sm font-mono mb-2">JOB STATUS</div>
                                 <div className="space-y-1 text-xs">
