@@ -3,6 +3,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useSession } from '@/hooks/use-session';
 import { useHubSpotValidation } from '@/hooks/use-hubspot-validation';
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 export default function ThemeSelection() {
   const [, setLocation] = useLocation();
@@ -11,17 +13,39 @@ export default function ThemeSelection() {
   const { isConnected, isLoading: validationLoading } = useHubSpotValidation();
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
 
-  const handleThemeSelect = (themeId: string) => {
-    setSelectedTheme(themeId);
-    toast({
-      title: "Theme Selected",
-      description: `${themeId} theme selected!`,
-    });
+  const updateSessionMutation = useMutation({
+    mutationFn: async (theme: string) => {
+      if (!user?.id) throw new Error('No user ID');
+      return apiRequest('PUT', `/api/session/${user.id}`, {
+        selectedTheme: theme
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/session/${user?.id}`] });
+    }
+  });
 
-    // Auto-navigate after selection
-    setTimeout(() => {
-      setLocation('/industry-selection');
-    }, 800);
+  const handleThemeSelect = async (themeId: string) => {
+    setSelectedTheme(themeId);
+    
+    try {
+      await updateSessionMutation.mutateAsync(themeId);
+      toast({
+        title: "Theme Selected",
+        description: `${themeId} theme selected and saved!`,
+      });
+
+      // Auto-navigate after selection
+      setTimeout(() => {
+        setLocation('/industry-selection');
+      }, 800);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save theme selection",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleProceedToSimulation = () => {

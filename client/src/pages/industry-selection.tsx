@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useSession } from '@/hooks/use-session';
 import { useToast } from '@/hooks/use-toast';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 export default function IndustrySelection() {
   const [, setLocation] = useLocation();
@@ -24,17 +26,39 @@ export default function IndustrySelection() {
     { id: 'lawfirm', name: 'Law Firm', icon: '⚖️' },
   ];
 
-  const handleIndustrySelect = (industry: string) => {
-    setSelectedIndustry(industry);
-    toast({
-      title: "Industry Selected",
-      description: `${industry} industry selected for simulation!`,
-    });
+  const updateSessionMutation = useMutation({
+    mutationFn: async (industry: string) => {
+      if (!user?.id) throw new Error('No user ID');
+      return apiRequest('PUT', `/api/session/${user.id}`, {
+        selectedIndustry: industry
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/session/${user?.id}`] });
+    }
+  });
 
-    // Auto-navigate after selection
-    setTimeout(() => {
-      setLocation('/record-frequency');
-    }, 800);
+  const handleIndustrySelect = async (industry: string) => {
+    setSelectedIndustry(industry);
+    
+    try {
+      await updateSessionMutation.mutateAsync(industry);
+      toast({
+        title: "Industry Selected",
+        description: `${industry} industry selected and saved!`,
+      });
+
+      // Auto-navigate after selection
+      setTimeout(() => {
+        setLocation('/record-frequency');
+      }, 800);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save industry selection",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleContinue = () => {
