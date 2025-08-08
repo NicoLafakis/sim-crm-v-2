@@ -1,4 +1,5 @@
 import { personaAgent } from './persona-agent';
+import { hubspotService } from './hubspot-service';
 import type { 
   Simulation, 
   ScheduledJob, 
@@ -122,10 +123,36 @@ export class SimulationOrchestrator {
     }
 
     // Shuffle jobs to create a more realistic distribution
-    return this.shuffleArray(jobs).map((job, index) => ({
+    const shuffledJobs = this.shuffleArray(jobs).map((job, index) => ({
       ...job,
       scheduledFor: new Date(Date.now() + (intervalMs * index))
     }));
+
+    // Schedule association creation after all records are created
+    const lastJobTime = shuffledJobs.length > 0 ? shuffledJobs[shuffledJobs.length - 1].scheduledFor.getTime() : Date.now();
+    const associationJob: ScheduledJob = {
+      id: jobId++,
+      simulationId: config.simulation_id,
+      jobType: 'create_associations',
+      payload: {
+        simulationId: config.simulation_id,
+        theme: config.theme,
+        industry: config.industry,
+        recordType: 'association',
+        recordIndex: 1,
+        totalRecords: 1
+      } as any,
+      status: 'pending',
+      scheduledFor: new Date(lastJobTime + intervalMs),
+      processedAt: null,
+      error: null,
+      retryCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    shuffledJobs.push(associationJob);
+    return shuffledJobs;
   }
 
   private shuffleArray<T>(array: T[]): T[] {
@@ -194,10 +221,42 @@ export class SimulationOrchestrator {
         simulationId: payload.simulationId
       });
 
-      // Here you would normally push to HubSpot
-      // For now, just log the result
       console.log(`Generated ${payload.recordType} persona:`, persona.data);
       console.log(`Cached: ${persona.cached}`);
+
+      // Push to HubSpot directly
+      let hubspotResult;
+      switch (payload.recordType) {
+        case 'contact':
+          hubspotResult = await hubspotService.createContact(payload.simulationId, persona.data);
+          break;
+        case 'company':
+          hubspotResult = await hubspotService.createCompany(payload.simulationId, persona.data);
+          break;
+        case 'deal':
+          hubspotResult = await hubspotService.createDeal(payload.simulationId, persona.data);
+          break;
+        case 'ticket':
+          hubspotResult = await hubspotService.createTicket(payload.simulationId, persona.data);
+          break;
+        case 'note':
+          hubspotResult = await hubspotService.createNote(payload.simulationId, persona.data);
+          break;
+        case 'association':
+          // Create smart associations between all records
+          await hubspotService.createSmartAssociations(payload.simulationId);
+          hubspotResult = { success: true, hubspotId: 'associations_created' };
+          break;
+        default:
+          console.log(`Unknown record type: ${payload.recordType}`);
+          hubspotResult = { success: false, error: `Unknown record type: ${payload.recordType}` };
+      }
+
+      if (!hubspotResult.success) {
+        throw new Error(`HubSpot API failed: ${hubspotResult.error}`);
+      }
+
+      console.log(`Successfully created HubSpot ${payload.recordType} with ID: ${hubspotResult.hubspotId}`);
 
       // Mark job as completed
       job.status = 'completed';

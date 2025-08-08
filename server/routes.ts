@@ -249,34 +249,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update simulation status to running
       await storage.updateSimulation(simulation.id, { status: 'running' });
       
-      // Call webhook if configured
-      if (settings.webhookUrl) {
-        try {
-          const webhookPayload = {
-            simulation_id: simulation.id,
-            theme: simulation.theme,
-            industry: simulation.industry,
-            duration_days: orchestratorConfig.duration_days,
-            record_distribution: orchestratorConfig.record_distribution,
-            user_tier: orchestratorConfig.user_tier,
-            credit_limit: orchestratorConfig.credit_limit,
-            timestamp: new Date().toISOString()
-          };
-          
-          const webhookResponse = await fetch(settings.webhookUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(webhookPayload)
-          });
-          
-          console.log('Webhook response:', webhookResponse.status);
-        } catch (webhookError) {
-          console.error('Webhook call failed:', webhookError);
-          // Don't fail the simulation if webhook fails
-        }
-      }
+      console.log('Simulation orchestrator started successfully');
+      console.log('Direct HubSpot integration active - no webhook needed');
       
       res.json({ 
         status: "started",

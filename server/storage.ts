@@ -13,13 +13,19 @@ import {
   InsertScheduledJob,
   CachedPersona,
   InsertCachedPersona,
+  HubSpotRecord,
+  InsertHubSpotRecord,
+  HubSpotAssociation,
+  InsertHubSpotAssociation,
   users,
   sessions,
   playerTiers,
   simulations,
   apiTokens,
   scheduledJobs,
-  cachedPersonas
+  cachedPersonas,
+  hubspotRecords,
+  hubspotAssociations
 } from "../shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
@@ -63,6 +69,16 @@ export interface IStorage {
   createCachedPersona(personaData: InsertCachedPersona): Promise<CachedPersona>;
   getCachedPersona(theme: string, industry: string, personaType: string): Promise<CachedPersona | undefined>;
   updateCachedPersonaUsage(id: number): Promise<void>;
+  
+  // HubSpot record operations
+  createHubSpotRecord(recordData: InsertHubSpotRecord): Promise<HubSpotRecord>;
+  getHubSpotRecordByObjectId(simulationId: number, hubspotObjectId: string): Promise<HubSpotRecord | undefined>;
+  getHubSpotRecordsBySimulation(simulationId: number): Promise<HubSpotRecord[]>;
+  getHubSpotRecordsByType(simulationId: number, objectType: string): Promise<HubSpotRecord[]>;
+  
+  // HubSpot association operations
+  createHubSpotAssociation(associationData: InsertHubSpotAssociation): Promise<HubSpotAssociation>;
+  getHubSpotAssociationsBySimulation(simulationId: number): Promise<HubSpotAssociation[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -310,6 +326,50 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(cachedPersonas.id, id));
+  }
+
+  // HubSpot record operations
+  async createHubSpotRecord(recordData: InsertHubSpotRecord): Promise<HubSpotRecord> {
+    const [record] = await db.insert(hubspotRecords).values(recordData).returning();
+    return record;
+  }
+
+  async getHubSpotRecordByObjectId(simulationId: number, hubspotObjectId: string): Promise<HubSpotRecord | undefined> {
+    const [record] = await db
+      .select()
+      .from(hubspotRecords)
+      .where(and(eq(hubspotRecords.simulationId, simulationId), eq(hubspotRecords.hubspotObjectId, hubspotObjectId)));
+    return record;
+  }
+
+  async getHubSpotRecordsBySimulation(simulationId: number): Promise<HubSpotRecord[]> {
+    return await db
+      .select()
+      .from(hubspotRecords)
+      .where(eq(hubspotRecords.simulationId, simulationId))
+      .orderBy(hubspotRecords.createdAt);
+  }
+
+  async getHubSpotRecordsByType(simulationId: number, objectType: string): Promise<HubSpotRecord[]> {
+    return await db
+      .select()
+      .from(hubspotRecords)
+      .where(and(eq(hubspotRecords.simulationId, simulationId), eq(hubspotRecords.objectType, objectType)))
+      .orderBy(hubspotRecords.createdAt);
+  }
+
+  // HubSpot association operations
+  async createHubSpotAssociation(associationData: InsertHubSpotAssociation): Promise<HubSpotAssociation> {
+    const [association] = await db.insert(hubspotAssociations).values(associationData).returning();
+    return association;
+  }
+
+  async getHubSpotAssociationsBySimulation(simulationId: number): Promise<HubSpotAssociation[]> {
+    return await db
+      .select()
+      .from(hubspotAssociations)
+      .where(eq(hubspotAssociations.simulationId, simulationId))
+      .orderBy(hubspotAssociations.createdAt);
   }
 }
 
