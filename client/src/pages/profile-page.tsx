@@ -181,7 +181,7 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="current-password" className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>Current Password</Label>
+              <Label htmlFor="current-password" className="font-mono mb-[-4px]" style={{ color: 'rgb(200, 220, 140)' }}>Current Password</Label>
               <Input
                 id="current-password"
                 type="password"
@@ -192,7 +192,7 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <Label htmlFor="new-password" className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>New Password</Label>
+              <Label htmlFor="new-password" className="font-mono mb-[-4px]" style={{ color: 'rgb(200, 220, 140)' }}>New Password</Label>
               <Input
                 id="new-password"
                 type="password"
@@ -203,7 +203,7 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <Label htmlFor="confirm-password" className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>Confirm New Password</Label>
+              <Label htmlFor="confirm-password" className="font-mono mb-[-4px]" style={{ color: 'rgb(200, 220, 140)' }}>Confirm New Password</Label>
               <Input
                 id="confirm-password"
                 type="password"
@@ -279,7 +279,7 @@ export default function ProfilePage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="token-service" className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>Service</Label>
+                  <Label htmlFor="token-service" className="font-mono mb-[-4px]" style={{ color: 'rgb(200, 220, 140)' }}>Service</Label>
                   <Input
                     id="token-service"
                     placeholder="e.g., HubSpot"
@@ -290,7 +290,7 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="token-value" className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>Token</Label>
+                  <Label htmlFor="token-value" className="font-mono mb-[-4px]" style={{ color: 'rgb(200, 220, 140)' }}>Token</Label>
                   <div className="relative">
                     <Input
                       id="token-value"
