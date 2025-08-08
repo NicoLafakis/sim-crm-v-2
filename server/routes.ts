@@ -221,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         simulationConfig: settings
       });
       
-      // Prepare orchestrator config
+      // Prepare orchestrator config with HubSpot token
       const orchestratorConfig = {
         simulation_id: simulation.id,
         theme: simulation.theme,
@@ -235,7 +235,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           notes: 7
         },
         user_tier: user.playerTier || 'New Player',
-        credit_limit: user.creditLimit || 150
+        credit_limit: user.creditLimit || 150,
+        user_id: userId,
+        hubspot_token: session.hubspotToken || ''
       };
       
       // Start the orchestrator

@@ -26,7 +26,7 @@ interface PersonaResponse {
 
 export class PersonaAgent {
   private maxRetries = 3;
-  private models = ['gpt-4o', 'gpt-4o-mini']; // fallback models
+  private models = ['gpt-4o']; // Only use gpt-4o as user doesn't have access to mini version
 
   async generatePersona(request: PersonaRequest): Promise<PersonaResponse> {
     // Check cache first

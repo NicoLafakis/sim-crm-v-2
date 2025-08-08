@@ -25,33 +25,23 @@ interface AssociationResult {
 }
 
 export class HubSpotService {
-  private client: Client | null = null;
-  private isInitialized = false;
-
-  constructor() {
-    this.initializeClient();
+  private getClientWithToken(token: string): Client {
+    if (!token) {
+      throw new Error('HubSpot token is required');
+    }
+    return new Client({ accessToken: token });
   }
 
-  private initializeClient(): void {
-    const apiKey = process.env.HUBSPOT_API_KEY;
-    if (!apiKey) {
-      console.warn('HUBSPOT_API_KEY not found. HubSpot integration will be disabled.');
-      return;
-    }
-
-    try {
-      this.client = new Client({ accessToken: apiKey });
-      this.isInitialized = true;
-      console.log('HubSpot client initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize HubSpot client:', error);
-    }
+  private validateToken(token: string): boolean {
+    return !!token && token.startsWith('pat-');
   }
 
-  async createContact(simulationId: number, personaData: PersonaData): Promise<HubSpotCreateResult> {
-    if (!this.isInitialized || !this.client) {
-      return { success: false, error: 'HubSpot client not initialized' };
+  async createContact(simulationId: number, personaData: PersonaData, hubspotToken: string): Promise<HubSpotCreateResult> {
+    if (!this.validateToken(hubspotToken)) {
+      return { success: false, error: 'Invalid HubSpot token provided' };
     }
+
+    const client = this.getClientWithToken(hubspotToken);
 
     try {
       const properties = {
@@ -72,7 +62,7 @@ export class HubSpotService {
         }
       });
 
-      const response = await this.client.crm.contacts.basicApi.create({
+      const response = await client.crm.contacts.basicApi.create({
         properties,
         associations: []
       });
@@ -107,10 +97,12 @@ export class HubSpotService {
     }
   }
 
-  async createCompany(simulationId: number, personaData: PersonaData): Promise<HubSpotCreateResult> {
-    if (!this.isInitialized || !this.client) {
-      return { success: false, error: 'HubSpot client not initialized' };
+  async createCompany(simulationId: number, personaData: PersonaData, hubspotToken: string): Promise<HubSpotCreateResult> {
+    if (!this.validateToken(hubspotToken)) {
+      return { success: false, error: 'Invalid HubSpot token provided' };
     }
+
+    const client = this.getClientWithToken(hubspotToken);
 
     try {
       const properties = {
@@ -130,7 +122,7 @@ export class HubSpotService {
         }
       });
 
-      const response = await this.client.crm.companies.basicApi.create({
+      const response = await client.crm.companies.basicApi.create({
         properties,
         associations: []
       });
@@ -163,10 +155,12 @@ export class HubSpotService {
     }
   }
 
-  async createDeal(simulationId: number, personaData: PersonaData): Promise<HubSpotCreateResult> {
-    if (!this.isInitialized || !this.client) {
-      return { success: false, error: 'HubSpot client not initialized' };
+  async createDeal(simulationId: number, personaData: PersonaData, hubspotToken: string): Promise<HubSpotCreateResult> {
+    if (!this.validateToken(hubspotToken)) {
+      return { success: false, error: 'Invalid HubSpot token provided' };
     }
+
+    const client = this.getClientWithToken(hubspotToken);
 
     try {
       const properties: { [key: string]: string } = {
@@ -184,7 +178,7 @@ export class HubSpotService {
         }
       });
 
-      const response = await this.client.crm.deals.basicApi.create({
+      const response = await client.crm.deals.basicApi.create({
         properties,
         associations: []
       });
@@ -217,10 +211,12 @@ export class HubSpotService {
     }
   }
 
-  async createTicket(simulationId: number, personaData: PersonaData): Promise<HubSpotCreateResult> {
-    if (!this.isInitialized || !this.client) {
-      return { success: false, error: 'HubSpot client not initialized' };
+  async createTicket(simulationId: number, personaData: PersonaData, hubspotToken: string): Promise<HubSpotCreateResult> {
+    if (!this.validateToken(hubspotToken)) {
+      return { success: false, error: 'Invalid HubSpot token provided' };
     }
+
+    const client = this.getClientWithToken(hubspotToken);
 
     try {
       const properties = {
@@ -238,7 +234,7 @@ export class HubSpotService {
         }
       });
 
-      const response = await this.client.crm.tickets.basicApi.create({
+      const response = await client.crm.tickets.basicApi.create({
         properties,
         associations: []
       });
@@ -271,10 +267,12 @@ export class HubSpotService {
     }
   }
 
-  async createNote(simulationId: number, personaData: PersonaData): Promise<HubSpotCreateResult> {
-    if (!this.isInitialized || !this.client) {
-      return { success: false, error: 'HubSpot client not initialized' };
+  async createNote(simulationId: number, personaData: PersonaData, hubspotToken: string): Promise<HubSpotCreateResult> {
+    if (!this.validateToken(hubspotToken)) {
+      return { success: false, error: 'Invalid HubSpot token provided' };
     }
+
+    const client = this.getClientWithToken(hubspotToken);
 
     try {
       const properties: { [key: string]: string } = {
@@ -288,7 +286,7 @@ export class HubSpotService {
         }
       });
 
-      const response = await this.client.crm.objects.notes.basicApi.create({
+      const response = await client.crm.objects.notes.basicApi.create({
         properties,
         associations: []
       });
@@ -326,11 +324,14 @@ export class HubSpotService {
     fromObjectType: string,
     fromObjectId: string,
     toObjectType: string,
-    toObjectId: string
+    toObjectId: string,
+    hubspotToken: string
   ): Promise<AssociationResult> {
-    if (!this.isInitialized || !this.client) {
-      return { success: false, error: 'HubSpot client not initialized' };
+    if (!this.validateToken(hubspotToken)) {
+      return { success: false, error: 'Invalid HubSpot token provided' };
     }
+
+    const client = this.getClientWithToken(hubspotToken);
 
     try {
       // Map object types to HubSpot association type IDs
@@ -343,7 +344,7 @@ export class HubSpotService {
         };
       }
 
-      await this.client.crm.associations.v4.basicApi.create(
+      await client.crm.associations.v4.basicApi.create(
         fromObjectType,
         fromObjectId,
         toObjectType,
@@ -447,7 +448,11 @@ export class HubSpotService {
     return associationTypes[`${fromType}_to_${toType}`] || null;
   }
 
-  async createSmartAssociations(simulationId: number): Promise<void> {
+  async createSmartAssociations(simulationId: number, hubspotToken: string): Promise<void> {
+    if (!this.validateToken(hubspotToken)) {
+      console.error('Invalid HubSpot token for smart associations');
+      return;
+    }
     try {
       console.log('Creating smart associations for simulation:', simulationId);
       
@@ -468,7 +473,8 @@ export class HubSpotService {
             'contact',
             contact.hubspotObjectId,
             'company',
-            matchingCompany.hubspotObjectId
+            matchingCompany.hubspotObjectId,
+            hubspotToken
           );
         }
       }
@@ -482,7 +488,8 @@ export class HubSpotService {
             'deal',
             deal.hubspotObjectId,
             'contact',
-            matchingContact.hubspotObjectId
+            matchingContact.hubspotObjectId,
+            hubspotToken
           );
         }
       }
@@ -496,7 +503,8 @@ export class HubSpotService {
             'ticket',
             ticket.hubspotObjectId,
             'contact',
-            matchingContact.hubspotObjectId
+            matchingContact.hubspotObjectId,
+            hubspotToken
           );
         }
       }

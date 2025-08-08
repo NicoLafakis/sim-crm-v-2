@@ -20,6 +20,8 @@ interface SimulationConfig {
   };
   user_tier: string;
   credit_limit: number;
+  user_id: number;
+  hubspot_token: string;
 }
 
 interface JobPayload {
@@ -29,6 +31,8 @@ interface JobPayload {
   recordType: string;
   recordIndex: number;
   totalRecords: number;
+  userId: number;
+  hubspotToken: string;
 }
 
 export class SimulationOrchestrator {
@@ -106,7 +110,9 @@ export class SimulationOrchestrator {
             industry: config.industry,
             recordType: type,
             recordIndex: i + 1,
-            totalRecords: count
+            totalRecords: count,
+            userId: config.user_id,
+            hubspotToken: config.hubspot_token
           } as any,
           status: 'pending',
           scheduledFor: new Date(currentTime),
@@ -140,7 +146,9 @@ export class SimulationOrchestrator {
         industry: config.industry,
         recordType: 'association',
         recordIndex: 1,
-        totalRecords: 1
+        totalRecords: 1,
+        userId: config.user_id,
+        hubspotToken: config.hubspot_token
       } as any,
       status: 'pending',
       scheduledFor: new Date(lastJobTime + intervalMs),
@@ -224,27 +232,27 @@ export class SimulationOrchestrator {
       console.log(`Generated ${payload.recordType} persona:`, persona.data);
       console.log(`Cached: ${persona.cached}`);
 
-      // Push to HubSpot directly
+      // Push to HubSpot directly using user's token
       let hubspotResult;
       switch (payload.recordType) {
         case 'contact':
-          hubspotResult = await hubspotService.createContact(payload.simulationId, persona.data);
+          hubspotResult = await hubspotService.createContact(payload.simulationId, persona.data, payload.hubspotToken);
           break;
         case 'company':
-          hubspotResult = await hubspotService.createCompany(payload.simulationId, persona.data);
+          hubspotResult = await hubspotService.createCompany(payload.simulationId, persona.data, payload.hubspotToken);
           break;
         case 'deal':
-          hubspotResult = await hubspotService.createDeal(payload.simulationId, persona.data);
+          hubspotResult = await hubspotService.createDeal(payload.simulationId, persona.data, payload.hubspotToken);
           break;
         case 'ticket':
-          hubspotResult = await hubspotService.createTicket(payload.simulationId, persona.data);
+          hubspotResult = await hubspotService.createTicket(payload.simulationId, persona.data, payload.hubspotToken);
           break;
         case 'note':
-          hubspotResult = await hubspotService.createNote(payload.simulationId, persona.data);
+          hubspotResult = await hubspotService.createNote(payload.simulationId, persona.data, payload.hubspotToken);
           break;
         case 'association':
           // Create smart associations between all records
-          await hubspotService.createSmartAssociations(payload.simulationId);
+          await hubspotService.createSmartAssociations(payload.simulationId, payload.hubspotToken);
           hubspotResult = { success: true, hubspotId: 'associations_created' };
           break;
         default:
