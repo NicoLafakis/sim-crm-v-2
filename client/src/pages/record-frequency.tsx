@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useSession } from '@/hooks/use-session';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function RecordFrequency() {
   const [, setLocation] = useLocation();
@@ -71,15 +72,12 @@ export default function RecordFrequency() {
       return numericValue;
     };
 
-    // Generate simulation ID
-    const simulationId = `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    // Build the webhook payload
-    const webhookPayload = {
-      simulation_id: simulationId,
-      theme: session.selectedTheme || "generic",
-      industry: session.selectedIndustry || "business",
+    // Build the simulation settings for backend API
+    const simulationSettings = {
+      theme: session?.selectedTheme || "generic",
+      industry: session?.selectedIndustry || "business",
       duration_days: getDurationDays(timeSpan),
+      timeSpan: timeSpan,
       record_distribution: {
         contacts: values[0],
         companies: values[1],
@@ -87,38 +85,27 @@ export default function RecordFrequency() {
         tickets: values[3],
         notes: values[4]
       },
-      user_tier: user.playerTier || "New Player",
-      credit_limit: user.creditLimit || 150
+      webhookUrl: 'https://nicolafakis.app.n8n.cloud/webhook-test/start-simulation'
     };
 
     toast({
       title: "Starting Simulation",
-      description: `Generating ${totalRecords} total records with ${session.selectedTheme} theme`,
+      description: `Generating ${totalRecords} total records with ${session?.selectedTheme} theme`,
     });
 
     try {
-      // Send webhook to n8n
-      const response = await fetch('https://nicolafakis.app.n8n.cloud/webhook-test/start-simulation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(webhookPayload)
+      // Call backend API which will handle orchestrator and webhook
+      const response: any = await apiRequest('POST', '/api/simulation/start', {
+        userId: user.id,
+        settings: simulationSettings
       });
 
-      if (!response.ok) {
-        throw new Error(`Webhook failed: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      
       toast({
         title: "Simulation Started Successfully!",
-        description: `Webhook sent to n8n. Simulation ID: ${simulationId}`,
+        description: `Simulation ID: ${response.simulationId}. Your CRM data will be generated over ${getDurationDays(timeSpan)} days.`,
       });
 
-      console.log('Webhook sent successfully:', result);
-      console.log('Payload sent:', webhookPayload);
+      console.log('Simulation started successfully:', response);
       
     } catch (error) {
       console.error('Webhook error:', error);

@@ -9,14 +9,20 @@ import {
   InsertSimulation,
   ApiToken,
   InsertApiToken,
+  ScheduledJob,
+  InsertScheduledJob,
+  CachedPersona,
+  InsertCachedPersona,
   users,
   sessions,
   playerTiers,
   simulations,
-  apiTokens
+  apiTokens,
+  scheduledJobs,
+  cachedPersonas
 } from "../shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -46,6 +52,17 @@ export interface IStorage {
   getPlayerTier(id: number): Promise<PlayerTier | undefined>;
   getPlayerTierByName(name: string): Promise<PlayerTier | undefined>;
   getAllPlayerTiers(): Promise<PlayerTier[]>;
+  
+  // Scheduled job operations
+  createScheduledJob(jobData: InsertScheduledJob): Promise<ScheduledJob>;
+  getScheduledJobsBySimulation(simulationId: number): Promise<ScheduledJob[]>;
+  getPendingJobs(limit?: number): Promise<ScheduledJob[]>;
+  updateScheduledJob(id: number, jobData: Partial<ScheduledJob>): Promise<ScheduledJob>;
+  
+  // Cached persona operations
+  createCachedPersona(personaData: InsertCachedPersona): Promise<CachedPersona>;
+  getCachedPersona(theme: string, industry: string, personaType: string): Promise<CachedPersona | undefined>;
+  updateCachedPersonaUsage(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -230,6 +247,69 @@ export class DatabaseStorage implements IStorage {
 
   async getAllPlayerTiers(): Promise<PlayerTier[]> {
     return await db.select().from(playerTiers);
+  }
+
+  // Scheduled job operations
+  async createScheduledJob(jobData: InsertScheduledJob): Promise<ScheduledJob> {
+    const [job] = await db.insert(scheduledJobs).values(jobData).returning();
+    return job;
+  }
+
+  async getScheduledJobsBySimulation(simulationId: number): Promise<ScheduledJob[]> {
+    return await db.select().from(scheduledJobs).where(eq(scheduledJobs.simulationId, simulationId));
+  }
+
+  async getPendingJobs(limit: number = 100): Promise<ScheduledJob[]> {
+    return await db
+      .select()
+      .from(scheduledJobs)
+      .where(and(
+        eq(scheduledJobs.status, 'pending'),
+        eq(scheduledJobs.scheduledFor, new Date())
+      ))
+      .limit(limit);
+  }
+
+  async updateScheduledJob(id: number, jobData: Partial<ScheduledJob>): Promise<ScheduledJob> {
+    const [job] = await db
+      .update(scheduledJobs)
+      .set({ ...jobData, updatedAt: new Date() })
+      .where(eq(scheduledJobs.id, id))
+      .returning();
+    
+    if (!job) {
+      throw new Error("Scheduled job not found");
+    }
+    return job;
+  }
+
+  // Cached persona operations
+  async createCachedPersona(personaData: InsertCachedPersona): Promise<CachedPersona> {
+    const [persona] = await db.insert(cachedPersonas).values(personaData).returning();
+    return persona;
+  }
+
+  async getCachedPersona(theme: string, industry: string, personaType: string): Promise<CachedPersona | undefined> {
+    const [persona] = await db
+      .select()
+      .from(cachedPersonas)
+      .where(and(
+        eq(cachedPersonas.theme, theme),
+        eq(cachedPersonas.industry, industry),
+        eq(cachedPersonas.personaType, personaType)
+      ));
+    return persona;
+  }
+
+  async updateCachedPersonaUsage(id: number): Promise<void> {
+    await db
+      .update(cachedPersonas)
+      .set({ 
+        usageCount: sql`${cachedPersonas.usageCount} + 1`,
+        lastUsedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(cachedPersonas.id, id));
   }
 }
 

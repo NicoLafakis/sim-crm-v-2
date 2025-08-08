@@ -1,0 +1,181 @@
+Role & GoalYou are an expert full-stack TypeScript developer. Your primary goal is to implement the backend simulation orchestrator for the "SimCRM" application within the existing Replit project structure. You will build the logic for scheduling and executing jobs that create themed CRM data over time. A core part of this task is to integrate with the OpenAI API to generate persona-driven data and implement a caching mechanism to persist and reuse these personas.Project ContextYou are working within a monorepo with the following structure:client/: A Vite + React frontend using TanStack Query and Zustand.server/: An Express.js backend server.shared/: TypeScript code, including a Drizzle ORM schema (schema.ts), shared between the client and server.Database: The project is connected to a PostgreSQL database via Drizzle ORM.The frontend is already built to capture simulation settings. Your task is to build the backend logic that acts on these settings.High-Level Task BreakdownFollow these steps to build the orchestrator:Update Database Schema: Add the scheduled_jobs and cached_personas tables to the Drizzle schema.Create Persona Generation Service: Create a new service that communicates with the OpenAI API.Create Orchestrator Service: Create the main service that contains the logic for scheduling and processing jobs.Implement Job Scheduling: Write the function that creates job records in the database.Implement Caching & Job Execution: Write the function that processes a pending job, first checking for a cached persona before calling the Persona Agent, and then saving new personas.Create a Job Runner: Set up a simple interval-based "cron" job to periodically check for and run scheduled jobs.Update API Route: Modify the existing Express.js API route to trigger the new orchestrator service.Detailed Implementation StepsStep 1: Update shared/schema.tsAdd the Drizzle schema definitions for two new tables: scheduled_jobs and cached_personas.// In shared/schema.ts, after the 'simulations' table definition:
+
+export const scheduledJobs = pgTable('scheduled_jobs', {
+  id: serial('id').primaryKey(),
+  simulationId: integer('simulation_id').references(() => simulations.id).notNull(),
+  jobType: varchar('job_type', { length: 50 }).notNull(), // e.g., 'CREATE_CONTACT'
+  payload: jsonb('payload'), // Will store persona details for the OpenAI call
+  scheduledFor: timestamp('scheduled_for').notNull(),
+  status: varchar('status', { length: 20 }).default('pending').notNull(), // pending, processing, completed, failed
+  result: jsonb('result'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const cachedPersonas = pgTable('cached_personas', {
+  id: serial('id').primaryKey(),
+  theme: varchar('theme', { length: 255 }).notNull().unique(), // e.g., 'Rock Band'
+  personaData: jsonb('persona_data').notNull(), // The full JSON response from OpenAI
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+After updating the schema, run the Drizzle migration command to apply the changes to your database.Step 2: Create the Persona Generation Service (server/persona-agent.ts)Create a new file server/persona-agent.ts. This service will be responsible for all communication with OpenAI.import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const SYSTEM_PROMPT = `You are a specialized AI agent for the "SimCRM." application. Your primary function is to create realistic and engaging contact personas based on a given theme. When you receive a request for contact properties, you will generate and return a complete JSON object that is creatively and logically consistent with the assigned persona. The JSON output must be a single, valid JSON object and nothing else. Do not include any conversational text or explanations.`;
+
+interface Persona {
+  title: string;
+  description: string;
+}
+
+export async function generateContactData(persona: Persona, properties: string[]): Promise<Record<string, any>> {
+  const userMessage = { persona, properties };
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4.1-nano-2025-04-14',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: JSON.stringify(userMessage) },
+      ],
+      response_format: { type: 'json_object' },
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('OpenAI returned an empty response.');
+    }
+    return JSON.parse(content);
+  } catch (error) {
+    console.error('Error calling OpenAI:', error);
+    throw new Error('Failed to generate contact data from OpenAI.');
+  }
+}
+Step 3 & 4: Create Orchestrator and Implement Job Scheduling (server/orchestrator.ts)Create server/orchestrator.ts. This will contain the core logic. Implement the scheduleInitialJobs function first.// In server/orchestrator.ts
+import { db } from './db';
+import { scheduledJobs, simulations } from '../shared/schema';
+import { InferInsertModel } from 'drizzle-orm';
+
+type Simulation = InferInsertModel<typeof simulations>;
+
+export async function scheduleInitialJobs(simulation: Simulation) {
+  console.log(`Scheduling initial jobs for simulation ID: ${simulation.id}`);
+  const frequencyMinutes = {
+    '1h': 60, '4hrs': 240, '1day': 1440, '1wk': 10080, '1mo': 43200,
+  }[(simulation.recordFrequency as string) || '1h'];
+
+  const quarterPeriod = frequencyMinutes / 4;
+  const interval = Math.floor(quarterPeriod / 5);
+
+  for (let i = 0; i < 5; i++) {
+    const scheduledFor = new Date(Date.now() + (i * interval * 60 * 1000));
+    const newJob: InferInsertModel<typeof scheduledJobs> = {
+      simulationId: simulation.id!,
+      jobType: 'CREATE_CONTACT',
+      payload: {
+        theme: simulation.theme, // Pass the theme for caching
+        persona: {
+          title: `A character from a ${simulation.theme} theme`,
+          description: `This character works in the ${simulation.industry} industry. Be creative.`
+        }
+      },
+      scheduledFor,
+      status: 'pending',
+    };
+    await db.insert(scheduledJobs).values(newJob);
+    console.log(`Scheduled job ${i + 1} for ${scheduledFor.toISOString()}`);
+  }
+}
+Step 5 & 6: Implement Caching, Job Execution, and RunnerNow, add the job processing logic to server/orchestrator.ts. This is where the caching happens.// Add these functions to server/orchestrator.ts
+import { generateContactData } from './persona-agent';
+import { eq, lte } from 'drizzle-orm';
+import { cachedPersonas } from '../shared/schema';
+
+type Job = InferInsertModel<typeof scheduledJobs>;
+
+async function executeJob(job: Job) {
+  console.log(`Executing job ID: ${job.id}, Type: ${job.jobType}`);
+  await db.update(scheduledJobs).set({ status: 'processing' }).where(eq(scheduledJobs.id, job.id!));
+
+  try {
+    let result: Record<string, any> = {};
+    if (job.jobType === 'CREATE_CONTACT') {
+      const { persona, theme } = job.payload as any;
+      const properties = ['firstname', 'lastname', 'email', 'jobtitle', 'company', 'industry'];
+      let generatedData: Record<string, any>;
+
+      // 1. Check for a cached persona first
+      const existingPersona = await db.select().from(cachedPersonas).where(eq(cachedPersonas.theme, theme)).limit(1);
+
+      if (existingPersona && existingPersona.length > 0) {
+        console.log(`Using cached persona for theme: ${theme}`);
+        generatedData = existingPersona[0].personaData as Record<string, any>;
+      } else {
+        // 2. If not found, generate a new one
+        console.log(`No cached persona found for ${theme}. Generating new one...`);
+        generatedData = await generateContactData(persona, properties);
+        
+        // 3. Save the new persona to the cache for next time
+        await db.insert(cachedPersonas).values({
+          theme: theme,
+          personaData: generatedData,
+        });
+        console.log(`New persona for ${theme} has been cached.`);
+      }
+      
+      console.log('SIMULATED API CALL with data:', generatedData);
+      result = { simulated: true, ...generatedData };
+    }
+
+    await db.update(scheduledJobs).set({ status: 'completed', result }).where(eq(scheduledJobs.id, job.id!));
+    console.log(`Job ID: ${job.id} completed successfully.`);
+
+  } catch (error) {
+    console.error(`Job ID: ${job.id} failed.`, error);
+    await db.update(scheduledJobs).set({ status: 'failed', result: { error: (error as Error).message } }).where(eq(scheduledJobs.id, job.id!));
+  }
+}
+
+export async function runPendingJobs() {
+  const now = new Date();
+  const pendingJobs = await db.select().from(scheduledJobs).where(eq(scheduledJobs.status, 'pending')).where(lte(scheduledJobs.scheduledFor, now));
+  if (pendingJobs.length > 0) {
+    console.log(`Found ${pendingJobs.length} pending jobs to run.`);
+    for (const job of pendingJobs) {
+      await executeJob(job);
+    }
+  }
+}
+
+export function startJobRunner() {
+  console.log('Job runner started. Checking for jobs every 30 seconds.');
+  setInterval(runPendingJobs, 30000);
+}
+Step 7: Update server/index.ts and server/routes.tsFinally, tie everything together.First, modify your Express.js route in server/routes.ts to call the orchestrator.// In server/routes.ts
+// ... other imports from your file
+import { scheduleInitialJobs } from './orchestrator';
+
+// Inside your router.post('/simulations', ...)
+// After you successfully insert the new simulation...
+// const createdSim = ...
+
+// Add this line:
+// await scheduleInitialJobs(createdSim);
+
+// ... then return your response.
+Now, start the job runner in your main server file, server/index.ts.// In server/index.ts
+import express from 'express';
+// ... other imports from your file
+import { startJobRunner } from './orchestrator';
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// ... your middleware and routes setup
+
+app.listen(port, () => {
+  console.log(`Server is listening on port ${port}`);
+  startJobRunner();
+});
+This updated plan now includes a robust caching layer, making your simulation orchestrator more efficient and scalable.

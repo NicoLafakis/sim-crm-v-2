@@ -75,6 +75,34 @@ export const playerTiers = pgTable('player_tiers', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Scheduled jobs for simulation orchestration
+export const scheduledJobs = pgTable('scheduled_jobs', {
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+  simulationId: integer('simulation_id').notNull().references(() => simulations.id, { onDelete: 'cascade' }),
+  jobType: varchar('job_type', { length: 50 }).notNull(), // 'generate_persona', 'create_contact', 'create_company', etc.
+  payload: json('payload').notNull(),
+  status: varchar('status', { length: 50 }).default('pending'), // 'pending', 'processing', 'completed', 'failed'
+  scheduledFor: timestamp('scheduled_for').notNull(),
+  processedAt: timestamp('processed_at'),
+  error: text('error'),
+  retryCount: integer('retry_count').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Cached personas for reuse across simulations
+export const cachedPersonas = pgTable('cached_personas', {
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+  theme: varchar('theme', { length: 100 }).notNull(),
+  industry: varchar('industry', { length: 100 }).notNull(),
+  personaType: varchar('persona_type', { length: 50 }).notNull(), // 'contact', 'company', 'deal', etc.
+  personaData: json('persona_data').notNull(),
+  usageCount: integer('usage_count').default(0),
+  lastUsedAt: timestamp('last_used_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
@@ -89,17 +117,25 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   }),
 }));
 
-export const simulationsRelations = relations(simulations, ({ one }) => ({
+export const simulationsRelations = relations(simulations, ({ one, many }) => ({
   user: one(users, {
     fields: [simulations.userId],
     references: [users.id],
   }),
+  scheduledJobs: many(scheduledJobs),
 }));
 
 export const apiTokensRelations = relations(apiTokens, ({ one }) => ({
   user: one(users, {
     fields: [apiTokens.userId],
     references: [users.id],
+  }),
+}));
+
+export const scheduledJobsRelations = relations(scheduledJobs, ({ one }) => ({
+  simulation: one(simulations, {
+    fields: [scheduledJobs.simulationId],
+    references: [simulations.id],
   }),
 }));
 
@@ -114,6 +150,10 @@ export type ApiToken = typeof apiTokens.$inferSelect;
 export type InsertApiToken = typeof apiTokens.$inferInsert;
 export type PlayerTier = typeof playerTiers.$inferSelect;
 export type InsertPlayerTier = typeof playerTiers.$inferInsert;
+export type ScheduledJob = typeof scheduledJobs.$inferSelect;
+export type InsertScheduledJob = typeof scheduledJobs.$inferInsert;
+export type CachedPersona = typeof cachedPersonas.$inferSelect;
+export type InsertCachedPersona = typeof cachedPersonas.$inferInsert;
 
 // Zod schemas with passcode validation
 export const insertUserSchema = createInsertSchema(users).omit({ 
@@ -154,3 +194,17 @@ export const insertPlayerTierSchema = createInsertSchema(playerTiers).omit({
   createdAt: true 
 });
 export type InsertPlayerTierType = z.infer<typeof insertPlayerTierSchema>;
+
+export const insertScheduledJobSchema = createInsertSchema(scheduledJobs).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertScheduledJobType = z.infer<typeof insertScheduledJobSchema>;
+
+export const insertCachedPersonaSchema = createInsertSchema(cachedPersonas).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertCachedPersonaType = z.infer<typeof insertCachedPersonaSchema>;
