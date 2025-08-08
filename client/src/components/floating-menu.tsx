@@ -54,7 +54,7 @@ export default function FloatingMenu() {
         className="relative p-4 -m-4"
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}
-        style={{ minHeight: isOpen ? '320px' : '80px', minWidth: '320px' }}
+        style={{ minHeight: isOpen ? '320px' : '76px', minWidth: '76px' }}
       >
         <button
           className="w-14 h-14 bg-[#1e2124] border-2 border-[#306230] rounded-lg shadow-lg flex items-center justify-center text-[#9bbc0f] hover:bg-[#306230] transition-colors duration-200"
