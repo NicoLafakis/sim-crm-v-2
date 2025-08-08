@@ -139,13 +139,13 @@ export default function ProfilePage() {
         </div>
 
         {/* User Info Card */}
-        <Card className="border-2 text-white" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)' }}>
+        <Card className="border-2" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}>
           <CardHeader>
             <div className="flex items-center space-x-4">
-              <User className="w-8 h-8" />
+              <User className="w-8 h-8" style={{ color: 'rgb(200, 220, 140)' }} />
               <div>
                 <CardTitle className="text-2xl" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>{user?.username}</CardTitle>
-                <CardDescription style={{ color: 'rgb(180, 200, 120)' }}>
+                <CardDescription style={{ color: 'rgb(200, 220, 140)' }}>
                   Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
                 </CardDescription>
               </div>
@@ -155,27 +155,27 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
                 <div className="text-2xl font-bold" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>{user?.creditLimit || 0}</div>
-                <div className="text-sm" style={{ color: 'rgb(180, 200, 120)' }}>Credit Limit</div>
+                <div className="text-sm" style={{ color: 'rgb(200, 220, 140)' }}>Credit Limit</div>
               </div>
               <div className="text-center p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
                 <Badge className={`${getTierColor(user?.playerTier || 'New Player')} text-white`} style={{ fontFamily: 'var(--font-gameboy)' }}>
                   {user?.playerTier || 'New Player'}
                 </Badge>
-                <div className="text-sm mt-2" style={{ color: 'rgb(180, 200, 120)' }}>Player Tier</div>
+                <div className="text-sm mt-2" style={{ color: 'rgb(200, 220, 140)' }}>Player Tier</div>
               </div>
               <div className="text-center p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
                 <div className="text-2xl font-bold" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>{tokens?.length || 0}</div>
-                <div className="text-sm" style={{ color: 'rgb(180, 200, 120)' }}>API Tokens</div>
+                <div className="text-sm" style={{ color: 'rgb(200, 220, 140)' }}>API Tokens</div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Password Change */}
-        <Card className="border-2 text-white" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)' }}>
+        <Card className="border-2" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}>
           <CardHeader>
             <div className="flex items-center space-x-4">
-              <Shield className="w-6 h-6" />
+              <Shield className="w-6 h-6" style={{ color: 'rgb(200, 220, 140)' }} />
               <CardTitle style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>Change Password</CardTitle>
             </div>
           </CardHeader>
@@ -187,7 +187,7 @@ export default function ProfilePage() {
                 type="password"
                 value={passwords.current}
                 onChange={(e) => setPasswords(prev => ({ ...prev, current: e.target.value }))}
-                className="text-white" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)' }}
+                style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}
                 data-testid="input-current-password"
               />
             </div>
@@ -198,7 +198,7 @@ export default function ProfilePage() {
                 type="password"
                 value={passwords.new}
                 onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))}
-                className="text-white" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)' }}
+                style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}
                 data-testid="input-new-password"
               />
             </div>
@@ -209,14 +209,14 @@ export default function ProfilePage() {
                 type="password"
                 value={passwords.confirm}
                 onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
-                className="text-white" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)' }}
+                style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}
                 data-testid="input-confirm-password"
               />
             </div>
             <Button
               onClick={() => changePasswordMutation.mutate()}
               disabled={changePasswordMutation.isPending || !passwords.current || !passwords.new || !passwords.confirm}
-              className="font-mono text-white hover:bg-blue-700" style={{ backgroundColor: 'rgb(70, 120, 190)', borderColor: 'rgb(90, 140, 210)' }}
+              className="font-mono hover:bg-blue-700" style={{ backgroundColor: 'rgb(70, 120, 190)', borderColor: 'rgb(90, 140, 210)', color: 'rgb(200, 220, 140)' }}
               data-testid="button-change-password"
             >
               Update Password
@@ -225,15 +225,15 @@ export default function ProfilePage() {
         </Card>
 
         {/* API Tokens */}
-        <Card className="border-2 text-white" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)' }}>
+        <Card className="border-2" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <Key className="w-6 h-6" />
+                <Key className="w-6 h-6" style={{ color: 'rgb(200, 220, 140)' }} />
                 <CardTitle style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>API Tokens</CardTitle>
               </div>
             </div>
-            <CardDescription style={{ color: 'rgb(180, 200, 120)' }}>
+            <CardDescription style={{ color: 'rgb(200, 220, 140)' }}>
               Manage your API tokens for external services like HubSpot, OpenAI, etc.
             </CardDescription>
           </CardHeader>
@@ -247,9 +247,9 @@ export default function ProfilePage() {
               >
                 <div className="flex-1">
                   <div className="font-semibold" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>{token.service}</div>
-                  <div className="text-xs" style={{ color: 'rgb(160, 180, 100)', fontFamily: 'var(--font-mono)' }}>{token.maskedToken || token.accessToken.substring(0, 8) + '...' + token.accessToken.slice(-4)}</div>
+                  <div className="text-xs" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-mono)' }}>{token.maskedToken || token.accessToken.substring(0, 8) + '...' + token.accessToken.slice(-4)}</div>
                 </div>
-                <div className="text-right text-xs" style={{ color: 'rgb(180, 200, 120)' }}>
+                <div className="text-right text-xs" style={{ color: 'rgb(200, 220, 140)' }}>
                   <div>Added: {token.createdAt ? new Date(token.createdAt).toLocaleDateString() : 'Unknown'}</div>
                   {token.updatedAt && (
                     <div>Updated: {new Date(token.updatedAt).toLocaleDateString()}</div>
@@ -260,7 +260,8 @@ export default function ProfilePage() {
                   size="sm"
                   onClick={() => removeTokenMutation.mutate(token.id)}
                   disabled={removeTokenMutation.isPending}
-                  className="ml-4 bg-red-600 text-white hover:bg-red-700"
+                  className="ml-4 bg-red-600 hover:bg-red-700"
+                  style={{ color: 'rgb(200, 220, 140)' }}
                   data-testid={`button-remove-token-${token.id}`}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -272,8 +273,8 @@ export default function ProfilePage() {
 
             {/* Add New Token */}
             <div className="space-y-4">
-              <h3 className="font-semibold flex items-center" style={{ fontFamily: 'var(--font-gameboy)' }}>
-                <Plus className="w-4 h-4 mr-2" />
+              <h3 className="font-semibold flex items-center" style={{ fontFamily: 'var(--font-gameboy)', color: 'rgb(200, 220, 140)' }}>
+                <Plus className="w-4 h-4 mr-2" style={{ color: 'rgb(200, 220, 140)' }} />
                 Add New Token
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -284,7 +285,7 @@ export default function ProfilePage() {
                     placeholder="e.g., HubSpot"
                     value={newToken.service}
                     onChange={(e) => setNewToken(prev => ({ ...prev, service: e.target.value }))}
-                    className="text-white" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)' }}
+                    style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}
                     data-testid="input-token-service"
                   />
                 </div>
@@ -297,7 +298,7 @@ export default function ProfilePage() {
                       placeholder="pat-na1-..."
                       value={newToken.token}
                       onChange={(e) => setNewToken(prev => ({ ...prev, token: e.target.value }))}
-                      className="text-white pr-10" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)' }}
+                      className="pr-10" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}
                       data-testid="input-token-value"
                     />
                     <Button
@@ -316,7 +317,7 @@ export default function ProfilePage() {
               <Button
                 onClick={() => addTokenMutation.mutate()}
                 disabled={addTokenMutation.isPending || !newToken.service || !newToken.token}
-                className="font-mono text-white hover:bg-green-700" style={{ backgroundColor: 'rgb(70, 140, 70)' }}
+                className="font-mono hover:bg-green-700" style={{ backgroundColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}
                 data-testid="button-add-token"
               >
                 <Plus className="w-4 h-4 mr-2" />
