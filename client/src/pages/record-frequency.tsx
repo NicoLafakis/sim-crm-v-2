@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { useSession } from '@/hooks/use-session';
 
 export default function RecordFrequency() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user, session } = useSession();
   
   const [autoMode, setAutoMode] = useState(false);
   const [autoValue, setAutoValue] = useState(30);
@@ -51,16 +53,81 @@ export default function RecordFrequency() {
     setAutoValue(limitedValue);
   };
 
-  const handleStartSimulation = () => {
+  const handleStartSimulation = async () => {
+    if (!user || !session) {
+      toast({
+        title: "Error",
+        description: "User session not found. Please log in again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const totalRecords = values.reduce((a, b) => a + b, 0);
     
+    // Convert timeSpan to duration_days
+    const getDurationDays = (timeSpan: string): number => {
+      const numericValue = parseInt(timeSpan.split(' ')[0]);
+      return numericValue;
+    };
+
+    // Generate simulation ID
+    const simulationId = `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Build the webhook payload
+    const webhookPayload = {
+      simulation_id: simulationId,
+      theme: session.selectedTheme || "generic",
+      industry: session.selectedIndustry || "business",
+      duration_days: getDurationDays(timeSpan),
+      record_distribution: {
+        contacts: values[0],
+        companies: values[1],
+        deals: values[2],
+        tickets: values[3],
+        notes: values[4]
+      },
+      user_tier: user.playerTier || "New Player",
+      credit_limit: user.creditLimit || 150
+    };
+
     toast({
       title: "Starting Simulation",
-      description: `Generating ${totalRecords} total records across ${labels.length} object types`,
+      description: `Generating ${totalRecords} total records with ${session.selectedTheme} theme`,
     });
-    
-    // TODO: Navigate to actual simulation
-    console.log('Starting simulation with values:', values);
+
+    try {
+      // Send webhook to n8n
+      const response = await fetch('https://nicolafakis.app.n8n.cloud/webhook-test/start-simulation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookPayload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Webhook failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "Simulation Started Successfully!",
+        description: `Webhook sent to n8n. Simulation ID: ${simulationId}`,
+      });
+
+      console.log('Webhook sent successfully:', result);
+      console.log('Payload sent:', webhookPayload);
+      
+    } catch (error) {
+      console.error('Webhook error:', error);
+      toast({
+        title: "Simulation Failed",
+        description: `Failed to start simulation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
   };
 
   return (
