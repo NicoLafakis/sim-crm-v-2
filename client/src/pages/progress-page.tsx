@@ -118,7 +118,7 @@ export default function ProgressPage() {
              backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
              backgroundSize: '20px 20px'
            }}>
-        <div className="font-mono text-xl" style={{ color: 'rgb(200, 220, 140)' }}>Loading Runs...</div>
+        <div className="text-xl" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>Loading Runs...</div>
       </div>
     );
   }
@@ -133,11 +133,11 @@ export default function ProgressPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-mono font-bold mb-4" style={{ color: 'rgb(200, 220, 140)' }}>
+          <h1 className="text-4xl font-bold mb-4" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>
             SIMULATION PROGRESS
           </h1>
           <div className="flex items-center justify-between">
-            <div className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>
+            <div style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>
               Active Runs: {activeRuns.length}/2
             </div>
             {!canStartNewRun && (
@@ -153,7 +153,7 @@ export default function ProgressPage() {
           {simulations?.length === 0 ? (
             <Card className="border-2 text-white" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)' }}>
               <CardContent className="p-8 text-center">
-                <div className="font-mono text-xl mb-4" style={{ color: 'rgb(200, 220, 140)' }}>NO RUNS FOUND</div>
+                <div className="text-xl mb-4" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>NO RUNS FOUND</div>
                 <div className="text-sm" style={{ color: 'rgb(180, 200, 120)' }}>Start a new simulation to see it here.</div>
               </CardContent>
             </Card>
@@ -175,15 +175,15 @@ export default function ProgressPage() {
                       onClick={() => toggleExpanded(simulation.id)}
                       data-testid={`expand-simulation-${simulation.id}`}
                     >
-                      <CardHeader className="cursor-pointer" style={{ '&:hover': { backgroundColor: 'rgba(70, 140, 70, 0.3)' } }}>
+                      <CardHeader className="cursor-pointer hover:bg-opacity-30" style={{ backgroundColor: 'rgba(70, 140, 70, 0.1)' }}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <div className={`w-3 h-3 rounded-full ${getStatusColor(simulation.status)}`} />
                             <div>
-                              <CardTitle className="text-left font-mono text-xl" style={{ color: 'rgb(200, 220, 140)' }}>
+                              <CardTitle className="text-left text-xl" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>
                                 {simulation.name}
                               </CardTitle>
-                              <CardDescription className="text-left font-mono" style={{ color: 'rgb(180, 200, 120)' }}>
+                              <CardDescription className="text-left" style={{ color: 'rgb(180, 200, 120)', fontFamily: 'var(--font-mono)' }}>
                                 {simulation.theme} • {simulation.industry} • {simulation.frequency}
                               </CardDescription>
                             </div>
@@ -220,7 +220,7 @@ export default function ProgressPage() {
                           {status && (
                             <div className="grid grid-cols-2 gap-4 p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
                               <div>
-                                <div className="text-sm font-mono mb-2">JOB STATUS</div>
+                                <div className="text-sm mb-2" style={{ fontFamily: 'var(--font-gameboy)' }}>JOB STATUS</div>
                                 <div className="space-y-1 text-xs">
                                   {Object.entries(status.status).map(([key, value]) => (
                                     <div key={key} className="flex justify-between">
@@ -231,7 +231,7 @@ export default function ProgressPage() {
                                 </div>
                               </div>
                               <div>
-                                <div className="text-sm font-mono mb-2">DETAILS</div>
+                                <div className="text-sm mb-2" style={{ fontFamily: 'var(--font-gameboy)' }}>DETAILS</div>
                                 <div className="space-y-1 text-xs">
                                   <div className="flex justify-between">
                                     <span>Started:</span>

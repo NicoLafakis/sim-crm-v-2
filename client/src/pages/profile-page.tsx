@@ -133,7 +133,7 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-mono font-bold mb-4" style={{ color: 'rgb(200, 220, 140)' }}>
+          <h1 className="text-4xl font-bold mb-4" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>
             PLAYER PROFILE
           </h1>
         </div>
@@ -144,7 +144,7 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-4">
               <User className="w-8 h-8" />
               <div>
-                <CardTitle className="font-mono text-2xl" style={{ color: 'rgb(200, 220, 140)' }}>{user?.username}</CardTitle>
+                <CardTitle className="text-2xl" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>{user?.username}</CardTitle>
                 <CardDescription style={{ color: 'rgb(180, 200, 120)' }}>
                   Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
                 </CardDescription>
@@ -154,17 +154,17 @@ export default function ProfilePage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
-                <div className="text-2xl font-mono font-bold" style={{ color: 'rgb(200, 220, 140)' }}>{user?.creditLimit || 0}</div>
+                <div className="text-2xl font-bold" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>{user?.creditLimit || 0}</div>
                 <div className="text-sm" style={{ color: 'rgb(180, 200, 120)' }}>Credit Limit</div>
               </div>
               <div className="text-center p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
-                <Badge className={`${getTierColor(user?.playerTier || 'New Player')} text-white font-mono`}>
+                <Badge className={`${getTierColor(user?.playerTier || 'New Player')} text-white`} style={{ fontFamily: 'var(--font-gameboy)' }}>
                   {user?.playerTier || 'New Player'}
                 </Badge>
                 <div className="text-sm mt-2" style={{ color: 'rgb(180, 200, 120)' }}>Player Tier</div>
               </div>
               <div className="text-center p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
-                <div className="text-2xl font-mono font-bold" style={{ color: 'rgb(200, 220, 140)' }}>{tokens?.length || 0}</div>
+                <div className="text-2xl font-bold" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>{tokens?.length || 0}</div>
                 <div className="text-sm" style={{ color: 'rgb(180, 200, 120)' }}>API Tokens</div>
               </div>
             </div>
@@ -176,7 +176,7 @@ export default function ProfilePage() {
           <CardHeader>
             <div className="flex items-center space-x-4">
               <Shield className="w-6 h-6" />
-              <CardTitle className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>Change Password</CardTitle>
+              <CardTitle style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>Change Password</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -230,7 +230,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <Key className="w-6 h-6" />
-                <CardTitle className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>API Tokens</CardTitle>
+                <CardTitle style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>API Tokens</CardTitle>
               </div>
             </div>
             <CardDescription style={{ color: 'rgb(180, 200, 120)' }}>
@@ -246,8 +246,8 @@ export default function ProfilePage() {
                 data-testid={`token-item-${token.id}`}
               >
                 <div className="flex-1">
-                  <div className="font-mono font-semibold" style={{ color: 'rgb(200, 220, 140)' }}>{token.service}</div>
-                  <div className="text-xs font-mono" style={{ color: 'rgb(160, 180, 100)' }}>{token.maskedToken || token.accessToken.substring(0, 8) + '...' + token.accessToken.slice(-4)}</div>
+                  <div className="font-semibold" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>{token.service}</div>
+                  <div className="text-xs" style={{ color: 'rgb(160, 180, 100)', fontFamily: 'var(--font-mono)' }}>{token.maskedToken || token.accessToken.substring(0, 8) + '...' + token.accessToken.slice(-4)}</div>
                 </div>
                 <div className="text-right text-xs" style={{ color: 'rgb(180, 200, 120)' }}>
                   <div>Added: {token.createdAt ? new Date(token.createdAt).toLocaleDateString() : 'Unknown'}</div>
@@ -272,7 +272,7 @@ export default function ProfilePage() {
 
             {/* Add New Token */}
             <div className="space-y-4">
-              <h3 className="font-mono font-semibold flex items-center">
+              <h3 className="font-semibold flex items-center" style={{ fontFamily: 'var(--font-gameboy)' }}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add New Token
               </h3>
