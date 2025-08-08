@@ -285,6 +285,7 @@ export default function ProfilePage() {
                     placeholder="e.g., HubSpot"
                     value={newToken.service}
                     onChange={(e) => setNewToken(prev => ({ ...prev, service: e.target.value }))}
+                    className="placeholder:text-[rgb(200,220,140)]"
                     style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}
                     data-testid="input-token-service"
                   />
