@@ -119,23 +119,32 @@ export default function IndustrySelection() {
           
           {/* Industries Grid */}
           <div className="grid grid-cols-3 gap-4 mb-8">
-            {industries.map((industry) => (
-              <button
-                key={industry.id}
-                onClick={() => handleIndustrySelect(industry.id)}
-                className={`h-20 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-                  selectedIndustry === industry.id 
-                    ? 'border-yellow-400 bg-yellow-600 text-white' 
-                    : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-                } cursor-pointer`}
-                data-testid={`industry-${industry.id}`}
-              >
-                <div className="text-lg mb-1">{industry.icon}</div>
-                <div className="text-xs font-bold uppercase tracking-wide">
-                  {industry.name}
-                </div>
-              </button>
-            ))}
+            {industries.map((industry) => {
+              const isEcommerce = industry.id === 'ecommerce';
+              const isDisabled = !isEcommerce;
+              
+              return (
+                <button
+                  key={industry.id}
+                  onClick={() => isEcommerce ? handleIndustrySelect(industry.id) : null}
+                  disabled={isDisabled}
+                  className={`h-20 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
+                    selectedIndustry === industry.id 
+                      ? 'border-yellow-400 bg-yellow-600 text-white' 
+                      : isEcommerce
+                        ? 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800 cursor-pointer'
+                        : 'border-gray-600 bg-gray-700 text-gray-400 cursor-not-allowed opacity-50'
+                  }`}
+                  data-testid={`industry-${industry.id}`}
+                >
+                  <div className="text-lg mb-1">{industry.icon}</div>
+                  <div className="text-xs font-bold uppercase tracking-wide">
+                    {industry.name}
+                    {isDisabled && <div className="text-xs mt-1">(Coming Soon)</div>}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           {/* Control Buttons */}
