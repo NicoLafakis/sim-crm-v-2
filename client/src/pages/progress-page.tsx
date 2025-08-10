@@ -25,9 +25,52 @@ interface Simulation {
 interface SimulationStatus {
   simulationId: number;
   totalJobs: number;
-  status: Record<string, number>;
+  completedJobs: number;
+  processingJobs: number;
+  pendingJobs: number;
+  failedJobs: number;
+  objectCounts: {
+    contacts: number;
+    companies: number;
+    deals: number;
+    tickets: number;
+    notes: number;
+  };
   progress: number;
+  timing: {
+    startTime: number;
+    endTime: number;
+    timeElapsed: number;
+    timeRemaining: number;
+    nextJobDelay: number;
+  };
+  lastObject: {
+    type: string;
+    completedAt: string;
+    payload: any;
+  } | null;
+  nextObject: {
+    type: string;
+    scheduledFor: string;
+    payload: any;
+  } | null;
+  status: string;
 }
+
+// Helper function to format duration
+const formatDuration = (ms: number): string => {
+  if (ms <= 0) return '0s';
+  
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) return `${days}d ${hours % 24}h`;
+  if (hours > 0) return `${hours}h ${minutes % 60}m`;
+  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+  return `${seconds}s`;
+};
 
 export default function ProgressPage() {
   const { user } = useSession();
@@ -202,7 +245,7 @@ export default function ProgressPage() {
                           <div className="mt-4">
                             <div className="flex justify-between text-sm mb-2">
                               <span>Progress: {status.progress}%</span>
-                              <span>{status.status.completed || 0}/{status.totalJobs} jobs</span>
+                              <span>{status.completedJobs || 0}/{status.totalJobs} jobs</span>
                             </div>
                             <Progress 
                               value={status.progress} 
@@ -216,32 +259,124 @@ export default function ProgressPage() {
                     <CollapsibleContent>
                       <CardContent className="pt-0">
                         <div className="space-y-4">
-                          {/* Detailed Status */}
+                          {/* Comprehensive Progress Tracking */}
                           {status && (
-                            <div className="grid grid-cols-2 gap-4 p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
-                              <div>
-                                <div className="text-sm mb-2" style={{ fontFamily: 'var(--font-gameboy)' }}>JOB STATUS</div>
-                                <div className="space-y-1 text-xs">
-                                  {Object.entries(status.status).map(([key, value]) => (
-                                    <div key={key} className="flex justify-between">
-                                      <span>{key}:</span>
-                                      <span>{value}</span>
+                            <div className="space-y-4">
+                              {/* Main Progress Stats */}
+                              <div className="grid grid-cols-3 gap-4 p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
+                                <div>
+                                  <div className="text-sm mb-2" style={{ fontFamily: 'var(--font-gameboy)', color: 'rgb(200, 220, 140)' }}>
+                                    RUNTIME
+                                  </div>
+                                  <div className="space-y-1 text-xs" style={{ color: 'rgb(180, 200, 120)' }}>
+                                    <div className="flex justify-between">
+                                      <span>Running:</span>
+                                      <span className="font-mono">
+                                        {formatDuration(status.timing.timeElapsed)}
+                                      </span>
                                     </div>
-                                  ))}
+                                    <div className="flex justify-between">
+                                      <span>Ends in:</span>
+                                      <span className="font-mono">
+                                        {formatDuration(status.timing.timeRemaining)}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>End time:</span>
+                                      <span className="font-mono">
+                                        {new Date(status.timing.endTime).toLocaleTimeString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <div className="text-sm mb-2" style={{ fontFamily: 'var(--font-gameboy)', color: 'rgb(200, 220, 140)' }}>
+                                    OBJECTS CREATED
+                                  </div>
+                                  <div className="space-y-1 text-xs" style={{ color: 'rgb(180, 200, 120)' }}>
+                                    <div className="flex justify-between">
+                                      <span>Contacts:</span>
+                                      <span className="font-mono">{status.objectCounts.contacts}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Companies:</span>
+                                      <span className="font-mono">{status.objectCounts.companies}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Deals:</span>
+                                      <span className="font-mono">{status.objectCounts.deals}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Tickets:</span>
+                                      <span className="font-mono">{status.objectCounts.tickets}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Notes:</span>
+                                      <span className="font-mono">{status.objectCounts.notes}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="text-sm mb-2" style={{ fontFamily: 'var(--font-gameboy)', color: 'rgb(200, 220, 140)' }}>
+                                    NEXT ACTION
+                                  </div>
+                                  <div className="space-y-1 text-xs" style={{ color: 'rgb(180, 200, 120)' }}>
+                                    {status.lastObject && (
+                                      <div>
+                                        <div className="flex justify-between">
+                                          <span>Last:</span>
+                                          <span className="font-mono capitalize">
+                                            {status.lastObject.type}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>at:</span>
+                                          <span className="font-mono">
+                                            {new Date(status.lastObject.completedAt).toLocaleTimeString()}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {status.nextObject && (
+                                      <div>
+                                        <div className="flex justify-between">
+                                          <span>Next:</span>
+                                          <span className="font-mono capitalize">
+                                            {status.nextObject.type}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>in:</span>
+                                          <span className="font-mono">
+                                            {formatDuration(status.timing.nextJobDelay)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {!status.nextObject && status.status === 'completed' && (
+                                      <div className="text-center" style={{ color: 'rgb(200, 220, 140)' }}>
+                                        ✓ SIMULATION COMPLETE
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                              <div>
-                                <div className="text-sm mb-2" style={{ fontFamily: 'var(--font-gameboy)' }}>DETAILS</div>
-                                <div className="space-y-1 text-xs">
-                                  <div className="flex justify-between">
-                                    <span>Started:</span>
-                                    <span>{new Date(simulation.startedAt).toLocaleDateString()}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Credits:</span>
-                                    <span>{simulation.creditsUsed}</span>
-                                  </div>
+
+                              {/* Total Progress Bar */}
+                              <div className="p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.2)' }}>
+                                <div className="flex justify-between text-sm mb-2" style={{ color: 'rgb(200, 220, 140)' }}>
+                                  <span style={{ fontFamily: 'var(--font-gameboy)' }}>TOTAL PROGRESS</span>
+                                  <span className="font-mono">
+                                    {status.completedJobs}/{status.totalJobs} objects ({status.progress}%)
+                                  </span>
                                 </div>
+                                <Progress 
+                                  value={status.progress} 
+                                  className="h-3" 
+                                  style={{ backgroundColor: 'rgb(70, 140, 70)' }}
+                                />
                               </div>
                             </div>
                           )}

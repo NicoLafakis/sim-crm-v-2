@@ -212,6 +212,91 @@ export class SimulationOrchestrator {
     }
   }
 
+  getSimulationStatus(simulationId: number): any {
+    const jobs = this.jobQueue.get(simulationId) || [];
+    const now = Date.now();
+    
+    if (jobs.length === 0) {
+      return null;
+    }
+
+    const totalJobs = jobs.length;
+    const completedJobs = jobs.filter(job => job.status === 'completed');
+    const processingJobs = jobs.filter(job => job.status === 'processing');
+    const pendingJobs = jobs.filter(job => job.status === 'pending');
+    const failedJobs = jobs.filter(job => job.status === 'failed');
+
+    // Count by object type
+    const objectCounts = {
+      contacts: jobs.filter(job => job.jobType === 'create_contact' && job.status === 'completed').length,
+      companies: jobs.filter(job => job.jobType === 'create_company' && job.status === 'completed').length,
+      deals: jobs.filter(job => job.jobType === 'create_deal' && job.status === 'completed').length,
+      tickets: jobs.filter(job => job.jobType === 'create_ticket' && job.status === 'completed').length,
+      notes: jobs.filter(job => job.jobType === 'create_note' && job.status === 'completed').length,
+    };
+
+    // Find next job
+    const nextPendingJob = pendingJobs
+      .sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime())[0];
+
+    // Find last completed job
+    const lastCompletedJob = completedJobs
+      .sort((a, b) => new Date(b.processedAt || 0).getTime() - new Date(a.processedAt || 0).getTime())[0];
+
+    // Calculate timing
+    const firstJob = jobs.sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime())[0];
+    const lastJob = jobs.sort((a, b) => new Date(b.scheduledFor).getTime() - new Date(a.scheduledFor).getTime())[0];
+    
+    const startTime = firstJob ? new Date(firstJob.scheduledFor).getTime() : now;
+    const endTime = lastJob ? new Date(lastJob.scheduledFor).getTime() : now;
+    const timeElapsed = now - startTime;
+    const timeRemaining = Math.max(0, endTime - now);
+    const nextJobDelay = nextPendingJob ? Math.max(0, new Date(nextPendingJob.scheduledFor).getTime() - now) : 0;
+
+    const progress = totalJobs > 0 ? (completedJobs.length / totalJobs) * 100 : 0;
+
+    return {
+      simulationId,
+      totalJobs,
+      completedJobs: completedJobs.length,
+      processingJobs: processingJobs.length,
+      pendingJobs: pendingJobs.length,
+      failedJobs: failedJobs.length,
+      objectCounts,
+      progress: Math.round(progress * 100) / 100,
+      timing: {
+        startTime,
+        endTime,
+        timeElapsed,
+        timeRemaining,
+        nextJobDelay
+      },
+      lastObject: lastCompletedJob ? {
+        type: lastCompletedJob.jobType.replace('create_', ''),
+        completedAt: lastCompletedJob.processedAt,
+        payload: lastCompletedJob.payload
+      } : null,
+      nextObject: nextPendingJob ? {
+        type: nextPendingJob.jobType.replace('create_', ''),
+        scheduledFor: nextPendingJob.scheduledFor,
+        payload: nextPendingJob.payload
+      } : null,
+      status: completedJobs.length === totalJobs ? 'completed' : 
+              processingJobs.length > 0 ? 'running' : 
+              failedJobs.length > 0 ? 'failed' : 'pending'
+    };
+  }
+
+  getAllSimulationStatuses(): Record<number, any> {
+    const statuses: Record<number, any> = {};
+    
+    for (const simulationId of Array.from(this.jobQueue.keys())) {
+      statuses[simulationId] = this.getSimulationStatus(simulationId);
+    }
+    
+    return statuses;
+  }
+
   private async processJob(job: ScheduledJob): Promise<void> {
     try {
       console.log(`Processing job ${job.id} for simulation ${job.simulationId}`);
@@ -288,25 +373,7 @@ export class SimulationOrchestrator {
     }
   }
 
-  async getSimulationStatus(simulationId: number): Promise<any> {
-    const jobs = this.jobQueue.get(simulationId);
-    if (!jobs) {
-      return { status: 'not_found' };
-    }
 
-    const statusCounts = jobs.reduce((acc, job) => {
-      const status = job.status || 'unknown';
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return {
-      simulationId,
-      totalJobs: jobs.length,
-      status: statusCounts,
-      progress: Math.round((statusCounts.completed || 0) / jobs.length * 100)
-    };
-  }
 
   stopProcessor(): void {
     if (this.processingInterval) {

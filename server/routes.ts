@@ -303,9 +303,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get multiple simulation statuses
   app.get("/api/simulations/status", async (req, res) => {
     try {
-      // This would get all simulation statuses from orchestrator
-      // For now, return empty object - to be implemented based on user's active simulations
-      res.json({});
+      const statuses = orchestrator.getAllSimulationStatuses();
+      res.json(statuses);
     } catch (error) {
       console.error("Get simulation statuses error:", error);
       res.status(500).json({ message: "Failed to get simulation statuses" });

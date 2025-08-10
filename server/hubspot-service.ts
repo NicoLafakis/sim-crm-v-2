@@ -276,7 +276,8 @@ export class HubSpotService {
 
     try {
       const properties: { [key: string]: string } = {
-        hs_note_body: personaData.content || personaData.description
+        hs_note_body: personaData.content || personaData.description,
+        hs_timestamp: Date.now().toString()
       };
 
       // Remove undefined properties
