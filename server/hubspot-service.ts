@@ -36,6 +36,155 @@ export class HubSpotService {
     return !!token && token.startsWith('pat-');
   }
 
+  private parseHubSpotError(error: any): string {
+    // Handle HubSpot API specific errors
+    if (error?.response?.data) {
+      const errorData = error.response.data;
+      
+      // Handle validation errors
+      if (errorData.validationResults) {
+        const validationErrors = errorData.validationResults
+          .map((v: any) => `${v.name}: ${v.message}`)
+          .join(', ');
+        return `Validation Error: ${validationErrors}`;
+      }
+      
+      // Handle category specific errors
+      if (errorData.category) {
+        switch (errorData.category) {
+          case 'VALIDATION_ERROR':
+            return `Validation Error: ${errorData.message}`;
+          case 'AUTHENTICATION_ERROR':
+            return 'Authentication Error: Invalid or expired token';
+          case 'AUTHORIZATION_ERROR':
+            return 'Authorization Error: Insufficient permissions';
+          case 'RATE_LIMIT':
+            return 'Rate Limit Error: Too many requests';
+          default:
+            return `HubSpot Error: ${errorData.message}`;
+        }
+      }
+      
+      // Generic HubSpot error
+      if (errorData.message) {
+        return `HubSpot Error: ${errorData.message}`;
+      }
+    }
+    
+    // Handle HTTP status errors
+    if (error?.response?.status) {
+      switch (error.response.status) {
+        case 401:
+          return 'Authentication Error: Invalid or expired HubSpot token';
+        case 403:
+          return 'Authorization Error: Insufficient HubSpot permissions';
+        case 429:
+          return 'Rate Limit Error: Too many requests to HubSpot API';
+        case 400:
+          return 'Bad Request: Invalid data sent to HubSpot';
+        case 404:
+          return 'Not Found: HubSpot resource not found';
+        case 500:
+          return 'HubSpot Server Error: Internal server error';
+        default:
+          return `HubSpot API Error: HTTP ${error.response.status}`;
+      }
+    }
+    
+    // Fallback to generic error handling
+    return error instanceof Error ? error.message : 'Unknown error occurred';
+  }
+
+  private validateContactProperties(properties: any): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    // Email validation if provided
+    if (properties.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(properties.email)) {
+      errors.push('Invalid email format');
+    }
+    
+    // Phone validation if provided
+    if (properties.phone && !/^[\+]?[1-9][\d]{0,15}$/.test(properties.phone.replace(/[\s\-\(\)]/g, ''))) {
+      errors.push('Invalid phone format');
+    }
+    
+    // Required fields check
+    if (!properties.firstname && !properties.lastname && !properties.email) {
+      errors.push('At least one of firstname, lastname, or email is required');
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  }
+
+  private validateCompanyProperties(properties: any): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    // Required fields check
+    if (!properties.name) {
+      errors.push('Company name is required');
+    }
+    
+    // Domain validation if provided
+    if (properties.domain && !/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/.test(properties.domain)) {
+      errors.push('Invalid domain format');
+    }
+    
+    // Employee count validation
+    if (properties.numberofemployees && isNaN(Number(properties.numberofemployees))) {
+      errors.push('Employee count must be a number');
+    }
+    
+    // Revenue validation
+    if (properties.annualrevenue && isNaN(Number(properties.annualrevenue))) {
+      errors.push('Annual revenue must be a number');
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  }
+
+  private validateDealProperties(properties: any): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    // Required fields check
+    if (!properties.dealname) {
+      errors.push('Deal name is required');
+    }
+    
+    // Amount validation
+    if (properties.amount && isNaN(Number(properties.amount))) {
+      errors.push('Deal amount must be a number');
+    }
+    
+    // Close date validation if provided
+    if (properties.closedate && isNaN(Date.parse(properties.closedate))) {
+      errors.push('Invalid close date format');
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  }
+
+  private validateTicketProperties(properties: any): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    // Required fields check
+    if (!properties.subject) {
+      errors.push('Ticket subject is required');
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  }
+
+  private validateNoteProperties(properties: any): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    // Required fields check
+    if (!properties.hs_note_body) {
+      errors.push('Note content is required');
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  }
+
   async createContact(simulationId: number, personaData: PersonaData, hubspotToken: string): Promise<HubSpotCreateResult> {
     if (!this.validateToken(hubspotToken)) {
       return { success: false, error: 'Invalid HubSpot token provided' };
@@ -61,6 +210,15 @@ export class HubSpotService {
           delete properties[key as keyof typeof properties];
         }
       });
+
+      // Validate properties before sending to HubSpot
+      const validation = this.validateContactProperties(properties);
+      if (!validation.isValid) {
+        return {
+          success: false,
+          error: `Validation failed: ${validation.errors.join(', ')}`
+        };
+      }
 
       const response = await client.crm.contacts.basicApi.create({
         properties,
@@ -88,11 +246,12 @@ export class HubSpotService {
         data: response
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create HubSpot contact:', error);
+      const errorMessage = this.parseHubSpotError(error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage
       };
     }
   }
@@ -122,6 +281,15 @@ export class HubSpotService {
         }
       });
 
+      // Validate properties before sending to HubSpot
+      const validation = this.validateCompanyProperties(properties);
+      if (!validation.isValid) {
+        return {
+          success: false,
+          error: `Validation failed: ${validation.errors.join(', ')}`
+        };
+      }
+
       const response = await client.crm.companies.basicApi.create({
         properties,
         associations: []
@@ -146,11 +314,12 @@ export class HubSpotService {
         data: response
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create HubSpot company:', error);
+      const errorMessage = this.parseHubSpotError(error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage
       };
     }
   }
@@ -178,6 +347,15 @@ export class HubSpotService {
         }
       });
 
+      // Validate properties before sending to HubSpot
+      const validation = this.validateDealProperties(properties);
+      if (!validation.isValid) {
+        return {
+          success: false,
+          error: `Validation failed: ${validation.errors.join(', ')}`
+        };
+      }
+
       const response = await client.crm.deals.basicApi.create({
         properties,
         associations: []
@@ -202,11 +380,12 @@ export class HubSpotService {
         data: response
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create HubSpot deal:', error);
+      const errorMessage = this.parseHubSpotError(error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage
       };
     }
   }
@@ -234,6 +413,15 @@ export class HubSpotService {
         }
       });
 
+      // Validate properties before sending to HubSpot
+      const validation = this.validateTicketProperties(properties);
+      if (!validation.isValid) {
+        return {
+          success: false,
+          error: `Validation failed: ${validation.errors.join(', ')}`
+        };
+      }
+
       const response = await client.crm.tickets.basicApi.create({
         properties,
         associations: []
@@ -258,11 +446,12 @@ export class HubSpotService {
         data: response
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create HubSpot ticket:', error);
+      const errorMessage = this.parseHubSpotError(error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage
       };
     }
   }
@@ -277,7 +466,7 @@ export class HubSpotService {
     try {
       const properties: { [key: string]: string } = {
         hs_note_body: personaData.content || personaData.description,
-        hs_timestamp: Date.now().toString()
+        hs_timestamp: new Date().toISOString()
       };
 
       // Remove undefined properties
@@ -286,6 +475,15 @@ export class HubSpotService {
           delete properties[key as keyof typeof properties];
         }
       });
+
+      // Validate properties before sending to HubSpot
+      const validation = this.validateNoteProperties(properties);
+      if (!validation.isValid) {
+        return {
+          success: false,
+          error: `Validation failed: ${validation.errors.join(', ')}`
+        };
+      }
 
       const response = await client.crm.objects.notes.basicApi.create({
         properties,
@@ -311,11 +509,12 @@ export class HubSpotService {
         data: response
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create HubSpot note:', error);
+      const errorMessage = this.parseHubSpotError(error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage
       };
     }
   }
@@ -374,11 +573,12 @@ export class HubSpotService {
         associationId: `${fromObjectId}_${toObjectId}`
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create HubSpot association:', error);
+      const errorMessage = this.parseHubSpotError(error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage
       };
     }
   }
