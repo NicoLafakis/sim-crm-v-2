@@ -47,7 +47,8 @@ export class SimulationOrchestrator {
 
   async createSimulation(config: SimulationConfig): Promise<{ success: boolean; simulationId: number }> {
     try {
-      console.log('Creating simulation with config:', config);
+      console.log('=== Creating NEW simulation ===');
+      console.log('Full config received:', JSON.stringify(config, null, 2));
       
       // Calculate total records and scheduling
       const totalRecords = this.calculateTotalRecords(config.record_distribution);
@@ -59,8 +60,12 @@ export class SimulationOrchestrator {
       // Store jobs in memory (in production, these would go to database)
       this.jobQueue.set(config.simulation_id, jobs);
       
-      console.log(`Created ${jobs.length} jobs for simulation ${config.simulation_id}`);
-      console.log(`Jobs will be processed every ${intervalMs}ms over ${config.duration_days} days`);
+      console.log(`✅ SIMULATION ${config.simulation_id} CONFIGURED:`);
+      console.log(`   - Duration: ${config.duration_days} days`);
+      console.log(`   - Total records: ${totalRecords}`);
+      console.log(`   - Interval: ${Math.floor(intervalMs/1000/60)}m ${Math.floor((intervalMs/1000)%60)}s`);
+      console.log(`   - Jobs created: ${jobs.length}`);
+      console.log(`=================================`);
       
       return { 
         success: true, 
@@ -81,7 +86,17 @@ export class SimulationOrchestrator {
 
   private calculateInterval(durationDays: number, totalRecords: number): number {
     const totalMs = durationDays * 24 * 60 * 60 * 1000;
-    return Math.floor(totalMs / totalRecords);
+    const intervalMs = Math.floor(totalMs / totalRecords);
+    
+    console.log(`Timing calculation:`, {
+      durationDays,
+      totalRecords,
+      totalMs: totalMs / 1000 / 60 / 60, // hours
+      intervalMs: intervalMs / 1000 / 60, // minutes
+      intervalBetweenRecords: `${Math.floor(intervalMs / 1000 / 60)}m ${Math.floor((intervalMs / 1000) % 60)}s`
+    });
+    
+    return intervalMs;
   }
 
   private createScheduledJobs(config: SimulationConfig, intervalMs: number): ScheduledJob[] {

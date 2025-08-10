@@ -239,6 +239,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user_id: userId,
         hubspot_token: session.hubspotToken || ''
       };
+
+      console.log('Orchestrator config:', {
+        duration_days: orchestratorConfig.duration_days,
+        total_records: Object.values(orchestratorConfig.record_distribution).reduce((a, b) => a + b, 0),
+        timespan_selected: settings.timeSpan
+      });
       
       // Start the orchestrator
       const orchestratorResult = await orchestrator.createSimulation(orchestratorConfig);
