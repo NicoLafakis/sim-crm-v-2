@@ -104,10 +104,11 @@ export class SimulationOrchestrator {
     let currentTime = Date.now();
     let jobId = 1;
 
-    // Create jobs for each record type based on distribution
+    // Create jobs for each record type based on business logic order
+    // Companies first (foundation), then contacts, deals, tickets, notes
     const recordTypes = [
-      { type: 'contact', count: config.record_distribution.contacts },
       { type: 'company', count: config.record_distribution.companies },
+      { type: 'contact', count: config.record_distribution.contacts },
       { type: 'deal', count: config.record_distribution.deals },
       { type: 'ticket', count: config.record_distribution.tickets },
       { type: 'note', count: config.record_distribution.notes }
@@ -143,11 +144,9 @@ export class SimulationOrchestrator {
       }
     }
 
-    // Shuffle jobs to create a more realistic distribution
-    const shuffledJobs = this.shuffleArray(jobs).map((job, index) => ({
-      ...job,
-      scheduledFor: new Date(Date.now() + (intervalMs * index))
-    }));
+    // Maintain business order - companies first, then contacts, deals, tickets, notes
+    // Only shuffle within each record type for realistic timing variation
+    const orderedJobs = this.maintainBusinessOrder(jobs, intervalMs);
 
     // Schedule association creation after all records are created
     const lastJobTime = shuffledJobs.length > 0 ? shuffledJobs[shuffledJobs.length - 1].scheduledFor.getTime() : Date.now();
