@@ -56,11 +56,6 @@ export default function RecordFrequency() {
 
   const handleStartSimulation = async () => {
     if (!user || !session) {
-      toast({
-        title: "Error",
-        description: "User session not found. Please log in again.",
-        variant: "destructive"
-      });
       return;
     }
 
@@ -88,30 +83,23 @@ export default function RecordFrequency() {
       webhookUrl: 'https://nicolafakis.app.n8n.cloud/webhook-test/start-simulation'
     };
 
-    toast({
-      title: "Starting Simulation",
-      description: `Generating ${totalRecords} total records with ${session?.selectedTheme} theme`,
-    });
-
     try {
-      // Call backend API which will handle orchestrator and webhook
+      // Call backend API which will handle configuration saving
       const response: any = await apiRequest('POST', '/api/simulation/start', {
         userId: user.id,
         settings: simulationSettings
       });
 
-      toast({
-        title: "Simulation Started Successfully!",
-        description: `Simulation ID: ${response.simulationId}. Your CRM data will be generated over ${getDurationDays(timeSpan)} days.`,
-      });
-
-      console.log('Simulation started successfully:', response);
+      console.log('Configuration saved successfully:', response);
+      
+      // Navigate to progress page to show configuration summary
+      setLocation('/progress');
       
     } catch (error) {
-      console.error('Webhook error:', error);
+      console.error('Configuration save error:', error);
       toast({
-        title: "Simulation Failed",
-        description: `Failed to start simulation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        title: "Configuration Failed",
+        description: `Failed to save configuration: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     }

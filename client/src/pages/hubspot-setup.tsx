@@ -42,11 +42,6 @@ export default function HubSpotSetup() {
         });
         queryClient.invalidateQueries({ queryKey: ['/api/session', user.id] });
 
-        toast({
-          title: "Success",
-          description: "HubSpot token validated and saved!",
-        });
-
         // Proceed based on redirect context
         if (redirectFrom === 'simulation' && selectedTheme) {
           // User was redirected from theme selection, go back to theme selection

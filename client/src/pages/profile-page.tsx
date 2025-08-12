@@ -51,10 +51,7 @@ export default function ProfilePage() {
     },
     onSuccess: () => {
       setPasswords({ current: '', new: '', confirm: '' });
-      toast({
-        title: "Password updated",
-        description: "Your password has been changed successfully.",
-      });
+      // Password updated successfully
     },
     onError: (error: Error) => {
       toast({
@@ -78,10 +75,7 @@ export default function ProfilePage() {
     onSuccess: () => {
       setNewToken({ service: '', token: '' });
       queryClient.invalidateQueries({ queryKey: [`/api/user/${user?.id}/tokens`] });
-      toast({
-        title: "Token added",
-        description: "API token has been saved securely.",
-      });
+      // Token added successfully
     },
     onError: (error: Error) => {
       toast({
@@ -98,10 +92,7 @@ export default function ProfilePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/user/${user?.id}/tokens`] });
-      toast({
-        title: "Token removed",
-        description: "API token has been deleted.",
-      });
+      // Token removed successfully
     },
     onError: () => {
       toast({

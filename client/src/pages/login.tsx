@@ -23,11 +23,6 @@ export default function Login() {
       setUser(data.user);
       setSession(data.session);
       
-      toast({
-        title: "Success",
-        description: isRegistering ? "Account created successfully!" : "Logged in successfully!",
-      });
-      
       setLocation('/saas-selection');
     },
     onError: (error) => {

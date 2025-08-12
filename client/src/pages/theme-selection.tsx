@@ -30,15 +30,10 @@ export default function ThemeSelection() {
     
     try {
       await updateSessionMutation.mutateAsync(themeId);
-      toast({
-        title: "Theme Selected",
-        description: `${themeId} theme selected and saved!`,
-      });
-
       // Auto-navigate after selection
       setTimeout(() => {
         setLocation('/industry-selection');
-      }, 800);
+      }, 500);
     } catch (error) {
       toast({
         title: "Error",
@@ -50,11 +45,6 @@ export default function ThemeSelection() {
 
   const handleProceedToSimulation = () => {
     if (!selectedTheme) {
-      toast({
-        title: "No Theme Selected",
-        description: "Please select a theme before proceeding to simulation setup.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -70,11 +60,6 @@ export default function ThemeSelection() {
     }
 
     // Proceed to industry selection
-    toast({
-      title: "Theme Selected",
-      description: `Proceeding with ${selectedTheme} theme`,
-    });
-    
     setLocation('/industry-selection');
   };
 

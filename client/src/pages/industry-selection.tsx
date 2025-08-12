@@ -43,15 +43,10 @@ export default function IndustrySelection() {
     
     try {
       await updateSessionMutation.mutateAsync(industry);
-      toast({
-        title: "Industry Selected",
-        description: `${industry} industry selected and saved!`,
-      });
-
       // Auto-navigate after selection
       setTimeout(() => {
         setLocation('/record-frequency');
-      }, 800);
+      }, 500);
     } catch (error) {
       toast({
         title: "Error",
