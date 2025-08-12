@@ -63,7 +63,7 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
         <div className="flex flex-col items-center space-y-2">
           <div 
             className="text-xs font-bold uppercase tracking-wide"
-            style={{ color: 'rgb(200, 220, 140)' }}
+            style={{ color: 'rgb(180, 200, 120)' }}
           >
             ♪ Vol
           </div>
