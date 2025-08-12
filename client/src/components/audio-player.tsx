@@ -9,7 +9,17 @@ interface AudioPlayerProps {
 
 export function AudioPlayer({ className = '' }: AudioPlayerProps) {
   const { user } = useSession();
-  const { isPlaying, volume, play, pause, toggle, setVolume } = useAudio(musicFile, 0.8);
+  const { 
+    isPlaying, 
+    volume, 
+    play, 
+    pause, 
+    toggle, 
+    setVolume, 
+    userHasInteracted, 
+    setUserHasInteracted, 
+    setShouldAutoPlay 
+  } = useAudio(musicFile, 0.8);
 
   // Auto-start music and adjust volume based on login state
   useEffect(() => {
@@ -25,12 +35,13 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
   // Auto-play music when user interacts with the page
   useEffect(() => {
     const handleUserInteraction = () => {
-      if (!isPlaying) {
-        play();
+      if (!userHasInteracted) {
+        setUserHasInteracted(true);
+        setShouldAutoPlay(true);
+        if (!isPlaying) {
+          play();
+        }
       }
-      // Remove listeners after first interaction
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('keydown', handleUserInteraction);
     };
 
     // Listen for any user interaction to enable autoplay
@@ -41,7 +52,7 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
       document.removeEventListener('click', handleUserInteraction);
       document.removeEventListener('keydown', handleUserInteraction);
     };
-  }, [play, isPlaying]);
+  }, [play, isPlaying, userHasInteracted, setUserHasInteracted, setShouldAutoPlay]);
 
   const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const sliderValue = parseFloat(event.target.value);
