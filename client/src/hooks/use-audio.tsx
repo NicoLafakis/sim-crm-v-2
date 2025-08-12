@@ -39,14 +39,25 @@ export function useAudio(src: string, initialVolume: number = 0.8) {
       }));
     };
 
+    const updatePlayState = () => {
+      setAudioState(prev => ({
+        ...prev,
+        isPlaying: !audio.paused,
+      }));
+    };
+
     audio.addEventListener('timeupdate', updateTime);
     audio.addEventListener('loadeddata', updateLoadedData);
     audio.addEventListener('loadedmetadata', updateLoadedData);
+    audio.addEventListener('play', updatePlayState);
+    audio.addEventListener('pause', updatePlayState);
 
     return () => {
       audio.removeEventListener('timeupdate', updateTime);
       audio.removeEventListener('loadeddata', updateLoadedData);
       audio.removeEventListener('loadedmetadata', updateLoadedData);
+      audio.removeEventListener('play', updatePlayState);
+      audio.removeEventListener('pause', updatePlayState);
       audio.pause();
       audio.src = '';
     };

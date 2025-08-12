@@ -135,8 +135,9 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
               }
             }}
             title={isPlaying ? 'Pause Music' : 'Play Music'}
+            data-testid="play-pause-button"
           >
-            {isPlaying ? '▶' : '⏸'}
+            {isPlaying ? '⏸' : '▶'}
           </div>
         </div>
       </div>
