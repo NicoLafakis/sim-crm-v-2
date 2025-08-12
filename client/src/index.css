@@ -138,8 +138,17 @@
 .volume-slider {
   -webkit-appearance: none;
   appearance: none;
-  background: transparent;
+  background: transparent !important;
   cursor: pointer;
+  outline: none;
+}
+
+.volume-slider:focus {
+  outline: none;
+}
+
+.volume-slider::-webkit-slider-runnable-track {
+  background: transparent;
 }
 
 .volume-slider::-webkit-slider-track {
@@ -176,4 +185,13 @@
   cursor: pointer;
   box-sizing: border-box;
   box-shadow: 0 0 4px rgba(200, 220, 140, 0.5);
+  -moz-appearance: none;
+}
+
+.volume-slider::-moz-range-progress {
+  background: transparent;
+}
+
+.volume-slider::-moz-focus-outer {
+  border: 0;
 }

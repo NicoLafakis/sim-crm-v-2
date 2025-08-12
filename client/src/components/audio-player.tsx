@@ -83,8 +83,9 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
                 WebkitAppearance: 'slider-vertical' as const,
                 width: '16px',
                 height: '64px',
-                background: 'linear-gradient(to top, rgb(200, 220, 140) 0%, rgba(200, 220, 140, 0.7) 50%, rgba(200, 220, 140, 0.4) 100%)',
+                background: 'transparent',
                 outline: 'none',
+                border: 'none',
               }}
               data-testid="volume-slider"
             />
