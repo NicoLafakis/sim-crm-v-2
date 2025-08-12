@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertSessionSchema } from "@shared/schema";
 import { orchestrator } from "./orchestrator";
+import { csvManager } from "./csv-manager";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -398,6 +399,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete token error:", error);
       res.status(500).json({ message: "Failed to delete token" });
+    }
+  });
+
+  // CSV Management Routes for easy file swapping
+  app.get("/api/csv/list", async (req, res) => {
+    try {
+      const csvFiles = csvManager.list();
+      const current = csvManager.current();
+      res.json({ 
+        available: csvFiles,
+        current: current.filename,
+        currentExists: current.exists
+      });
+    } catch (error) {
+      console.error("List CSV files error:", error);
+      res.status(500).json({ message: "Failed to list CSV files" });
+    }
+  });
+
+  app.post("/api/csv/switch", async (req, res) => {
+    try {
+      const { filename } = req.body;
+      if (!filename) {
+        return res.status(400).json({ message: "Filename is required" });
+      }
+      
+      const success = csvManager.switch(filename);
+      if (!success) {
+        return res.status(400).json({ message: "Failed to switch CSV file" });
+      }
+      
+      res.json({ 
+        message: `Successfully switched to ${filename}`,
+        current: csvManager.current()
+      });
+    } catch (error) {
+      console.error("Switch CSV file error:", error);
+      res.status(500).json({ message: "Failed to switch CSV file" });
+    }
+  });
+
+  app.get("/api/csv/preview/:filename", async (req, res) => {
+    try {
+      const { filename } = req.params;
+      const preview = csvManager.preview(filename);
+      const validation = csvManager.validate(filename);
+      
+      res.json({ 
+        filename,
+        preview,
+        validation
+      });
+    } catch (error) {
+      console.error("Preview CSV file error:", error);
+      res.status(500).json({ message: "Failed to preview CSV file" });
+    }
+  });
+
+  app.get("/api/csv/current", async (req, res) => {
+    try {
+      const current = csvManager.current();
+      const preview = csvManager.preview();
+      
+      res.json({ 
+        ...current,
+        preview: preview.slice(0, 5) // First 5 lines
+      });
+    } catch (error) {
+      console.error("Get current CSV error:", error);
+      res.status(500).json({ message: "Failed to get current CSV info" });
     }
   });
 

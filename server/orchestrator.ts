@@ -5,6 +5,9 @@ import type {
   ScheduledJob, 
   InsertScheduledJob 
 } from '@shared/schema';
+import { parse } from 'csv-parse/sync';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 interface SimulationConfig {
   simulation_id: number;
@@ -35,12 +38,24 @@ interface JobPayload {
   hubspotToken: string;
 }
 
+interface SalesCycleStep {
+  day: number;
+  type: string;
+  action: string;
+  stage: string;
+  description: string;
+  associations?: string[];
+  ticketAction?: string;
+}
+
 export class SimulationOrchestrator {
   private jobQueue: Map<number, ScheduledJob[]> = new Map();
   private processingInterval: NodeJS.Timeout | null = null;
   private isProcessing = false;
+  private csvFilePath: string;
 
-  constructor() {
+  constructor(csvFilePath: string = 'attached_assets/universal_30day_timing_key_1754846996182.csv') {
+    this.csvFilePath = csvFilePath;
     // Start the job processor
     this.startJobProcessor();
   }
@@ -103,58 +118,8 @@ export class SimulationOrchestrator {
   }
 
   private createScheduledJobs(config: SimulationConfig, intervalMs: number): ScheduledJob[] {
-    // Universal 30-day timing sequence based on CSV specification
-    const salesCycleSteps = [
-      // Day 0 - Initial creation triad
-      { day: 0, type: 'contact', action: 'create', stage: 'Appointment Scheduled', description: 'Create Contact and set source fields', associations: ['Company', 'Deal'] },
-      { day: 0, type: 'company', action: 'create', stage: 'Appointment Scheduled', description: 'Create Company (domain if available)', associations: ['Contact', 'Deal'] },
-      { day: 0, type: 'deal', action: 'create', stage: 'Appointment Scheduled', description: 'Create Deal in default pipeline; stage=Appointment Scheduled', associations: ['Contact', 'Company'] },
-      
-      // Day 1 - Deal enrichment
-      { day: 1, type: 'deal', action: 'update', stage: 'Appointment Scheduled', description: 'Enrich fields (ICP fit, ARR band, timeline)' },
-      
-      // Day 3 - Qualification stage
-      { day: 3, type: 'deal', action: 'advance_stage', stage: 'Qualified to Buy', description: 'Promote to Qualified to Buy' },
-      { day: 3, type: 'note', action: 'create', stage: 'Qualified to Buy', description: 'Create single Note with discovery summary fields', associations: ['Contact', 'Deal'] },
-      
-      // Day 5 - Presentation stage
-      { day: 5, type: 'deal', action: 'advance_stage', stage: 'Presentation Scheduled', description: 'Move to Presentation Scheduled' },
-      
-      // Day 7-8 - Ticket creation and update
-      { day: 7, type: 'ticket', action: 'create', stage: 'Presentation Scheduled', description: 'Create single Ticket to track pilot/setup tasks', associations: ['Contact', 'Deal', 'Company'] },
-      { day: 8, type: 'ticket', action: 'update', stage: 'Presentation Scheduled', description: 'Update Ticket with pilot kickoff checklist values' },
-      
-      // Day 10 - Decision maker stage
-      { day: 10, type: 'deal', action: 'advance_stage', stage: 'Decision Maker Bought-In', description: 'Stage advance after stakeholder alignment' },
-      
-      // Day 12 - Security review
-      { day: 12, type: 'ticket', action: 'update', stage: 'Decision Maker Bought-In', description: 'Attach security/legal checklist status to Ticket' },
-      
-      // Day 14-15 - Contract stage
-      { day: 14, type: 'deal', action: 'advance_stage', stage: 'Contract Sent', description: 'Move to Contract Sent with amount/close date' },
-      { day: 15, type: 'ticket', action: 'update', stage: 'Contract Sent', description: 'Record commercial terms review progress' },
-      
-      // Day 18 - Redlines resolved
-      { day: 18, type: 'ticket', action: 'update', stage: 'Contract Sent', description: 'Record redlines resolved flag' },
-      
-      // Day 20 - Verbal commitment
-      { day: 20, type: 'deal', action: 'update', stage: 'Contract Sent', description: 'Set verbal commit=Yes and implementation target date' },
-      
-      // Day 22 - Win/Close ticket
-      { day: 22, type: 'deal', action: 'advance_stage', stage: 'Closed Won', description: 'If signed, set stage=Closed Won; close Ticket', ticketAction: 'close' },
-      
-      // Day 24 - Refresh close date if not won
-      { day: 24, type: 'deal', action: 'update', stage: 'Contract Sent', description: 'If not won yet, refresh close date' },
-      
-      // Day 26 - Escalate ticket
-      { day: 26, type: 'ticket', action: 'update', stage: 'Contract Sent', description: 'Escalate Ticket priority to High' },
-      
-      // Day 28 - Risk assessment
-      { day: 28, type: 'deal', action: 'update', stage: 'Contract Sent', description: 'Set risk reason=\'silence\'; next step entered' },
-      
-      // Day 30 - Close lost if still open
-      { day: 30, type: 'deal', action: 'advance_stage', stage: 'Closed Lost', description: 'If still open, set Closed Lost and close Ticket', ticketAction: 'close' }
-    ];
+    // Load sales cycle steps from CSV file
+    const salesCycleSteps = this.loadSalesCycleFromCSV();
 
     const jobs: ScheduledJob[] = [];
     const baseTime = Date.now();
@@ -204,9 +169,75 @@ export class SimulationOrchestrator {
     return jobs.sort((a, b) => a.scheduledFor.getTime() - b.scheduledFor.getTime());
   }
 
+  private loadSalesCycleFromCSV(): SalesCycleStep[] {
+    try {
+      const csvContent = readFileSync(this.csvFilePath, 'utf-8');
+      const records = parse(csvContent, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true
+      });
+
+      const steps: SalesCycleStep[] = [];
+      
+      for (const record of records) {
+        const csvRecord = record as Record<string, string>;
+        const step: SalesCycleStep = {
+          day: parseInt(csvRecord['Offset Day']) || 0,
+          type: csvRecord['Object Type']?.toLowerCase() || '',
+          action: this.mapActionType(csvRecord['Action Type']),
+          stage: csvRecord['Deal Stage (after)'] || '',
+          description: csvRecord['Description'] || '',
+          associations: csvRecord['Associations'] ? this.parseAssociations(csvRecord['Associations']) : [],
+          ticketAction: csvRecord['Ticket Action']?.toLowerCase() || undefined
+        };
+
+        // Only add valid steps
+        if (step.type && step.action) {
+          steps.push(step);
+        }
+      }
+
+      console.log(`📋 Loaded ${steps.length} sales cycle steps from: ${this.csvFilePath}`);
+      return steps;
+    } catch (error) {
+      console.error(`❌ Failed to load CSV file: ${this.csvFilePath}`, error);
+      // Fallback to hardcoded steps if CSV fails
+      return this.getDefaultSalesCycleSteps();
+    }
+  }
+
+  private mapActionType(actionType: string): string {
+    const actionMap: Record<string, string> = {
+      'Create': 'create',
+      'Update': 'update', 
+      'Advance Stage': 'advance_stage',
+      'Close': 'close'
+    };
+    return actionMap[actionType] || actionType.toLowerCase().replace(' ', '_');
+  }
+
+  private parseAssociations(associationsStr: string): string[] {
+    if (!associationsStr || associationsStr === '—') return [];
+    
+    return associationsStr
+      .split(',')
+      .map(a => a.trim())
+      .filter(a => a && a !== '—');
+  }
+
+  private getDefaultSalesCycleSteps(): SalesCycleStep[] {
+    // Fallback hardcoded steps in case CSV fails to load
+    return [
+      { day: 0, type: 'contact', action: 'create', stage: 'Appointment Scheduled', description: 'Create Contact and set source fields', associations: ['Company', 'Deal'] },
+      { day: 0, type: 'company', action: 'create', stage: 'Appointment Scheduled', description: 'Create Company (domain if available)', associations: ['Contact', 'Deal'] },
+      { day: 0, type: 'deal', action: 'create', stage: 'Appointment Scheduled', description: 'Create Deal in default pipeline; stage=Appointment Scheduled', associations: ['Contact', 'Company'] }
+    ];
+  }
+
   private logSimulationPlan(jobs: ScheduledJob[]): void {
     console.log(`\n=== SIMULATION PLAN (${jobs.length} jobs) ===`);
-    console.log('Following universal 30-day sales cycle timing:');
+    console.log(`Following CSV specification: ${this.csvFilePath}`);
     
     const groupedJobs = jobs.reduce((acc, job) => {
       const day = Math.floor((job.scheduledFor.getTime() - jobs[0].scheduledFor.getTime()) / (24 * 60 * 60 * 1000));
@@ -430,6 +461,29 @@ export class SimulationOrchestrator {
       clearInterval(this.processingInterval);
       this.processingInterval = null;
     }
+  }
+
+  // Method to change CSV file path dynamically
+  updateCSVFilePath(newPath: string): void {
+    this.csvFilePath = newPath;
+    console.log(`📋 Updated CSV file path to: ${newPath}`);
+  }
+
+  // Method to validate CSV file exists and is readable
+  validateCSVFile(filePath?: string): boolean {
+    const pathToCheck = filePath || this.csvFilePath;
+    try {
+      readFileSync(pathToCheck, 'utf-8');
+      return true;
+    } catch (error) {
+      console.error(`❌ CSV file not accessible: ${pathToCheck}`);
+      return false;
+    }
+  }
+
+  // Get current CSV file path
+  getCurrentCSVPath(): string {
+    return this.csvFilePath;
   }
 }
 
