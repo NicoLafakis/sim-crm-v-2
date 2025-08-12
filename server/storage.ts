@@ -9,23 +9,11 @@ import {
   InsertSimulation,
   ApiToken,
   InsertApiToken,
-  ScheduledJob,
-  InsertScheduledJob,
-  CachedPersona,
-  InsertCachedPersona,
-  HubSpotRecord,
-  InsertHubSpotRecord,
-  HubSpotAssociation,
-  InsertHubSpotAssociation,
   users,
   sessions,
   playerTiers,
   simulations,
-  apiTokens,
-  scheduledJobs,
-  cachedPersonas,
-  hubspotRecords,
-  hubspotAssociations
+  apiTokens
 } from "../shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
@@ -59,27 +47,6 @@ export interface IStorage {
   getPlayerTierByName(name: string): Promise<PlayerTier | undefined>;
   getAllPlayerTiers(): Promise<PlayerTier[]>;
   
-  // Scheduled job operations
-  createScheduledJob(jobData: InsertScheduledJob): Promise<ScheduledJob>;
-  getScheduledJobsBySimulation(simulationId: number): Promise<ScheduledJob[]>;
-  getPendingJobs(limit?: number): Promise<ScheduledJob[]>;
-  updateScheduledJob(id: number, jobData: Partial<ScheduledJob>): Promise<ScheduledJob>;
-  
-  // Cached persona operations
-  createCachedPersona(personaData: InsertCachedPersona): Promise<CachedPersona>;
-  getCachedPersona(theme: string, industry: string, personaType: string): Promise<CachedPersona | undefined>;
-  updateCachedPersonaUsage(id: number): Promise<void>;
-  
-  // HubSpot record operations
-  createHubSpotRecord(recordData: InsertHubSpotRecord): Promise<HubSpotRecord>;
-  getHubSpotRecordByObjectId(simulationId: number, hubspotObjectId: string): Promise<HubSpotRecord | undefined>;
-  getHubSpotRecordsBySimulation(simulationId: number): Promise<HubSpotRecord[]>;
-  getHubSpotRecordsByType(simulationId: number, objectType: string): Promise<HubSpotRecord[]>;
-  
-  // HubSpot association operations
-  createHubSpotAssociation(associationData: InsertHubSpotAssociation): Promise<HubSpotAssociation>;
-  getHubSpotAssociationsBySimulation(simulationId: number): Promise<HubSpotAssociation[]>;
-  
   // Additional user operations
   getUserById(id: number): Promise<User | undefined>;
   updateUserPassword(userId: number, newPassword: string): Promise<void>;
@@ -108,19 +75,19 @@ export class DatabaseStorage implements IStorage {
           {
             name: "New Player",
             creditLimit: 150,
-            features: ["basic_simulation", "hubspot_connection"],
+            features: ["basic_simulation"],
             description: "Perfect for getting started with CRM simulations"
           },
           {
             name: "Level 1",
             creditLimit: 325,
-            features: ["basic_simulation", "hubspot_connection", "custom_fields"],
+            features: ["basic_simulation", "custom_fields"],
             description: "Enhanced features for growing businesses"
           },
           {
             name: "Level 2",
             creditLimit: 500,
-            features: ["basic_simulation", "hubspot_connection", "custom_fields", "advanced_distribution"],
+            features: ["basic_simulation", "custom_fields", "advanced_distribution"],
             description: "Professional-grade simulation capabilities"
           },
           {
@@ -278,112 +245,9 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(playerTiers);
   }
 
-  // Scheduled job operations
-  async createScheduledJob(jobData: InsertScheduledJob): Promise<ScheduledJob> {
-    const [job] = await db.insert(scheduledJobs).values(jobData).returning();
-    return job;
-  }
+  // Note: Execution-related operations removed (ScheduledJob, CachedPersona, HubSpot operations)
 
-  async getScheduledJobsBySimulation(simulationId: number): Promise<ScheduledJob[]> {
-    return await db.select().from(scheduledJobs).where(eq(scheduledJobs.simulationId, simulationId));
-  }
 
-  async getPendingJobs(limit: number = 100): Promise<ScheduledJob[]> {
-    return await db
-      .select()
-      .from(scheduledJobs)
-      .where(and(
-        eq(scheduledJobs.status, 'pending'),
-        eq(scheduledJobs.scheduledFor, new Date())
-      ))
-      .limit(limit);
-  }
-
-  async updateScheduledJob(id: number, jobData: Partial<ScheduledJob>): Promise<ScheduledJob> {
-    const [job] = await db
-      .update(scheduledJobs)
-      .set({ ...jobData, updatedAt: new Date() })
-      .where(eq(scheduledJobs.id, id))
-      .returning();
-    
-    if (!job) {
-      throw new Error("Scheduled job not found");
-    }
-    return job;
-  }
-
-  // Cached persona operations
-  async createCachedPersona(personaData: InsertCachedPersona): Promise<CachedPersona> {
-    const [persona] = await db.insert(cachedPersonas).values(personaData).returning();
-    return persona;
-  }
-
-  async getCachedPersona(theme: string, industry: string, personaType: string): Promise<CachedPersona | undefined> {
-    const [persona] = await db
-      .select()
-      .from(cachedPersonas)
-      .where(and(
-        eq(cachedPersonas.theme, theme),
-        eq(cachedPersonas.industry, industry),
-        eq(cachedPersonas.personaType, personaType)
-      ));
-    return persona;
-  }
-
-  async updateCachedPersonaUsage(id: number): Promise<void> {
-    await db
-      .update(cachedPersonas)
-      .set({ 
-        usageCount: sql`${cachedPersonas.usageCount} + 1`,
-        lastUsedAt: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(cachedPersonas.id, id));
-  }
-
-  // HubSpot record operations
-  async createHubSpotRecord(recordData: InsertHubSpotRecord): Promise<HubSpotRecord> {
-    const [record] = await db.insert(hubspotRecords).values(recordData).returning();
-    return record;
-  }
-
-  async getHubSpotRecordByObjectId(simulationId: number, hubspotObjectId: string): Promise<HubSpotRecord | undefined> {
-    const [record] = await db
-      .select()
-      .from(hubspotRecords)
-      .where(and(eq(hubspotRecords.simulationId, simulationId), eq(hubspotRecords.hubspotObjectId, hubspotObjectId)));
-    return record;
-  }
-
-  async getHubSpotRecordsBySimulation(simulationId: number): Promise<HubSpotRecord[]> {
-    return await db
-      .select()
-      .from(hubspotRecords)
-      .where(eq(hubspotRecords.simulationId, simulationId))
-      .orderBy(hubspotRecords.createdAt);
-  }
-
-  async getHubSpotRecordsByType(simulationId: number, objectType: string): Promise<HubSpotRecord[]> {
-    return await db
-      .select()
-      .from(hubspotRecords)
-      .where(and(eq(hubspotRecords.simulationId, simulationId), eq(hubspotRecords.objectType, objectType)))
-      .orderBy(hubspotRecords.createdAt);
-  }
-
-  // HubSpot association operations
-  async createHubSpotAssociation(associationData: InsertHubSpotAssociation): Promise<HubSpotAssociation> {
-    const [association] = await db.insert(hubspotAssociations).values(associationData).returning();
-    return association;
-  }
-
-  async getHubSpotAssociationsBySimulation(simulationId: number): Promise<HubSpotAssociation[]> {
-    return await db
-      .select()
-      .from(hubspotAssociations)
-      .where(eq(hubspotAssociations.simulationId, simulationId))
-      .orderBy(hubspotAssociations.createdAt);
-  }
   
   // Additional user operations
   async getUserById(id: number): Promise<User | undefined> {

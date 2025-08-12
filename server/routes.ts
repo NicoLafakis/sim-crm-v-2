@@ -2,8 +2,6 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertSessionSchema } from "@shared/schema";
-import { orchestrator } from "./orchestrator";
-import { csvManager } from "./csv-manager";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -191,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simulation management
+  // Simulation management - simplified without execution
   app.post("/api/simulation/start", async (req, res) => {
     try {
       const { userId, settings } = req.body;
@@ -204,7 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User or session not found" });
       }
       
-      // Create simulation record in database
+      // Create simulation record in database (no execution)
       const simulation = await storage.createSimulation({
         userId,
         name: `${settings.theme} - ${settings.industry} Simulation`,
@@ -212,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         industry: settings.industry || session.selectedIndustry || 'business',
         frequency: settings.timeSpan || '1d',
         config: settings,
-        status: 'pending',
+        status: 'configured',
         startedAt: new Date(),
         creditsUsed: 0
       });
@@ -222,58 +220,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         simulationConfig: settings
       });
       
-      // Prepare orchestrator config with HubSpot token
-      const orchestratorConfig = {
-        simulation_id: simulation.id,
-        theme: simulation.theme,
-        industry: simulation.industry,
-        duration_days: settings.duration_days || 7,
-        record_distribution: settings.record_distribution || {
-          contacts: 10,
-          companies: 5,
-          deals: 5,
-          tickets: 3,
-          notes: 7
-        },
-        user_tier: user.playerTier || 'New Player',
-        credit_limit: user.creditLimit || 150,
-        user_id: userId,
-        hubspot_token: session.hubspotToken || ''
-      };
-
-      console.log('Orchestrator config:', {
-        duration_days: orchestratorConfig.duration_days,
-        total_records: Object.values(orchestratorConfig.record_distribution).reduce((a, b) => a + b, 0),
-        timespan_selected: settings.timeSpan
+      console.log('Simulation configured (no execution):', {
+        simulationId: simulation.id,
+        theme: settings.theme,
+        industry: settings.industry,
+        frequency: settings.timeSpan
       });
-      
-      // Start the orchestrator
-      const orchestratorResult = await orchestrator.createSimulation(orchestratorConfig);
-      
-      if (!orchestratorResult.success) {
-        await storage.updateSimulation(simulation.id, { status: 'failed' });
-        throw new Error('Failed to initialize orchestrator');
-      }
-      
-      // Update simulation status to running
-      await storage.updateSimulation(simulation.id, { status: 'running' });
-      
-      console.log('Simulation orchestrator started successfully');
-      console.log('Direct HubSpot integration active - no webhook needed');
       
       res.json({ 
-        status: "started",
-        message: "Simulation initialized successfully",
+        status: "configured",
+        message: "Simulation configured successfully",
         simulationId: simulation.id,
-        orchestratorStatus: orchestratorResult
+        note: "Simulation execution has been disabled - configuration saved only"
       });
     } catch (error) {
-      console.error("Simulation start error:", error);
-      res.status(500).json({ message: "Failed to start simulation" });
+      console.error("Simulation configuration error:", error);
+      res.status(500).json({ message: "Failed to configure simulation" });
     }
   });
   
-  // Get simulation status
+  // Get simulation status (no execution data)
   app.get("/api/simulation/:simulationId/status", async (req, res) => {
     try {
       const simulationId = parseInt(req.params.simulationId);
@@ -283,11 +249,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Simulation not found" });
       }
       
-      const orchestratorStatus = await orchestrator.getSimulationStatus(simulationId);
-      
       res.json({
         simulation,
-        orchestratorStatus
+        executionNote: "Simulation execution is disabled - showing configuration only"
       });
     } catch (error) {
       console.error("Get simulation status error:", error);
@@ -307,50 +271,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get multiple simulation statuses
-  app.get("/api/simulations/status", async (req, res) => {
-    try {
-      const statuses = orchestrator.getAllSimulationStatuses();
-      res.json(statuses);
-    } catch (error) {
-      console.error("Get simulation statuses error:", error);
-      res.status(500).json({ message: "Failed to get simulation statuses" });
-    }
-  });
-
-  // Simulation control endpoints
-  app.post("/api/simulation/:simulationId/pause", async (req, res) => {
-    try {
-      const simulationId = parseInt(req.params.simulationId);
-      await storage.updateSimulation(simulationId, { status: 'paused' });
-      res.json({ status: "paused" });
-    } catch (error) {
-      console.error("Pause simulation error:", error);
-      res.status(500).json({ message: "Failed to pause simulation" });
-    }
-  });
-
-  app.post("/api/simulation/:simulationId/resume", async (req, res) => {
-    try {
-      const simulationId = parseInt(req.params.simulationId);
-      await storage.updateSimulation(simulationId, { status: 'running' });
-      res.json({ status: "running" });
-    } catch (error) {
-      console.error("Resume simulation error:", error);
-      res.status(500).json({ message: "Failed to resume simulation" });
-    }
-  });
-
-  app.post("/api/simulation/:simulationId/stop", async (req, res) => {
-    try {
-      const simulationId = parseInt(req.params.simulationId);
-      await storage.updateSimulation(simulationId, { status: 'cancelled' });
-      res.json({ status: "cancelled" });
-    } catch (error) {
-      console.error("Stop simulation error:", error);
-      res.status(500).json({ message: "Failed to stop simulation" });
-    }
-  });
+  // Note: Simulation execution control endpoints removed (status, pause, resume, stop)
+  // Only configuration endpoints remain
 
   app.delete("/api/simulation/:simulationId", async (req, res) => {
     try {
@@ -402,75 +324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // CSV Management Routes for easy file swapping
-  app.get("/api/csv/list", async (req, res) => {
-    try {
-      const csvFiles = csvManager.list();
-      const current = csvManager.current();
-      res.json({ 
-        available: csvFiles,
-        current: current.filename,
-        currentExists: current.exists
-      });
-    } catch (error) {
-      console.error("List CSV files error:", error);
-      res.status(500).json({ message: "Failed to list CSV files" });
-    }
-  });
 
-  app.post("/api/csv/switch", async (req, res) => {
-    try {
-      const { filename } = req.body;
-      if (!filename) {
-        return res.status(400).json({ message: "Filename is required" });
-      }
-      
-      const success = csvManager.switch(filename);
-      if (!success) {
-        return res.status(400).json({ message: "Failed to switch CSV file" });
-      }
-      
-      res.json({ 
-        message: `Successfully switched to ${filename}`,
-        current: csvManager.current()
-      });
-    } catch (error) {
-      console.error("Switch CSV file error:", error);
-      res.status(500).json({ message: "Failed to switch CSV file" });
-    }
-  });
-
-  app.get("/api/csv/preview/:filename", async (req, res) => {
-    try {
-      const { filename } = req.params;
-      const preview = csvManager.preview(filename);
-      const validation = csvManager.validate(filename);
-      
-      res.json({ 
-        filename,
-        preview,
-        validation
-      });
-    } catch (error) {
-      console.error("Preview CSV file error:", error);
-      res.status(500).json({ message: "Failed to preview CSV file" });
-    }
-  });
-
-  app.get("/api/csv/current", async (req, res) => {
-    try {
-      const current = csvManager.current();
-      const preview = csvManager.preview();
-      
-      res.json({ 
-        ...current,
-        preview: preview.slice(0, 5) // First 5 lines
-      });
-    } catch (error) {
-      console.error("Get current CSV error:", error);
-      res.status(500).json({ message: "Failed to get current CSV info" });
-    }
-  });
 
   // Password change endpoint
   app.put("/api/user/:userId/password", async (req, res) => {

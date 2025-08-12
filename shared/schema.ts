@@ -75,57 +75,8 @@ export const playerTiers = pgTable('player_tiers', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-// Scheduled jobs for simulation orchestration
-export const scheduledJobs = pgTable('scheduled_jobs', {
-  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
-  simulationId: integer('simulation_id').notNull().references(() => simulations.id, { onDelete: 'cascade' }),
-  jobType: varchar('job_type', { length: 50 }).notNull(), // 'generate_persona', 'create_contact', 'create_company', etc.
-  payload: json('payload').notNull(),
-  status: varchar('status', { length: 50 }).default('pending'), // 'pending', 'processing', 'completed', 'failed'
-  scheduledFor: timestamp('scheduled_for').notNull(),
-  processedAt: timestamp('processed_at'),
-  error: text('error'),
-  retryCount: integer('retry_count').default(0),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
-
-// Cached personas for reuse across simulations
-export const cachedPersonas = pgTable('cached_personas', {
-  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
-  theme: varchar('theme', { length: 100 }).notNull(),
-  industry: varchar('industry', { length: 100 }).notNull(),
-  personaType: varchar('persona_type', { length: 50 }).notNull(), // 'contact', 'company', 'deal', etc.
-  personaData: json('persona_data').notNull(),
-  usageCount: integer('usage_count').default(0),
-  lastUsedAt: timestamp('last_used_at'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
-
-// HubSpot records created by the system for association tracking
-export const hubspotRecords = pgTable('hubspot_records', {
-  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
-  simulationId: integer('simulation_id').notNull().references(() => simulations.id, { onDelete: 'cascade' }),
-  hubspotObjectId: varchar('hubspot_object_id', { length: 100 }).notNull(), // HubSpot's internal ID
-  objectType: varchar('object_type', { length: 50 }).notNull(), // 'contact', 'company', 'deal', 'ticket', 'note'
-  themeKey: varchar('theme_key', { length: 200 }), // Unique identifier for association (e.g., 'john_lennon_beatles')
-  personaData: json('persona_data'), // The original persona data used to create this record
-  hubspotData: json('hubspot_data'), // The full HubSpot response after creation
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
-
-// HubSpot associations between records
-export const hubspotAssociations = pgTable('hubspot_associations', {
-  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
-  simulationId: integer('simulation_id').notNull().references(() => simulations.id, { onDelete: 'cascade' }),
-  fromRecordId: integer('from_record_id').notNull().references(() => hubspotRecords.id, { onDelete: 'cascade' }),
-  toRecordId: integer('to_record_id').notNull().references(() => hubspotRecords.id, { onDelete: 'cascade' }),
-  associationType: varchar('association_type', { length: 100 }).notNull(), // e.g., 'contact_to_company', 'deal_to_contact'
-  hubspotAssociationId: varchar('hubspot_association_id', { length: 100 }), // HubSpot's association ID
-  createdAt: timestamp('created_at').defaultNow(),
-});
+// Note: Simulation execution tables removed (scheduledJobs, cachedPersonas, hubspotRecords, hubspotAssociations)
+// Only configuration storage remains
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
@@ -141,57 +92,17 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   }),
 }));
 
-export const simulationsRelations = relations(simulations, ({ one, many }) => ({
+export const simulationsRelations = relations(simulations, ({ one }) => ({
   user: one(users, {
     fields: [simulations.userId],
     references: [users.id],
   }),
-  scheduledJobs: many(scheduledJobs),
-  hubspotRecords: many(hubspotRecords),
-  hubspotAssociations: many(hubspotAssociations),
 }));
 
 export const apiTokensRelations = relations(apiTokens, ({ one }) => ({
   user: one(users, {
     fields: [apiTokens.userId],
     references: [users.id],
-  }),
-}));
-
-export const scheduledJobsRelations = relations(scheduledJobs, ({ one }) => ({
-  simulation: one(simulations, {
-    fields: [scheduledJobs.simulationId],
-    references: [simulations.id],
-  }),
-}));
-
-export const hubspotRecordsRelations = relations(hubspotRecords, ({ one, many }) => ({
-  simulation: one(simulations, {
-    fields: [hubspotRecords.simulationId],
-    references: [simulations.id],
-  }),
-  associationsFrom: many(hubspotAssociations, {
-    relationName: 'fromRecord',
-  }),
-  associationsTo: many(hubspotAssociations, {
-    relationName: 'toRecord',
-  }),
-}));
-
-export const hubspotAssociationsRelations = relations(hubspotAssociations, ({ one }) => ({
-  simulation: one(simulations, {
-    fields: [hubspotAssociations.simulationId],
-    references: [simulations.id],
-  }),
-  fromRecord: one(hubspotRecords, {
-    fields: [hubspotAssociations.fromRecordId],
-    references: [hubspotRecords.id],
-    relationName: 'fromRecord',
-  }),
-  toRecord: one(hubspotRecords, {
-    fields: [hubspotAssociations.toRecordId],
-    references: [hubspotRecords.id],
-    relationName: 'toRecord',
   }),
 }));
 
@@ -206,14 +117,6 @@ export type ApiToken = typeof apiTokens.$inferSelect;
 export type InsertApiToken = typeof apiTokens.$inferInsert;
 export type PlayerTier = typeof playerTiers.$inferSelect;
 export type InsertPlayerTier = typeof playerTiers.$inferInsert;
-export type ScheduledJob = typeof scheduledJobs.$inferSelect;
-export type InsertScheduledJob = typeof scheduledJobs.$inferInsert;
-export type CachedPersona = typeof cachedPersonas.$inferSelect;
-export type InsertCachedPersona = typeof cachedPersonas.$inferInsert;
-export type HubSpotRecord = typeof hubspotRecords.$inferSelect;
-export type InsertHubSpotRecord = typeof hubspotRecords.$inferInsert;
-export type HubSpotAssociation = typeof hubspotAssociations.$inferSelect;
-export type InsertHubSpotAssociation = typeof hubspotAssociations.$inferInsert;
 
 // Zod schemas with passcode validation
 export const insertUserSchema = createInsertSchema(users).omit({ 
@@ -255,29 +158,4 @@ export const insertPlayerTierSchema = createInsertSchema(playerTiers).omit({
 });
 export type InsertPlayerTierType = z.infer<typeof insertPlayerTierSchema>;
 
-export const insertScheduledJobSchema = createInsertSchema(scheduledJobs).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true 
-});
-export type InsertScheduledJobType = z.infer<typeof insertScheduledJobSchema>;
-
-export const insertCachedPersonaSchema = createInsertSchema(cachedPersonas).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true 
-});
-export type InsertCachedPersonaType = z.infer<typeof insertCachedPersonaSchema>;
-
-export const insertHubSpotRecordSchema = createInsertSchema(hubspotRecords).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true 
-});
-export type InsertHubSpotRecordType = z.infer<typeof insertHubSpotRecordSchema>;
-
-export const insertHubSpotAssociationSchema = createInsertSchema(hubspotAssociations).omit({ 
-  id: true, 
-  createdAt: true 
-});
-export type InsertHubSpotAssociationType = z.infer<typeof insertHubSpotAssociationSchema>;
+// Note: Execution-related schemas removed (ScheduledJob, CachedPersona, HubSpotRecord, HubSpotAssociation)
