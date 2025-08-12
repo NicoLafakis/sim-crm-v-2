@@ -10,12 +10,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**August 12, 2025** - Major Architecture Change: Simulation Execution Removed
+**August 12, 2025** - OpenAI Integration Added
+- Replaced n8n webhook with OpenAI API integration for AI strategy generation
+- Primary model: gpt-5-nano with backup model: gpt-4.1-nano fallback
+- Button changed to "Generate AI Strategy" - processes configuration with OpenAI
+- Progress page now displays AI-generated CRM simulation strategies and business scenarios
+- Status badges show processing states: processing, completed, failed
+- AI responses stored in database with original configuration for reference
+- Application flow: Login → Industry Selection → Theme Selection → SaaS Selection → Frequency Configuration → AI Strategy Generation → AI Results Display
+
+**August 12, 2025** - Major Architecture Change: Simulation Execution Removed (Previously)
 - Stripped out ALL simulation execution logic per user request
 - Removed orchestrator, job processing, HubSpot integration, and execution-related database tables
-- Simplified progress page to show configuration summary without execution status
 - CSV timing specification system was built but no longer relevant since execution was removed
-- Application flow now: Login → Industry Selection → Theme Selection → SaaS Selection → Frequency Configuration → Progress Summary (no execution)
 - HubSpot OAuth credentials requirement no longer applicable since execution was removed
 
 **Previous: August 12, 2025** - Simulation Order Completely Rewritten Based on CSV Specification

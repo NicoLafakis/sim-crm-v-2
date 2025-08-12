@@ -233,7 +233,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // Call OpenAI with the simulation configuration
-        // the newest OpenAI model is "gpt-4o-mini" which was released after gpt-4. do not change this unless explicitly requested by the user
         const prompt = `Generate a comprehensive CRM simulation plan based on this configuration:
 
 Theme: ${settings.theme}
@@ -248,22 +247,46 @@ Record Distribution:
 
 Please provide a detailed simulation strategy with realistic business scenarios, persona profiles, and data generation recommendations in JSON format.`;
 
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content: "You are a CRM simulation expert. Generate realistic business simulation strategies and data plans. Respond with valid JSON only."
-            },
-            {
-              role: "user", 
-              content: prompt
-            }
-          ],
-          response_format: { type: "json_object" },
-          temperature: 0.7,
-          max_tokens: 2000
-        });
+        let response;
+        try {
+          // Primary model: gpt-5-nano
+          response = await openai.chat.completions.create({
+            model: "gpt-5-nano",
+            messages: [
+              {
+                role: "system",
+                content: "You are a CRM simulation expert. Generate realistic business simulation strategies and data plans. Respond with valid JSON only."
+              },
+              {
+                role: "user", 
+                content: prompt
+              }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.7,
+            max_tokens: 2000
+          });
+        } catch (primaryError) {
+          console.log('Primary model gpt-5-nano failed, trying backup model gpt-4.1-nano:', primaryError);
+          
+          // Backup model: gpt-4.1-nano
+          response = await openai.chat.completions.create({
+            model: "gpt-4.1-nano",
+            messages: [
+              {
+                role: "system",
+                content: "You are a CRM simulation expert. Generate realistic business simulation strategies and data plans. Respond with valid JSON only."
+              },
+              {
+                role: "user", 
+                content: prompt
+              }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.7,
+            max_tokens: 2000
+          });
+        }
 
         const aiResponse = JSON.parse(response.choices[0].message.content || '{}');
         
