@@ -60,11 +60,14 @@ export class SimulationOrchestrator {
       // Store jobs in memory (in production, these would go to database)
       this.jobQueue.set(config.simulation_id, jobs);
       
+      this.logSimulationPlan(jobs);
+      
       console.log(`✅ SIMULATION ${config.simulation_id} CONFIGURED:`);
       console.log(`   - Duration: ${config.duration_days} days`);
-      console.log(`   - Total records: ${totalRecords}`);
-      console.log(`   - Interval: ${Math.floor(intervalMs/1000/60)}m ${Math.floor((intervalMs/1000)%60)}s`);
-      console.log(`   - Jobs created: ${jobs.length}`);
+      console.log(`   - Deal cycles: ${config.record_distribution.deals}`);
+      console.log(`   - Jobs per cycle: ${jobs.length / config.record_distribution.deals}`);
+      console.log(`   - Total jobs: ${jobs.length}`);
+      console.log(`   - Following CSV timing specification`);
       console.log(`=================================`);
       
       return { 
@@ -100,38 +103,93 @@ export class SimulationOrchestrator {
   }
 
   private createScheduledJobs(config: SimulationConfig, intervalMs: number): ScheduledJob[] {
-    const jobs: ScheduledJob[] = [];
-    let currentTime = Date.now();
-    let jobId = 1;
-
-    // Create jobs for each record type based on business logic order
-    // Companies first (foundation), then contacts, deals, tickets, notes
-    const recordTypes = [
-      { type: 'company', count: config.record_distribution.companies },
-      { type: 'contact', count: config.record_distribution.contacts },
-      { type: 'deal', count: config.record_distribution.deals },
-      { type: 'ticket', count: config.record_distribution.tickets },
-      { type: 'note', count: config.record_distribution.notes }
+    // Universal 30-day timing sequence based on CSV specification
+    const salesCycleSteps = [
+      // Day 0 - Initial creation triad
+      { day: 0, type: 'contact', action: 'create', stage: 'Appointment Scheduled', description: 'Create Contact and set source fields', associations: ['Company', 'Deal'] },
+      { day: 0, type: 'company', action: 'create', stage: 'Appointment Scheduled', description: 'Create Company (domain if available)', associations: ['Contact', 'Deal'] },
+      { day: 0, type: 'deal', action: 'create', stage: 'Appointment Scheduled', description: 'Create Deal in default pipeline; stage=Appointment Scheduled', associations: ['Contact', 'Company'] },
+      
+      // Day 1 - Deal enrichment
+      { day: 1, type: 'deal', action: 'update', stage: 'Appointment Scheduled', description: 'Enrich fields (ICP fit, ARR band, timeline)' },
+      
+      // Day 3 - Qualification stage
+      { day: 3, type: 'deal', action: 'advance_stage', stage: 'Qualified to Buy', description: 'Promote to Qualified to Buy' },
+      { day: 3, type: 'note', action: 'create', stage: 'Qualified to Buy', description: 'Create single Note with discovery summary fields', associations: ['Contact', 'Deal'] },
+      
+      // Day 5 - Presentation stage
+      { day: 5, type: 'deal', action: 'advance_stage', stage: 'Presentation Scheduled', description: 'Move to Presentation Scheduled' },
+      
+      // Day 7-8 - Ticket creation and update
+      { day: 7, type: 'ticket', action: 'create', stage: 'Presentation Scheduled', description: 'Create single Ticket to track pilot/setup tasks', associations: ['Contact', 'Deal', 'Company'] },
+      { day: 8, type: 'ticket', action: 'update', stage: 'Presentation Scheduled', description: 'Update Ticket with pilot kickoff checklist values' },
+      
+      // Day 10 - Decision maker stage
+      { day: 10, type: 'deal', action: 'advance_stage', stage: 'Decision Maker Bought-In', description: 'Stage advance after stakeholder alignment' },
+      
+      // Day 12 - Security review
+      { day: 12, type: 'ticket', action: 'update', stage: 'Decision Maker Bought-In', description: 'Attach security/legal checklist status to Ticket' },
+      
+      // Day 14-15 - Contract stage
+      { day: 14, type: 'deal', action: 'advance_stage', stage: 'Contract Sent', description: 'Move to Contract Sent with amount/close date' },
+      { day: 15, type: 'ticket', action: 'update', stage: 'Contract Sent', description: 'Record commercial terms review progress' },
+      
+      // Day 18 - Redlines resolved
+      { day: 18, type: 'ticket', action: 'update', stage: 'Contract Sent', description: 'Record redlines resolved flag' },
+      
+      // Day 20 - Verbal commitment
+      { day: 20, type: 'deal', action: 'update', stage: 'Contract Sent', description: 'Set verbal commit=Yes and implementation target date' },
+      
+      // Day 22 - Win/Close ticket
+      { day: 22, type: 'deal', action: 'advance_stage', stage: 'Closed Won', description: 'If signed, set stage=Closed Won; close Ticket', ticketAction: 'close' },
+      
+      // Day 24 - Refresh close date if not won
+      { day: 24, type: 'deal', action: 'update', stage: 'Contract Sent', description: 'If not won yet, refresh close date' },
+      
+      // Day 26 - Escalate ticket
+      { day: 26, type: 'ticket', action: 'update', stage: 'Contract Sent', description: 'Escalate Ticket priority to High' },
+      
+      // Day 28 - Risk assessment
+      { day: 28, type: 'deal', action: 'update', stage: 'Contract Sent', description: 'Set risk reason=\'silence\'; next step entered' },
+      
+      // Day 30 - Close lost if still open
+      { day: 30, type: 'deal', action: 'advance_stage', stage: 'Closed Lost', description: 'If still open, set Closed Lost and close Ticket', ticketAction: 'close' }
     ];
 
-    for (const { type, count } of recordTypes) {
-      for (let i = 0; i < count; i++) {
+    const jobs: ScheduledJob[] = [];
+    const baseTime = Date.now();
+    let jobId = 1;
+
+    // Calculate how many complete cycles we can create based on record distribution
+    const totalDeals = config.record_distribution.deals;
+    const msPerDay = intervalMs * (config.duration_days / 30); // Adjust interval based on duration
+
+    // Create jobs for each deal cycle
+    for (let cycleIndex = 0; cycleIndex < totalDeals; cycleIndex++) {
+      const cycleStartTime = baseTime + (cycleIndex * msPerDay * 30); // Each cycle takes 30 days
+
+      for (const step of salesCycleSteps) {
         const job: ScheduledJob = {
           id: jobId++,
           simulationId: config.simulation_id,
-          jobType: `create_${type}`,
+          jobType: `${step.action}_${step.type}`,
           payload: {
             simulationId: config.simulation_id,
             theme: config.theme,
             industry: config.industry,
-            recordType: type,
-            recordIndex: i + 1,
-            totalRecords: count,
+            recordType: step.type,
+            action: step.action,
+            stage: step.stage,
+            description: step.description,
+            associations: step.associations || [],
+            ticketAction: (step as any).ticketAction,
+            cycleIndex: cycleIndex + 1,
+            totalCycles: totalDeals,
             userId: config.user_id,
             hubspotToken: config.hubspot_token
           } as any,
           status: 'pending',
-          scheduledFor: new Date(currentTime),
+          scheduledFor: new Date(cycleStartTime + (step.day * msPerDay)),
           processedAt: null,
           error: null,
           retryCount: 0,
@@ -140,50 +198,28 @@ export class SimulationOrchestrator {
         };
         
         jobs.push(job);
-        currentTime += intervalMs;
       }
     }
 
-    // Maintain business order - companies first, then contacts, deals, tickets, notes
-    // Only shuffle within each record type for realistic timing variation
-    const orderedJobs = this.maintainBusinessOrder(jobs, intervalMs);
-
-    // Schedule association creation after all records are created
-    const lastJobTime = shuffledJobs.length > 0 ? shuffledJobs[shuffledJobs.length - 1].scheduledFor.getTime() : Date.now();
-    const associationJob: ScheduledJob = {
-      id: jobId++,
-      simulationId: config.simulation_id,
-      jobType: 'create_associations',
-      payload: {
-        simulationId: config.simulation_id,
-        theme: config.theme,
-        industry: config.industry,
-        recordType: 'association',
-        recordIndex: 1,
-        totalRecords: 1,
-        userId: config.user_id,
-        hubspotToken: config.hubspot_token
-      } as any,
-      status: 'pending',
-      scheduledFor: new Date(lastJobTime + intervalMs),
-      processedAt: null,
-      error: null,
-      retryCount: 0,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    shuffledJobs.push(associationJob);
-    return shuffledJobs;
+    return jobs.sort((a, b) => a.scheduledFor.getTime() - b.scheduledFor.getTime());
   }
 
-  private shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
+  private logSimulationPlan(jobs: ScheduledJob[]): void {
+    console.log(`\n=== SIMULATION PLAN (${jobs.length} jobs) ===`);
+    console.log('Following universal 30-day sales cycle timing:');
+    
+    const groupedJobs = jobs.reduce((acc, job) => {
+      const day = Math.floor((job.scheduledFor.getTime() - jobs[0].scheduledFor.getTime()) / (24 * 60 * 60 * 1000));
+      const key = `Day ${day}`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(job);
+      return acc;
+    }, {} as Record<string, ScheduledJob[]>);
+
+    Object.entries(groupedJobs).slice(0, 10).forEach(([day, dayJobs]) => {
+      console.log(`${day}: ${dayJobs.map(j => `${j.jobType}`).join(', ')}`);
+    });
+    console.log('=======================================\n');
   }
 
   private startJobProcessor(): void {

@@ -10,6 +10,13 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**August 12, 2025** - Simulation Order Completely Rewritten Based on CSV Specification
+- Replaced random job shuffling with precise 30-day sales cycle timing from universal_30day_timing_key CSV
+- Implemented authentic business process: Day 0 (Contact+Company+Deal creation) → Day 1 (Deal enrichment) → Day 3 (Qualification+Note) → Day 5 (Presentation) → Day 7-8 (Ticket creation/update) → Day 10-30 (Progressive deal stages to Closed Won/Lost)
+- Each simulation now follows realistic sales methodology with proper stage progression, associations, and business timing
+- Fixed foreign key constraint errors by ensuring proper database record creation
+- Enhanced logging to show exact simulation plan following CSV specifications
+
 **August 10, 2025** - HubSpot API Compliance Audit & Comprehensive Fixes
 - Fixed critical Notes timestamp format from milliseconds to ISO 8601 format to meet HubSpot API requirements
 - Implemented comprehensive HubSpot-specific error handling with detailed validation, authentication, authorization, and rate limit error messages
