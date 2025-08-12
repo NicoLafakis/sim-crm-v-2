@@ -39,21 +39,39 @@ export function useAudio(src: string, initialVolume: number = 0.8) {
       }));
     };
 
+    const handlePlay = () => {
+      setAudioState(prev => ({ ...prev, isPlaying: true }));
+    };
+
+    const handlePause = () => {
+      setAudioState(prev => ({ ...prev, isPlaying: false }));
+    };
+
+    const handleEnded = () => {
+      setAudioState(prev => ({ ...prev, isPlaying: false }));
+    };
+
     audio.addEventListener('timeupdate', updateTime);
     audio.addEventListener('loadeddata', updateLoadedData);
     audio.addEventListener('loadedmetadata', updateLoadedData);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
 
     return () => {
       audio.removeEventListener('timeupdate', updateTime);
       audio.removeEventListener('loadeddata', updateLoadedData);
       audio.removeEventListener('loadedmetadata', updateLoadedData);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
       audio.pause();
       audio.src = '';
     };
   }, [src, initialVolume]);
 
   const play = useCallback(async () => {
-    if (audioRef.current) {
+    if (audioRef.current && !audioState.isPlaying) {
       try {
         await audioRef.current.play();
         setAudioState(prev => ({ ...prev, isPlaying: true }));
@@ -61,14 +79,14 @@ export function useAudio(src: string, initialVolume: number = 0.8) {
         console.warn('Audio play failed:', error);
       }
     }
-  }, []);
+  }, [audioState.isPlaying]);
 
   const pause = useCallback(() => {
-    if (audioRef.current) {
+    if (audioRef.current && audioState.isPlaying) {
       audioRef.current.pause();
       setAudioState(prev => ({ ...prev, isPlaying: false }));
     }
-  }, []);
+  }, [audioState.isPlaying]);
 
   const setVolume = useCallback((volume: number) => {
     const clampedVolume = Math.max(0, Math.min(1, volume));
@@ -78,13 +96,19 @@ export function useAudio(src: string, initialVolume: number = 0.8) {
     setAudioState(prev => ({ ...prev, volume: clampedVolume }));
   }, []);
 
-  const toggle = useCallback(() => {
-    if (audioState.isPlaying) {
-      pause();
-    } else {
-      play();
+  const toggle = useCallback(async () => {
+    if (audioRef.current) {
+      if (audioState.isPlaying) {
+        audioRef.current.pause();
+      } else {
+        try {
+          await audioRef.current.play();
+        } catch (error) {
+          console.warn('Audio play failed:', error);
+        }
+      }
     }
-  }, [audioState.isPlaying, play, pause]);
+  }, [audioState.isPlaying]);
 
   return {
     ...audioState,

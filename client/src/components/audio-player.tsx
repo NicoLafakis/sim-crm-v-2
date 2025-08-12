@@ -9,7 +9,7 @@ interface AudioPlayerProps {
 
 export function AudioPlayer({ className = '' }: AudioPlayerProps) {
   const { user } = useSession();
-  const { isPlaying, volume, play, pause, setVolume } = useAudio(musicFile, 0.8);
+  const { isPlaying, volume, play, pause, toggle, setVolume } = useAudio(musicFile, 0.8);
 
   // Auto-start music and adjust volume based on login state
   useEffect(() => {
@@ -102,13 +102,7 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
           <div 
             className="text-xs cursor-pointer"
             style={{ color: isPlaying ? 'rgb(100, 255, 100)' : 'rgb(255, 100, 100)' }}
-            onClick={() => {
-              if (isPlaying) {
-                pause();
-              } else {
-                play();
-              }
-            }}
+            onClick={toggle}
             title={isPlaying ? 'Pause Music' : 'Play Music'}
           >
             {isPlaying ? '▶' : '⏸'}
