@@ -14,6 +14,7 @@ import ProfilePage from "@/pages/profile-page";
 import NotFound from "@/pages/not-found";
 import DevBypass from "@/components/dev-bypass";
 import FloatingMenu from "@/components/floating-menu";
+import { AudioPlayer } from "@/components/audio-player";
 
 function Router() {
   return (
@@ -31,6 +32,7 @@ function Router() {
         <Route component={NotFound} />
       </Switch>
       <FloatingMenu />
+      <AudioPlayer />
     </>
   );
 }
