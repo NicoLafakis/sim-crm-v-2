@@ -9,7 +9,7 @@ export default function RecordFrequency() {
   const { toast } = useToast();
   const { user, session } = useSession();
   
-  const [autoMode, setAutoMode] = useState(false);
+  const [autoMode, setAutoMode] = useState(true); // Always auto mode for free tier
   const [autoValue, setAutoValue] = useState(30);
   const [values, setValues] = useState([30, 30, 30, 30, 30]);
   const [customObjects, setCustomObjects] = useState(false);
@@ -375,6 +375,45 @@ export default function RecordFrequency() {
             font-size: 10px;
           }
 
+          .tooltip-container {
+            position: relative;
+          }
+
+          .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1f2e;
+            color: #fbbf24;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 1000;
+            border: 1px solid #fbbf24;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+          }
+
+          .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #fbbf24;
+          }
+
+          .tooltip-container:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+          }
+
           .start-button {
             width: 100%;
             background: #4ade80;
@@ -514,24 +553,20 @@ export default function RecordFrequency() {
             </div>
             <div className="slider-label">Auto</div>
             <div className="auto-toggle">
-              <input 
-                type="checkbox" 
-                id="auto-toggle" 
-                className="toggle-checkbox"
-                checked={autoMode}
-                onChange={(e) => setAutoMode(e.target.checked)}
-                data-testid="toggle-auto"
-              />
-              <label htmlFor="auto-toggle" className="toggle-label"></label>
+              <div className="locked-indicator">ACTIVE</div>
             </div>
           </div>
 
-          {/* Regular Sliders */}
+          {/* Manual Sliders - Requires Level 2 */}
           {labels.map((label, index) => (
-            <div key={index} className={`slider-column ${autoMode ? 'disabled' : ''}`}>
+            <div 
+              key={index} 
+              className="slider-column disabled tooltip-container" 
+              title="Manual adjustment requires Level 2 subscription"
+            >
               <div className="slider-value">{values[index]}</div>
               <div className="slider-container">
-                <div className={`slider-track ${!autoMode ? 'active' : ''}`}></div>
+                <div className="slider-track disabled-track"></div>
                 <input
                   type="range"
                   className="slider-input"
@@ -540,15 +575,17 @@ export default function RecordFrequency() {
                   step="1"
                   value={values[index]}
                   onChange={(e) => handleSliderChange(index, parseInt(e.target.value))}
-                  disabled={autoMode}
+                  disabled={true}
                   data-testid={`slider-${label.toLowerCase()}`}
                 />
                 <div 
-                  className={`slider-thumb ${autoMode ? 'disabled-thumb' : ''}`}
+                  className="slider-thumb disabled-thumb"
                   style={{ bottom: `${values[index] / maxTotal * 80}%` }}
                 />
               </div>
               <div className="slider-label">{label}</div>
+              <div className="locked-indicator">Requires Level 2</div>
+              <div className="tooltip">Manual adjustment available with Level 2 subscription</div>
             </div>
           ))}
 
@@ -569,40 +606,44 @@ export default function RecordFrequency() {
         <div className="additional-options">
           <div className="options-title">Additional Options</div>
           <div className="options-grid">
-            <div className="option-item">
+            <div className="option-item tooltip-container" title="Custom Objects requires Level 2 subscription">
               <div 
                 className="option-checkbox"
                 style={{ opacity: 0.5, cursor: 'not-allowed' }}
               />
               <div className="option-label">Custom Objects</div>
-              <div className="locked-indicator">LOCKED</div>
+              <div className="locked-indicator">Requires Level 2</div>
+              <div className="tooltip">Custom Objects available with Level 2 subscription</div>
             </div>
             
-            <div className="option-item">
+            <div className="option-item tooltip-container" title="Custom Fields requires Level 2 subscription">
               <div 
                 className="option-checkbox"
                 style={{ opacity: 0.5, cursor: 'not-allowed' }}
               />
               <div className="option-label">Custom Fields</div>
-              <div className="locked-indicator">LOCKED</div>
+              <div className="locked-indicator">Requires Level 2</div>
+              <div className="tooltip">Custom Fields available with Level 2 subscription</div>
             </div>
             
-            <div className="option-item">
+            <div className="option-item tooltip-container" title="Specific Ownership requires Level 2 subscription">
               <div 
                 className="option-checkbox"
                 style={{ opacity: 0.5, cursor: 'not-allowed' }}
               />
               <div className="option-label">Specific Ownership</div>
-              <div className="locked-indicator">LOCKED</div>
+              <div className="locked-indicator">Requires Level 2</div>
+              <div className="tooltip">Specific Ownership available with Level 2 subscription</div>
             </div>
             
-            <div className="option-item">
+            <div className="option-item tooltip-container" title="Distribution Weights requires Level 2 subscription">
               <div 
                 className="option-checkbox"
                 style={{ opacity: 0.5, cursor: 'not-allowed' }}
               />
               <div className="option-label">Distribution Weights</div>
-              <div className="locked-indicator">LOCKED</div>
+              <div className="locked-indicator">Requires Level 2</div>
+              <div className="tooltip">Distribution Weights available with Level 2 subscription</div>
             </div>
           </div>
         </div>
