@@ -44,7 +44,9 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
   }, [play, isPlaying]);
 
   const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseFloat(event.target.value);
+    const sliderValue = parseFloat(event.target.value);
+    // Reverse the slider direction: 0 at top = max volume, 1 at bottom = min volume
+    const newVolume = 1 - sliderValue;
     setVolume(newVolume);
   };
 
@@ -73,7 +75,7 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
               min="0"
               max="1"
               step="0.1"
-              value={volume}
+              value={1 - volume}
               onChange={handleVolumeChange}
               className="volume-slider h-16 w-4"
               style={{
@@ -81,7 +83,7 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
                 WebkitAppearance: 'slider-vertical' as const,
                 width: '16px',
                 height: '64px',
-                background: 'linear-gradient(to top, #2d5a2d 0%, #4a7a4a 50%, #6a9a6a 100%)',
+                background: 'linear-gradient(to top, rgb(200, 220, 140) 0%, rgba(200, 220, 140, 0.7) 50%, rgba(200, 220, 140, 0.4) 100%)',
                 outline: 'none',
               }}
               data-testid="volume-slider"
