@@ -69,7 +69,32 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
           </div>
           
           {/* Vertical Volume Slider */}
-          <div className="flex flex-col items-center h-20">
+          <div className="flex flex-col items-center h-20 relative">
+            {/* Background track */}
+            <div 
+              className="absolute rounded-sm"
+              style={{
+                width: '4px',
+                height: '64px',
+                background: 'rgba(200, 220, 140, 0.2)',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                top: '0',
+              }}
+            />
+            {/* Fill indicator */}
+            <div 
+              className="absolute rounded-sm"
+              style={{
+                width: '4px',
+                height: `${volume * 64}px`,
+                background: 'rgb(200, 220, 140)',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                bottom: '0',
+                transition: 'height 0.1s ease-out',
+              }}
+            />
             <input
               type="range"
               min="0"
@@ -77,13 +102,13 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
               step="0.1"
               value={1 - volume}
               onChange={handleVolumeChange}
-              className="volume-slider h-16 w-4"
+              className="volume-slider h-16 w-4 relative z-10"
               style={{
                 writingMode: 'vertical-lr' as const,
                 WebkitAppearance: 'slider-vertical' as const,
                 width: '16px',
                 height: '64px',
-                background: 'linear-gradient(to top, rgb(200, 220, 140) 0%, rgba(200, 220, 140, 0.7) 50%, rgba(200, 220, 140, 0.4) 100%)',
+                background: 'transparent',
                 outline: 'none',
               }}
               data-testid="volume-slider"
@@ -93,7 +118,7 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
           {/* Volume Percentage */}
           <div 
             className="text-xs"
-            style={{ color: 'rgb(180, 200, 120)' }}
+            style={{ color: 'rgb(200, 220, 140)' }}
           >
             {Math.round(volume * 100)}%
           </div>
