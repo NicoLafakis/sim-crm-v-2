@@ -2,6 +2,10 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertSessionSchema } from "@shared/schema";
+import OpenAI from "openai";
+
+// Initialize OpenAI client
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -189,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simulation management - simplified without execution
+  // Simulation management with OpenAI processing
   app.post("/api/simulation/start", async (req, res) => {
     try {
       const { userId, settings } = req.body;
@@ -202,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User or session not found" });
       }
       
-      // Create simulation record in database (no execution)
+      // Create simulation record in database
       const simulation = await storage.createSimulation({
         userId,
         name: `${settings.theme} - ${settings.industry} Simulation`,
@@ -210,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         industry: settings.industry || session.selectedIndustry || 'business',
         frequency: settings.timeSpan || '1d',
         config: settings,
-        status: 'configured',
+        status: 'processing',
         startedAt: new Date(),
         creditsUsed: 0
       });
@@ -220,22 +224,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
         simulationConfig: settings
       });
       
-      console.log('Simulation configured (no execution):', {
+      console.log('Simulation started with OpenAI processing:', {
         simulationId: simulation.id,
         theme: settings.theme,
         industry: settings.industry,
         frequency: settings.timeSpan
       });
       
-      res.json({ 
-        status: "configured",
-        message: "Simulation configured successfully",
-        simulationId: simulation.id,
-        note: "Simulation execution has been disabled - configuration saved only"
-      });
+      try {
+        // Call OpenAI with the simulation configuration
+        // the newest OpenAI model is "gpt-4o-mini" which was released after gpt-4. do not change this unless explicitly requested by the user
+        const prompt = `Generate a comprehensive CRM simulation plan based on this configuration:
+
+Theme: ${settings.theme}
+Industry: ${settings.industry}
+Duration: ${settings.duration_days} days
+Record Distribution:
+- Contacts: ${settings.record_distribution.contacts}
+- Companies: ${settings.record_distribution.companies}  
+- Deals: ${settings.record_distribution.deals}
+- Tickets: ${settings.record_distribution.tickets}
+- Notes: ${settings.record_distribution.notes}
+
+Please provide a detailed simulation strategy with realistic business scenarios, persona profiles, and data generation recommendations in JSON format.`;
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: "You are a CRM simulation expert. Generate realistic business simulation strategies and data plans. Respond with valid JSON only."
+            },
+            {
+              role: "user", 
+              content: prompt
+            }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.7,
+          max_tokens: 2000
+        });
+
+        const aiResponse = JSON.parse(response.choices[0].message.content || '{}');
+        
+        // Update simulation with AI response
+        await storage.updateSimulation(simulation.id, {
+          status: 'completed',
+          config: { ...settings, aiStrategy: aiResponse }
+        });
+
+        console.log('OpenAI processing completed:', {
+          simulationId: simulation.id,
+          aiResponseLength: response.choices[0].message.content?.length || 0
+        });
+
+        res.json({ 
+          status: "completed",
+          message: "Simulation processed with AI strategy",
+          simulationId: simulation.id,
+          aiStrategy: aiResponse
+        });
+
+      } catch (openaiError) {
+        console.error('OpenAI processing failed:', openaiError);
+        
+        // Update simulation status to failed
+        await storage.updateSimulation(simulation.id, {
+          status: 'failed'
+        });
+        
+        res.status(500).json({ 
+          message: "AI processing failed",
+          simulationId: simulation.id,
+          error: openaiError instanceof Error ? openaiError.message : 'Unknown error'
+        });
+      }
+      
     } catch (error) {
-      console.error("Simulation configuration error:", error);
-      res.status(500).json({ message: "Failed to configure simulation" });
+      console.error("Simulation start error:", error);
+      res.status(500).json({ message: "Failed to start simulation" });
     }
   });
   

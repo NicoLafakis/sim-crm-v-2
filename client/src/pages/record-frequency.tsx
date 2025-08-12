@@ -70,7 +70,7 @@ export default function RecordFrequency() {
     // Build the simulation settings for backend API
     const simulationSettings = {
       theme: session?.selectedTheme || "generic",
-      industry: session?.selectedIndustry || "business",
+      industry: session?.selectedIndustry || "business", 
       duration_days: getDurationDays(timeSpan),
       timeSpan: timeSpan,
       record_distribution: {
@@ -79,8 +79,7 @@ export default function RecordFrequency() {
         deals: values[2],
         tickets: values[3],
         notes: values[4]
-      },
-      webhookUrl: 'https://nicolafakis.app.n8n.cloud/webhook-test/start-simulation'
+      }
     };
 
     try {
@@ -90,9 +89,9 @@ export default function RecordFrequency() {
         settings: simulationSettings
       });
 
-      console.log('Configuration saved successfully:', response);
+      console.log('AI processing completed:', response);
       
-      // Navigate to progress page to show configuration summary
+      // Navigate to progress page to show AI strategy results
       setLocation('/progress');
       
     } catch (error) {
@@ -633,7 +632,7 @@ export default function RecordFrequency() {
           className="start-button"
           data-testid="button-start-simulation"
         >
-          🚀 START SIMULATION
+          🤖 GENERATE AI STRATEGY
         </button>
       </div>
     </div>

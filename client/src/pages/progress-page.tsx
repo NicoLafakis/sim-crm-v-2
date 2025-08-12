@@ -39,13 +39,13 @@ export default function ProgressPage() {
       queryClient.invalidateQueries({ queryKey: [`/api/user/${user?.id}/simulations`] });
       toast({
         title: "Configuration deleted",
-        description: "The simulation configuration has been removed.",
+        description: "The AI strategy has been removed.",
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to delete simulation configuration.",
+        description: "Failed to delete AI strategy.",
         variant: "destructive",
       });
     },
@@ -85,16 +85,16 @@ export default function ProgressPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>
-            SIMULATION CONFIGURATIONS
+            AI STRATEGY RESULTS
           </h1>
           <div style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>
-            Total Configurations: {simulations?.length || 0}
+            Total AI Strategies: {simulations?.length || 0}
           </div>
           <div className="mt-4 p-4 rounded border-2 flex items-center gap-3" style={{ backgroundColor: 'rgb(60, 110, 60)', borderColor: 'rgb(180, 200, 120)', color: 'rgb(180, 200, 120)' }}>
             <Info className="w-5 h-5 flex-shrink-0" />
             <div>
-              <div className="font-bold mb-1">Simulation Execution Disabled</div>
-              <div className="text-sm">All simulation execution logic has been removed. This page shows configuration settings only.</div>
+              <div className="font-bold mb-1">AI Strategy Generation Enabled</div>
+              <div className="text-sm">Configurations are processed by OpenAI to generate detailed CRM simulation strategies and business scenarios.</div>
             </div>
           </div>
         </div>
@@ -104,8 +104,8 @@ export default function ProgressPage() {
           {simulations?.length === 0 ? (
             <Card className="border-2 text-white" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)' }}>
               <CardContent className="p-8 text-center">
-                <div className="text-xl mb-4" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>NO CONFIGURATIONS FOUND</div>
-                <div className="text-sm" style={{ color: 'rgb(180, 200, 120)' }}>Create a simulation configuration to see it here.</div>
+                <div className="text-xl mb-4" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>NO AI STRATEGIES FOUND</div>
+                <div className="text-sm" style={{ color: 'rgb(180, 200, 120)' }}>Generate an AI strategy to see detailed CRM simulation plans here.</div>
               </CardContent>
             </Card>
           ) : (
@@ -130,8 +130,14 @@ export default function ProgressPage() {
                             </div>
                           </div>
                           <div className="flex items-center space-x-4">
-                            <Badge variant="secondary" className="bg-blue-500 text-white font-mono">
-                              CONFIGURED
+                            <Badge variant="secondary" className={`text-white font-mono ${
+                              simulation.status === 'completed' ? 'bg-green-500' : 
+                              simulation.status === 'processing' ? 'bg-yellow-500' :
+                              simulation.status === 'failed' ? 'bg-red-500' : 'bg-blue-500'
+                            }`}>
+                              {simulation.status === 'completed' ? 'AI COMPLETE' :
+                               simulation.status === 'processing' ? 'PROCESSING' :
+                               simulation.status === 'failed' ? 'FAILED' : 'CONFIGURED'}
                             </Badge>
                             {isExpanded ? <ChevronUp /> : <ChevronDown />}
                           </div>
@@ -183,6 +189,20 @@ export default function ProgressPage() {
                             </div>
                           </div>
 
+                          {/* AI Strategy Results */}
+                          {simulation.config?.aiStrategy && (
+                            <div className="p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.2)' }}>
+                              <div className="text-sm mb-3" style={{ fontFamily: 'var(--font-gameboy)', color: 'rgb(200, 220, 140)' }}>
+                                🤖 AI STRATEGY RESULTS
+                              </div>
+                              <div className="bg-gray-900 p-3 rounded text-xs font-mono text-green-400 max-h-64 overflow-y-auto">
+                                <pre className="whitespace-pre-wrap">
+                                  {JSON.stringify(simulation.config.aiStrategy, null, 2)}
+                                </pre>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Actions */}
                           <div className="flex justify-end space-x-2">
                             <Button
@@ -193,7 +213,7 @@ export default function ProgressPage() {
                               className="flex items-center space-x-1"
                             >
                               <Trash2 className="w-4 h-4" />
-                              <span>Delete Config</span>
+                              <span>Delete Strategy</span>
                             </Button>
                           </div>
                         </div>
