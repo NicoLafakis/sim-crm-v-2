@@ -16,7 +16,7 @@ export default function RecordFrequency() {
   const [customFields, setCustomFields] = useState(false);
   const [specificOwnership, setSpecificOwnership] = useState(false);
   const [distributionWeights, setDistributionWeights] = useState(false);
-  const [timeSpan, setTimeSpan] = useState('30 days');
+  const [timeSpan, setTimeSpan] = useState('90 days');
   
   const labels = ['Contacts', 'Companies', 'Deals', 'Tickets', 'Notes'];
   const disabledLabels = ['Tasks', 'Calls'];
@@ -484,7 +484,7 @@ export default function RecordFrequency() {
             <option value="14 days">14 days</option>
             <option value="30 days">30 days</option>
             <option value="60 days">60 days</option>
-            <option value="90 days" disabled>90 days (unavailable)</option>
+            <option value="90 days">90 days</option>
             <option value="120 days" disabled>120 days (unavailable)</option>
             <option value="190 days" disabled>190 days (unavailable)</option>
             <option value="Custom" disabled>Custom (unavailable)</option>
