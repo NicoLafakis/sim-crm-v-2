@@ -18,8 +18,9 @@ export default function RecordFrequency() {
   const [distributionWeights, setDistributionWeights] = useState(false);
   const [timeSpan, setTimeSpan] = useState('90 days');
   
-  // New outcome setting - accelerator days now comes from timeSpan
+  // New outcome and accelerator settings
   const [outcome, setOutcome] = useState('balanced'); // balanced, aggressive_growth, market_penetration
+  const [acceleratorDays, setAcceleratorDays] = useState(7); // Days to accelerate execution
   
   const labels = ['Contacts', 'Companies', 'Deals', 'Tickets', 'Notes'];
   const disabledLabels = ['Tasks', 'Calls'];
@@ -64,19 +65,17 @@ export default function RecordFrequency() {
 
     const totalRecords = values.reduce((a, b) => a + b, 0);
     
-    // Convert timeSpan to duration_days and use as accelerator days
+    // Convert timeSpan to duration_days
     const getDurationDays = (timeSpan: string): number => {
       const numericValue = parseInt(timeSpan.split(' ')[0]);
       return numericValue;
     };
 
-    const acceleratorDays = getDurationDays(timeSpan);
-
     // Build the simulation settings for backend API
     const simulationSettings = {
       theme: session?.selectedTheme || "generic",
       industry: session?.selectedIndustry || "business", 
-      duration_days: acceleratorDays,
+      duration_days: getDurationDays(timeSpan),
       timeSpan: timeSpan,
       outcome: outcome,
       acceleratorDays: acceleratorDays,
@@ -645,72 +644,51 @@ export default function RecordFrequency() {
               color: '#e8e8e8',
               border: '1px solid #e8e8e8'
             }}>
-              Time Span sets both the simulation duration AND accelerator days. Records are distributed across this period, and execution is accelerated to this timeframe. Example: 30 days = 30-day simulation compressed into accelerated execution.
+              Time Span sets the total duration for CRM simulation. Records are distributed evenly across this period. Example: 30 contacts over 30 days = 1 contact per day.
             </div>
           </div>
         </div>
 
-        {/* Outcome Settings */}
-        <div className="outcome-container" style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          margin: '20px 0',
-          padding: '15px',
-          background: '#2d3e2d',
-          border: '2px solid #e8e8e8',
-          borderRadius: '8px',
-          width: '430px',
-          marginLeft: 'auto',
-          marginRight: 'auto'
-        }}>
-          <div className="outcome-section tooltip-container" title="Outcome Focus requires Level 2 subscription">
+        {/* Outcome and Accelerator Settings */}
+        <div className="outcome-accelerator-container">
+          <div className="outcome-section">
             <label className="outcome-label">Outcome Focus:</label>
             <div className="outcome-selector">
               <button
                 className={`outcome-option ${outcome === 'balanced' ? 'selected' : ''}`}
-                style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                disabled={true}
+                onClick={() => setOutcome('balanced')}
                 data-testid="button-outcome-balanced"
               >
                 Balanced
               </button>
               <button
                 className={`outcome-option ${outcome === 'aggressive_growth' ? 'selected' : ''}`}
-                style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                disabled={true}
+                onClick={() => setOutcome('aggressive_growth')}
                 data-testid="button-outcome-aggressive"
               >
                 Growth
               </button>
               <button
                 className={`outcome-option ${outcome === 'market_penetration' ? 'selected' : ''}`}
-                style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                disabled={true}
+                onClick={() => setOutcome('market_penetration')}
                 data-testid="button-outcome-market"
               >
                 Market
               </button>
             </div>
-            <div className="locked-indicator">Requires Level 2</div>
-            <div className="tooltip">Outcome Focus available with Level 2 subscription</div>
           </div>
 
-          {/* Hidden accelerator section - functionality preserved but not visible */}
-          <div className="accelerator-section" style={{ display: 'none' }}>
-            <label className="accelerator-label">Accelerator: {timeSpan.split(' ')[0]} days</label>
-            <div className="accelerator-display" style={{
-              color: '#e8e8e8',
-              fontSize: '14px',
-              fontFamily: 'Quantico',
-              background: '#2d3e2d',
-              border: '2px solid #e8e8e8',
-              padding: '6px 12px',
-              textAlign: 'center',
-              minWidth: '80px'
-            }}>
-              {timeSpan.split(' ')[0]}
-            </div>
+          <div className="accelerator-section">
+            <label className="accelerator-label">Accelerator (days):</label>
+            <input
+              type="number"
+              className="accelerator-input"
+              value={acceleratorDays}
+              onChange={(e) => setAcceleratorDays(Math.max(1, Math.min(30, parseInt(e.target.value) || 7)))}
+              min="1"
+              max="30"
+              data-testid="input-accelerator-days"
+            />
           </div>
         </div>
 

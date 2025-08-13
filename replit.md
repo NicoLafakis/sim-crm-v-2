@@ -73,8 +73,8 @@ Preferred communication style: Simple, everyday language.
 
 **August 13, 2025** - Front-End Integration for Job Progress Monitoring
 - Extended record-frequency.tsx payload to include outcome and acceleratorDays settings
-- **Outcome Selection**: Three outcome focus options (balanced, aggressive_growth, market_penetration) - currently disabled for Level 2 subscription requirement
-- **Accelerator Days**: Now derived from Time Span dropdown selection (1-90 days) instead of separate input field
+- **Outcome Selection**: Three outcome focus options (balanced, aggressive_growth, market_penetration) with visual selector
+- **Accelerator Days**: Configurable 1-30 day acceleration input with validation and Game Boy styling
 - **Enhanced Start API**: Returns simulationId + jobId for progress tracking, stored in localStorage
 - **Real-Time Job Progress**: Progress page now polls job status every 2 seconds with automatic stop on completion
 - **Job Status Display**: Live progress bar, step counts (completed/failed/queued), and detailed step list
