@@ -502,7 +502,7 @@ export default function RecordFrequency() {
           }
 
           .timespan-dropdown:hover {
-            background: #2d3748;
+            background: #2d3e2d;
             box-shadow: 0 0 10px rgba(232, 232, 232, 0.3);
           }
 
@@ -513,8 +513,8 @@ export default function RecordFrequency() {
           }
 
           .timespan-dropdown option:disabled {
-            color: #6b7280;
-            background: #0f1419;
+            color: #6c7b7f;
+            background: #2d3e2d;
           }
         `}</style>
 
