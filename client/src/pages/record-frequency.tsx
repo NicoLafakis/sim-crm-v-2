@@ -664,31 +664,36 @@ export default function RecordFrequency() {
           marginLeft: 'auto',
           marginRight: 'auto'
         }}>
-          <div className="outcome-section">
+          <div className="outcome-section tooltip-container" title="Outcome Focus requires Level 2 subscription">
             <label className="outcome-label">Outcome Focus:</label>
             <div className="outcome-selector">
               <button
                 className={`outcome-option ${outcome === 'balanced' ? 'selected' : ''}`}
-                onClick={() => setOutcome('balanced')}
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                disabled={true}
                 data-testid="button-outcome-balanced"
               >
                 Balanced
               </button>
               <button
                 className={`outcome-option ${outcome === 'aggressive_growth' ? 'selected' : ''}`}
-                onClick={() => setOutcome('aggressive_growth')}
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                disabled={true}
                 data-testid="button-outcome-aggressive"
               >
                 Growth
               </button>
               <button
                 className={`outcome-option ${outcome === 'market_penetration' ? 'selected' : ''}`}
-                onClick={() => setOutcome('market_penetration')}
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                disabled={true}
                 data-testid="button-outcome-market"
               >
                 Market
               </button>
             </div>
+            <div className="locked-indicator">Requires Level 2</div>
+            <div className="tooltip">Outcome Focus available with Level 2 subscription</div>
           </div>
 
           {/* Hidden accelerator section - functionality preserved but not visible */}
