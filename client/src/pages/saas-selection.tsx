@@ -20,36 +20,32 @@ export default function SaasSelection() {
   return (
     <div className="min-h-screen font-gameboy" 
          style={{ 
-           backgroundColor: 'rgb(34, 78, 34)',
-           backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
+           backgroundColor: '#e8e8e8',
+           backgroundImage: 'linear-gradient(#6c7b7f 1px, transparent 1px), linear-gradient(90deg, #6c7b7f 1px, transparent 1px)',
            backgroundSize: '20px 20px'
          }}>
 
       {/* Header */}
-      <div className="text-center pt-8 pb-6" style={{ 
-        backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
-        backgroundSize: '20px 20px'
-      }}>
-        <h1 className="text-2xl font-bold uppercase tracking-wider mb-2" style={{ color: 'rgb(200, 220, 140)' }}>
+      <div className="text-center pt-8 pb-6">
+        <h1 className="text-2xl font-bold uppercase tracking-wider mb-2" style={{ color: '#1e3a5f' }}>
           Select a SaaS Tool
         </h1>
       </div>
 
       {/* CRM Section */}
-      <div className="px-8 mb-8" style={{ 
-        backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
-        backgroundSize: '20px 20px'
-      }}>
-        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
+      <div className="px-8 mb-8">
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: '#1e3a5f' }}>
           CRM
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
           {/* HubSpot - Available */}
           <button
             onClick={() => handleSaasSelect('hubspot')}
-            className="h-24 rounded border-2 border-blue-600 bg-blue-900 text-white cursor-pointer hover:bg-blue-800 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 text-white cursor-pointer text-center flex flex-col justify-center items-center transition-all hover:opacity-90"
+            style={{ 
+              backgroundColor: '#8b0000', 
+              borderColor: '#6c7b7f' 
+            }}
             data-testid="saas-hubspot"
           >
             <div className="text-lg mb-1">⚙️</div>
@@ -62,7 +58,12 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('salesforce')}
             disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            style={{ 
+              backgroundColor: '#9fb89f', 
+              borderColor: '#6c7b7f',
+              color: '#2d3e2d'
+            }}
             data-testid="saas-salesforce"
           >
             <div className="text-lg mb-1">☁️</div>
@@ -75,7 +76,12 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('zoho')}
             disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            style={{ 
+              backgroundColor: '#9fb89f', 
+              borderColor: '#6c7b7f',
+              color: '#2d3e2d'
+            }}
             data-testid="saas-zoho"
           >
             <div className="text-lg mb-1">📊</div>
@@ -88,7 +94,12 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('pipedrive')}
             disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            style={{ 
+              backgroundColor: '#9fb89f', 
+              borderColor: '#6c7b7f',
+              color: '#2d3e2d'
+            }}
             data-testid="saas-pipedrive"
           >
             <div className="text-lg mb-1">📈</div>
@@ -100,12 +111,8 @@ export default function SaasSelection() {
       </div>
 
       {/* Marketing Automation Section */}
-      <div className="px-8 mb-8" style={{ 
-        backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
-        backgroundSize: '20px 20px'
-      }}>
-        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
+      <div className="px-8 mb-8">
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: '#1e3a5f' }}>
           Marketing Automation
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
@@ -113,7 +120,12 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('marketo')}
             disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            style={{ 
+              backgroundColor: '#9fb89f', 
+              borderColor: '#6c7b7f',
+              color: '#2d3e2d'
+            }}
             data-testid="saas-marketo"
           >
             <div className="text-lg mb-1">🎯</div>
@@ -126,7 +138,12 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('mailchimp')}
             disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            style={{ 
+              backgroundColor: '#9fb89f', 
+              borderColor: '#6c7b7f',
+              color: '#2d3e2d'
+            }}
             data-testid="saas-mailchimp"
           >
             <div className="text-lg mb-1">🐒</div>
@@ -139,7 +156,12 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('activecampaign')}
             disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            style={{ 
+              backgroundColor: '#9fb89f', 
+              borderColor: '#6c7b7f',
+              color: '#2d3e2d'
+            }}
             data-testid="saas-activecampaign"
           >
             <div className="text-lg mb-1">⚡</div>
@@ -152,7 +174,12 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('klaviyo')}
             disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            style={{ 
+              backgroundColor: '#9fb89f', 
+              borderColor: '#6c7b7f',
+              color: '#2d3e2d'
+            }}
             data-testid="saas-klaviyo"
           >
             <div className="text-lg mb-1">📧</div>
@@ -164,12 +191,8 @@ export default function SaasSelection() {
       </div>
 
       {/* Project Management Section */}
-      <div className="px-8 mb-8" style={{ 
-        backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
-        backgroundSize: '20px 20px'
-      }}>
-        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
+      <div className="px-8 mb-8">
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: '#1e3a5f' }}>
           Project Management
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
@@ -177,7 +200,12 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('monday')}
             disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            style={{ 
+              backgroundColor: '#9fb89f', 
+              borderColor: '#6c7b7f',
+              color: '#2d3e2d'
+            }}
             data-testid="saas-monday"
           >
             <div className="text-lg mb-1">📋</div>
@@ -190,7 +218,12 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('asana')}
             disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            style={{ 
+              backgroundColor: '#9fb89f', 
+              borderColor: '#6c7b7f',
+              color: '#2d3e2d'
+            }}
             data-testid="saas-asana"
           >
             <div className="text-lg mb-1">✅</div>
@@ -203,7 +236,12 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('trello')}
             disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            style={{ 
+              backgroundColor: '#9fb89f', 
+              borderColor: '#6c7b7f',
+              color: '#2d3e2d'
+            }}
             data-testid="saas-trello"
           >
             <div className="text-lg mb-1">📝</div>
@@ -216,7 +254,12 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('notion')}
             disabled
-            className="h-24 rounded border-2 border-green-600 bg-green-800 text-green-400 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            style={{ 
+              backgroundColor: '#9fb89f', 
+              borderColor: '#6c7b7f',
+              color: '#2d3e2d'
+            }}
             data-testid="saas-notion"
           >
             <div className="text-lg mb-1">📄</div>
