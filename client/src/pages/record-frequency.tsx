@@ -18,6 +18,10 @@ export default function RecordFrequency() {
   const [distributionWeights, setDistributionWeights] = useState(false);
   const [timeSpan, setTimeSpan] = useState('90 days');
   
+  // New outcome and accelerator settings
+  const [outcome, setOutcome] = useState('balanced'); // balanced, aggressive_growth, market_penetration
+  const [acceleratorDays, setAcceleratorDays] = useState(7); // Days to accelerate execution
+  
   const labels = ['Contacts', 'Companies', 'Deals', 'Tickets', 'Notes'];
   const disabledLabels = ['Tasks', 'Calls'];
   const maxTotal = 150;
@@ -73,6 +77,8 @@ export default function RecordFrequency() {
       industry: session?.selectedIndustry || "business", 
       duration_days: getDurationDays(timeSpan),
       timeSpan: timeSpan,
+      outcome: outcome,
+      acceleratorDays: acceleratorDays,
       record_distribution: {
         contacts: values[0],
         companies: values[1],
@@ -89,9 +95,15 @@ export default function RecordFrequency() {
         settings: simulationSettings
       });
 
-      console.log('AI processing completed:', response);
+      console.log('Simulation started:', response);
       
-      // Navigate to progress page to show AI strategy results
+      // Store simulation and job IDs for progress tracking
+      if (response?.simulationId && response?.jobId) {
+        localStorage.setItem('currentSimulationId', response.simulationId.toString());
+        localStorage.setItem('currentJobId', response.jobId.toString());
+      }
+      
+      // Navigate to progress page to show job progress
       setLocation('/progress');
       
     } catch (error) {
@@ -516,6 +528,71 @@ export default function RecordFrequency() {
             color: #6c7b7f;
             background: #2d3e2d;
           }
+
+          .outcome-accelerator-container {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 20px;
+            justify-content: center;
+            align-items: center;
+          }
+
+          .outcome-section, .accelerator-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+          }
+
+          .outcome-label, .accelerator-label {
+            color: #e8e8e8;
+            font-family: 'Quantico';
+            font-size: 14px;
+            font-weight: bold;
+          }
+
+          .outcome-selector {
+            display: flex;
+            gap: 10px;
+          }
+
+          .outcome-option {
+            background: #2d3e2d;
+            border: 2px solid #6c7b7f;
+            color: #e8e8e8;
+            padding: 6px 12px;
+            font-family: 'Quantico';
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+
+          .outcome-option.selected {
+            border-color: #e8e8e8;
+            background: #4a5568;
+            box-shadow: 0 0 10px rgba(232, 232, 232, 0.3);
+          }
+
+          .outcome-option:hover {
+            border-color: #e8e8e8;
+            box-shadow: 0 0 5px rgba(232, 232, 232, 0.2);
+          }
+
+          .accelerator-input {
+            background: #2d3e2d;
+            border: 2px solid #e8e8e8;
+            color: #e8e8e8;
+            padding: 6px 12px;
+            font-family: 'Quantico';
+            font-size: 14px;
+            width: 80px;
+            text-align: center;
+            outline: none;
+          }
+
+          .accelerator-input:hover, .accelerator-input:focus {
+            box-shadow: 0 0 10px rgba(232, 232, 232, 0.3);
+          }
         `}</style>
 
         <div className="title">Record Frequency</div>
@@ -569,6 +646,49 @@ export default function RecordFrequency() {
             }}>
               Time Span sets the total duration for CRM simulation. Records are distributed evenly across this period. Example: 30 contacts over 30 days = 1 contact per day.
             </div>
+          </div>
+        </div>
+
+        {/* Outcome and Accelerator Settings */}
+        <div className="outcome-accelerator-container">
+          <div className="outcome-section">
+            <label className="outcome-label">Outcome Focus:</label>
+            <div className="outcome-selector">
+              <button
+                className={`outcome-option ${outcome === 'balanced' ? 'selected' : ''}`}
+                onClick={() => setOutcome('balanced')}
+                data-testid="button-outcome-balanced"
+              >
+                Balanced
+              </button>
+              <button
+                className={`outcome-option ${outcome === 'aggressive_growth' ? 'selected' : ''}`}
+                onClick={() => setOutcome('aggressive_growth')}
+                data-testid="button-outcome-aggressive"
+              >
+                Growth
+              </button>
+              <button
+                className={`outcome-option ${outcome === 'market_penetration' ? 'selected' : ''}`}
+                onClick={() => setOutcome('market_penetration')}
+                data-testid="button-outcome-market"
+              >
+                Market
+              </button>
+            </div>
+          </div>
+
+          <div className="accelerator-section">
+            <label className="accelerator-label">Accelerator (days):</label>
+            <input
+              type="number"
+              className="accelerator-input"
+              value={acceleratorDays}
+              onChange={(e) => setAcceleratorDays(Math.max(1, Math.min(30, parseInt(e.target.value) || 7)))}
+              min="1"
+              max="30"
+              data-testid="input-accelerator-days"
+            />
           </div>
         </div>
 

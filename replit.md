@@ -71,6 +71,20 @@ Preferred communication style: Simple, everyday language.
 - **Acceptance Criteria Met**: New properties auto-created, missing options added, constraints enforced with coercion
 - Custom property system ensures seamless CRM integration with zero manual property management required
 
+**August 13, 2025** - Front-End Integration for Job Progress Monitoring
+- Extended record-frequency.tsx payload to include outcome and acceleratorDays settings
+- **Outcome Selection**: Three outcome focus options (balanced, aggressive_growth, market_penetration) with visual selector
+- **Accelerator Days**: Configurable 1-30 day acceleration input with validation and Game Boy styling
+- **Enhanced Start API**: Returns simulationId + jobId for progress tracking, stored in localStorage
+- **Real-Time Job Progress**: Progress page now polls job status every 2 seconds with automatic stop on completion
+- **Job Status Display**: Live progress bar, step counts (completed/failed/queued), and detailed step list
+- **Status Icons**: Visual indicators for step status (completed, failed, processing, queued) with appropriate colors
+- **Job Management**: Clear job status button and localStorage cleanup for completed/failed jobs
+- **Test Framework**: `/api/test/create-job` endpoint for creating 10-step simulation jobs for progress testing
+- **API Integration**: `/api/job/:jobId/status` endpoint providing comprehensive job status with step details
+- **Acceptance Criteria Met**: Start returns simulationId + jobId, progress view shows step counts, 10-step test demonstrates live progress tracking
+- Front-end integration provides seamless user experience with real-time feedback on simulation execution progress
+
 **August 13, 2025** - Owner Assignment System with Email-to-ID Resolution
 
 ## System Architecture
