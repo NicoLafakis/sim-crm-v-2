@@ -490,7 +490,7 @@ export default function RecordFrequency() {
           }
 
           .timespan-dropdown {
-            background: #1a1f2e;
+            background: #2d3e2d;
             border: 2px solid #e8e8e8;
             color: #e8e8e8;
             padding: 8px 12px;
@@ -507,7 +507,7 @@ export default function RecordFrequency() {
           }
 
           .timespan-dropdown option {
-            background: #1a1f2e;
+            background: #2d3e2d;
             color: #e8e8e8;
             font-family: 'Quantico';
           }
