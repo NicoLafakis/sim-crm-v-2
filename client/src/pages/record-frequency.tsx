@@ -142,7 +142,7 @@ export default function RecordFrequency() {
             align-items: center;
             margin-bottom: 30px;
             color: #e8e8e8;
-            font-size: 14px;
+            font-size: 18px;
           }
 
           .player-info {
@@ -159,7 +159,7 @@ export default function RecordFrequency() {
             gap: 15px;
             margin-bottom: 30px;
             padding: 20px;
-            background: #6c7b7f;
+            background: #9fb89f;
             border: 1px solid #2d3748;
             width: 100%;
             overflow-x: auto;
