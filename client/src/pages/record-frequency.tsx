@@ -650,16 +650,19 @@ export default function RecordFrequency() {
           </div>
         </div>
 
-        {/* Outcome and Accelerator Settings */}
-        <div className="outcome-accelerator-container" style={{
+        {/* Outcome Settings */}
+        <div className="outcome-container" style={{
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           alignItems: 'center',
           margin: '20px 0',
           padding: '15px',
           background: '#2d3e2d',
           border: '2px solid #e8e8e8',
-          borderRadius: '8px'
+          borderRadius: '8px',
+          width: '430px',
+          marginLeft: 'auto',
+          marginRight: 'auto'
         }}>
           <div className="outcome-section">
             <label className="outcome-label">Outcome Focus:</label>
@@ -688,7 +691,8 @@ export default function RecordFrequency() {
             </div>
           </div>
 
-          <div className="accelerator-section">
+          {/* Hidden accelerator section - functionality preserved but not visible */}
+          <div className="accelerator-section" style={{ display: 'none' }}>
             <label className="accelerator-label">Accelerator: {timeSpan.split(' ')[0]} days</label>
             <div className="accelerator-display" style={{
               color: '#e8e8e8',
