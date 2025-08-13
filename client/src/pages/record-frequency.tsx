@@ -107,7 +107,7 @@ export default function RecordFrequency() {
   return (
     <div className="min-h-screen font-gameboy flex items-center justify-center" 
          style={{ 
-           backgroundColor: '#6c7b7f',
+           backgroundColor: '#e8e8e8',
            backgroundImage: `
              linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
              linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
@@ -160,7 +160,7 @@ export default function RecordFrequency() {
             gap: 15px;
             margin-bottom: 30px;
             padding: 20px;
-            background: #9fb89f;
+            background: #6c7b7f;
             border: 1px solid #2d3748;
             width: 100%;
             overflow-x: auto;
