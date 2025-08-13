@@ -331,21 +331,44 @@ async function generateRealisticData(actionType: string, theme: string, industry
   try {
     const prompt = createLLMPrompt(actionType, theme, industry, actionTemplate);
     
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // Using gpt-3.5-turbo as fallback for broader access
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7
-    });
+    // Try primary model first
+    let response;
+    try {
+      response = await openai.chat.completions.create({
+        model: "gpt-5-nano",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7
+      });
+    } catch (primaryError: any) {
+      console.warn(`Primary model gpt-5-nano failed: ${primaryError.message}. Trying fallback model.`);
+      
+      // Fallback to secondary model
+      response = await openai.chat.completions.create({
+        model: "gpt-4.1-nano",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7
+      });
+    }
 
     const generatedData = JSON.parse(response.choices[0].message.content || '{}');
     
@@ -355,8 +378,8 @@ async function generateRealisticData(actionType: string, theme: string, industry
     return generatedData;
     
   } catch (error: any) {
-    console.error('Error generating realistic data with LLM:', error.message);
-    // Fallback to template data if LLM fails
+    console.error('Error generating realistic data with LLM (both models failed):', error.message);
+    // Fallback to template data if both LLM models fail
     return actionTemplate || {};
   }
 }
