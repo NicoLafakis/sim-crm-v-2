@@ -108,7 +108,7 @@ export default function ProgressPage() {
         {/* Simulations List */}
         <div className="space-y-4">
           {simulations?.length === 0 ? (
-            <Card className="border-2" style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000' }}>
+            <Card className="border-2 rounded-none" style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000' }}>
               <CardContent className="p-8 text-center">
                 <div className="text-xl mb-4" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>NO AI STRATEGIES FOUND</div>
                 <div className="text-sm" style={{ color: '#000000' }}>Generate an AI strategy to see detailed CRM simulation plans here.</div>
@@ -119,7 +119,7 @@ export default function ProgressPage() {
               const isExpanded = expandedRuns.has(simulation.id);
               
               return (
-                <Card key={simulation.id} className="border-2" style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000' }}>
+                <Card key={simulation.id} className="border-2 rounded-none" style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000' }}>
                   <Collapsible>
                     <CollapsibleTrigger asChild onClick={() => toggleExpanded(simulation.id)}>
                       <CardHeader className="cursor-pointer" style={{ backgroundColor: '#e8e8e8' }}>
