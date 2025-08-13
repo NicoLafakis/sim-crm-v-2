@@ -688,7 +688,7 @@ export default function RecordFrequency() {
             </div>
           </div>
 
-          {/* <div className="accelerator-section">
+          <div className="accelerator-section">
             <label className="accelerator-label">Accelerator: {timeSpan.split(' ')[0]} days</label>
             <div className="accelerator-display" style={{
               color: '#e8e8e8',
@@ -702,7 +702,7 @@ export default function RecordFrequency() {
             }}>
               {timeSpan.split(' ')[0]}
             </div>
-          </div> */}
+          </div>
         </div>
 
         <div className="sliders-grid bg-[#9fb89f]">
