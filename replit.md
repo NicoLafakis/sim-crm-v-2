@@ -23,7 +23,12 @@ Preferred communication style: Simple, everyday language.
 - Added variation system for cached persona data to ensure unique records while maintaining performance
 - All 8 CRM actions fully implemented with proper API validation and association creation
 - System ready for production with LLM-generated personas, HubSpot validation, and complete CRM lifecycle management
-- Verification testing confirms LLM integration, caching, and CRM validation work correctly
+- Updated /api/simulation/start route to integrate with orchestrator: calls scheduleSimulationJob() after simulation creation
+- Added outcome and acceleratorDays settings support with defaults (won, 30 days base cycle)
+- Enhanced API response to include jobId, stepsCount, outcome, and acceleratorDays
+- Removed execution disabled notes - simulation execution now fully active through orchestrator
+- LLM models updated to gpt-5-nano (primary) with gpt-4.1-nano fallback for cost optimization
+- Verification testing confirms LLM integration, caching, CRM validation, and API orchestrator integration work correctly
 
 **August 13, 2025** - Complete Unified Color Palette Implementation
 - Applied comprehensive color palette update across ALL pages (excluding login/signup as requested)

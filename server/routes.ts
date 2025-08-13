@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertSessionSchema } from "@shared/schema";
+import { scheduleSimulationJob } from "./orchestrator";
 import OpenAI from "openai";
 
 // Initialize OpenAI client
@@ -206,6 +207,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User or session not found" });
       }
       
+      // Extract outcome and acceleratorDays from settings
+      const outcome = settings.outcome || 'won'; // Default to 'won' if not specified
+      const baseCycleDays = 30; // Base cycle is 30 days from CSV template
+      const acceleratorDays = settings.acceleratorDays || baseCycleDays; // Default to base cycle
+      
       // Create simulation record in database
       const simulation = await storage.createSimulation({
         userId,
@@ -213,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         theme: settings.theme || session.selectedTheme || 'generic',
         industry: settings.industry || session.selectedIndustry || 'business',
         frequency: settings.timeSpan || '1d',
-        config: settings,
+        config: { ...settings, outcome, acceleratorDays },
         status: 'processing',
         startedAt: new Date(),
         creditsUsed: 0
@@ -221,29 +227,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update session with simulation config
       await storage.updateSession(userId, {
-        simulationConfig: settings
+        simulationConfig: { ...settings, outcome, acceleratorDays }
       });
       
-      console.log('Simulation started with OpenAI processing:', {
+      console.log('Simulation started with orchestrator job scheduling:', {
         simulationId: simulation.id,
         theme: settings.theme,
         industry: settings.industry,
-        frequency: settings.timeSpan
+        outcome,
+        acceleratorDays
       });
       
       try {
-        // Call OpenAI with the simulation configuration
+        // Schedule simulation job using the orchestrator
+        const jobResult = await scheduleSimulationJob(simulation, outcome, acceleratorDays);
+        
+        // Call OpenAI with the simulation configuration for strategy generation
         const prompt = `Generate a comprehensive CRM simulation plan based on this configuration:
 
 Theme: ${settings.theme}
 Industry: ${settings.industry}
-Duration: ${settings.duration_days} days
+Outcome: ${outcome}
+Duration: ${acceleratorDays} days (accelerated from ${baseCycleDays} day base cycle)
 Record Distribution:
-- Contacts: ${settings.record_distribution.contacts}
-- Companies: ${settings.record_distribution.companies}  
-- Deals: ${settings.record_distribution.deals}
-- Tickets: ${settings.record_distribution.tickets}
-- Notes: ${settings.record_distribution.notes}
+- Contacts: ${settings.record_distribution?.contacts || 'Medium'}
+- Companies: ${settings.record_distribution?.companies || 'Medium'}  
+- Deals: ${settings.record_distribution?.deals || 'Medium'}
+- Tickets: ${settings.record_distribution?.tickets || 'Medium'}
+- Notes: ${settings.record_distribution?.notes || 'Medium'}
 
 Please provide a detailed simulation strategy with realistic business scenarios, persona profiles, and data generation recommendations in JSON format.`;
 
@@ -290,26 +301,32 @@ Please provide a detailed simulation strategy with realistic business scenarios,
 
         const aiResponse = JSON.parse(response.choices[0].message.content || '{}');
         
-        // Update simulation with AI response
+        // Update simulation with AI response and job info
         await storage.updateSimulation(simulation.id, {
-          status: 'completed',
-          config: { ...settings, aiStrategy: aiResponse }
+          status: 'active',
+          config: { ...settings, outcome, acceleratorDays, aiStrategy: aiResponse, jobId: jobResult.jobId }
         });
 
-        console.log('OpenAI processing completed:', {
+        console.log('Simulation job scheduled and AI strategy generated:', {
           simulationId: simulation.id,
+          jobId: jobResult.jobId,
+          stepsCount: jobResult.stepsCount,
           aiResponseLength: response.choices[0].message.content?.length || 0
         });
 
         res.json({ 
-          status: "completed",
-          message: "Simulation processed with AI strategy",
+          status: "active",
+          message: "Simulation started with job scheduling and AI strategy",
           simulationId: simulation.id,
+          jobId: jobResult.jobId,
+          stepsCount: jobResult.stepsCount,
+          outcome,
+          acceleratorDays,
           aiStrategy: aiResponse
         });
 
-      } catch (openaiError) {
-        console.error('OpenAI processing failed:', openaiError);
+      } catch (error) {
+        console.error('Simulation scheduling or AI processing failed:', error);
         
         // Update simulation status to failed
         await storage.updateSimulation(simulation.id, {
@@ -317,9 +334,9 @@ Please provide a detailed simulation strategy with realistic business scenarios,
         });
         
         res.status(500).json({ 
-          message: "AI processing failed",
+          message: "Simulation scheduling or AI processing failed",
           simulationId: simulation.id,
-          error: openaiError instanceof Error ? openaiError.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error'
         });
       }
       
@@ -340,8 +357,7 @@ Please provide a detailed simulation strategy with realistic business scenarios,
       }
       
       res.json({
-        simulation,
-        executionNote: "Simulation execution is disabled - showing configuration only"
+        simulation
       });
     } catch (error) {
       console.error("Get simulation status error:", error);
@@ -361,8 +377,7 @@ Please provide a detailed simulation strategy with realistic business scenarios,
     }
   });
 
-  // Note: Simulation execution control endpoints removed (status, pause, resume, stop)
-  // Only configuration endpoints remain
+  // Simulation execution is now active through the orchestrator system
 
   app.delete("/api/simulation/:simulationId", async (req, res) => {
     try {
