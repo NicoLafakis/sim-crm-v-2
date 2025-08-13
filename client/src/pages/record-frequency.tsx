@@ -527,7 +527,7 @@ export default function RecordFrequency() {
 
         {/* TimeSpan Dropdown */}
         <div className="timespan-container">
-          <label className="timespan-label" htmlFor="timespan-select">Time Span:</label>
+          <label className="timespan-label text-[16px]" htmlFor="timespan-select">Time Span:</label>
           <select
             id="timespan-select"
             className="timespan-dropdown"
