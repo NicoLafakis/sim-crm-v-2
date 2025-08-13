@@ -1,175 +1,53 @@
 # SimCRM - Game Boy CRM Simulation Platform
 
 ## Overview
-
-SimCRM is a retro Game Boy-themed CRM simulation platform that gamifies business process management through HubSpot integration. The application provides an 8-bit styled interface where users can create and manage CRM data simulations across different business themes and industries. Users progress through player tiers with increasing credit limits and features, making CRM learning engaging through a nostalgic gaming experience.
+SimCRM is a retro Game Boy-themed CRM simulation platform that gamifies business process management through HubSpot integration. The application provides an 8-bit styled interface where users can create and manage CRM data simulations across different business themes and industries. Users progress through player tiers with increasing credit limits and features, making CRM learning engaging through a nostalgic gaming experience. The project's vision is to make complex CRM concepts approachable and engaging through familiar gaming metaphors, offering a unique user experience differentiator.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
-
-## Recent Changes
-
-**August 13, 2025** - Owner Assignment System with Email-to-ID Resolution
-- Implemented comprehensive owner assignment system for Contact, Company, and Deal records
-- **Database Schema Addition**: Added `hubspot_owners` table to cache HubSpot owner data per user integration
-- **Owner Caching System**: `fetchAndCacheOwners()` automatically retrieves and stores owner data from HubSpot API
-- **Storage Interface Extensions**: Added cacheHubspotOwners(), getHubspotOwners() methods with upsert functionality
-- **Email Resolution Function**: `resolveOwnerEmail()` converts owner emails to HubSpot owner IDs with graceful failure handling
-- **Multiple Field Support**: Recognizes owner, owner_email, ownerEmail fields from CSV templates
-- **Graceful Failure Mode**: Missing or invalid owner emails leave records unassigned without causing creation failures
-- **CRM Integration**: Enhanced executeCreateContact(), executeCreateCompany(), executeCreateDeal() with automatic owner resolution
-- **Cache Performance**: Owner data cached per user to minimize HubSpot API calls during simulations
-- **Test Endpoints**: Added /api/test/owner-assignment and /api/test/owners/:userId for comprehensive testing
-- **Field Cleanup**: Automatically removes email fields and replaces with hubspot_owner_id in final API calls
-- **Case-Insensitive Matching**: Owner email lookup works regardless of email case differences
-- **Active Owner Filtering**: Only considers active (non-archived) owners for assignment
-- **Comprehensive Testing**: Full test suite with valid/invalid emails, missing owners, and multiple field formats
-- Owner assignment system ensures reliable record ownership while maintaining data integrity and preventing simulation failures from missing owner data
-
-**August 13, 2025** - Pipeline and Stage Validation System with Non-Retryable Failure Handling
-- Added comprehensive pipeline and stage validation system for deal creation/updates
-- **Database Schema Changes**: Added `hubspot_pipelines` and `hubspot_stages` tables to cache HubSpot pipeline/stage data per user integration
-- **Pipeline Caching System**: `fetchAndCachePipelinesAndStages()` automatically retrieves and stores pipeline/stage data from HubSpot API
-- **Storage Interface Extensions**: Added cacheHubspotPipelines(), cacheHubspotStages(), getHubspotPipelines(), getHubspotStages(), clearHubspotCache() methods
-- **Deal Validation Function**: `validateDealStage()` validates pipeline/stage IDs and resolves human-readable names to HubSpot IDs
-- **Name-to-ID Resolution**: Support for both HubSpot IDs and human-readable names in CSV templates (e.g., "Qualified Lead" → stage ID)
-- **Fallback Behavior**: Uses first available pipeline/stage as default when none specified
-- **Enhanced Deal Operations**: executeCreateDeal() and executeUpdateDeal() now validate pipeline/stage before API calls
-- **Non-Retryable Failure Handling**: Invalid pipeline/stage combinations marked as `failed_non_retryable` with clear error messages
-- **Clear Error Messages**: Validation failures include lists of available pipelines/stages for easy correction
-- **Test Endpoints**: Added `/api/test/pipeline-validation` and `/api/test/clear-pipeline-cache` for validation testing
-- **Cache Management**: Automatic cache refresh when no cached data exists, manual cache clearing for testing
-- **LLM Integration**: Updated deal generation prompts to use common stage names like "Qualified Lead", "Appointment Scheduled"
-- **Comprehensive Error Logging**: Validation failures logged prominently with ❌ indicators for easy identification
-- **Acceptance Criteria Met**: Invalid pipeline/stage triggers clear, non-retryable failure; valid names/IDs pass validation; comprehensive testing documented
-- Pipeline validation system ensures all deal operations use valid HubSpot pipeline/stage combinations, preventing API errors and providing actionable feedback for CSV data corrections
-
-**August 13, 2025** - Record Frequency Page Color Scheme Update
-- Updated record-frequency page with specialized color scheme per user requirements
-- Background: Updated from light gray to #6c7b7f (slate gray) while maintaining grid pattern
-- Text: Changed all text colors to #e8e8e8 (light gray) for better contrast
-- Slider track color: Updated to #2d3e2d (dark green) for better visibility
-- Slider button/thumb: Changed to #8b0000 (dark red) matching button theme
-- EQ container (sliders-grid): Updated background to #9fb89f (sage green)
-- Additional Options container: Updated background to #9fb89f (sage green)
-- Added information tooltip (i) next to Time Span dropdown explaining functionality
-- Tooltip explains: "Time Span sets the total duration for CRM simulation. Records are distributed evenly across this period. Example: 30 contacts over 30 days = 1 contact per day."
-- Updated all dropdown, label, and value colors to maintain consistency with new scheme
-
-**August 13, 2025** - Complete Unified Color Palette Implementation
-- Applied comprehensive color palette update across ALL other pages (excluding login/signup as requested)
-- Background: Light Gray (#e8e8e8) with 30% opacity grid lines using rgba(176, 176, 176, 0.3) at 16px spacing
-- Headers: Navy Blue (#1e3a5f) for all page titles, section headers, and important text
-- Regular text: Black (#000000) for all body text, labels, and content
-- Active buttons: Dark Red (#8b0000) background with white text
-- Inactive/disabled buttons: Slate Gray (#6c7b7f) background with Sage Green (#9fb89f) text
-- All containers match page background with consistent grid pattern overlay
-- Updated pages: saas-selection, theme-selection, industry-selection, hubspot-setup, profile-page, progress-page, not-found
-- All theme selection buttons, industry buttons, form inputs, and action buttons now follow unified color scheme
-- Floating menu and audio player maintain consistent styling with updated color palette
-
-**August 12, 2025** - OpenAI Integration Added
-- Replaced n8n webhook with OpenAI API integration for AI strategy generation
-- Primary model: gpt-5-nano with backup model: gpt-4.1-nano fallback
-- Button changed to "Generate AI Strategy" - processes configuration with OpenAI
-- Progress page now displays AI-generated CRM simulation strategies and business scenarios
-- Status badges show processing states: processing, completed, failed
-- AI responses stored in database with original configuration for reference
-- Application flow: Login → Industry Selection → Theme Selection → SaaS Selection → Frequency Configuration → AI Strategy Generation → AI Results Display
-
-**August 12, 2025** - Major Architecture Change: Simulation Execution Removed (Previously)
-- Stripped out ALL simulation execution logic per user request
-- Removed orchestrator, job processing, HubSpot integration, and execution-related database tables
-- CSV timing specification system was built but no longer relevant since execution was removed
-- HubSpot OAuth credentials requirement no longer applicable since execution was removed
-
-**Previous: August 12, 2025** - Simulation Order Completely Rewritten Based on CSV Specification
-- Replaced random job shuffling with precise 30-day sales cycle timing from universal_30day_timing_key CSV
-- Implemented authentic business process: Day 0 (Contact+Company+Deal creation) → Day 1 (Deal enrichment) → Day 3 (Qualification+Note) → Day 5 (Presentation) → Day 7-8 (Ticket creation/update) → Day 10-30 (Progressive deal stages to Closed Won/Lost)
-- Each simulation now follows realistic sales methodology with proper stage progression, associations, and business timing
-- Fixed foreign key constraint errors by ensuring proper database record creation
-- Enhanced logging to show exact simulation plan following CSV specifications
-
-**August 10, 2025** - HubSpot API Compliance Audit & Comprehensive Fixes
-- Fixed critical Notes timestamp format from milliseconds to ISO 8601 format to meet HubSpot API requirements
-- Implemented comprehensive HubSpot-specific error handling with detailed validation, authentication, authorization, and rate limit error messages
-- Added property validation for all HubSpot object types (contacts, companies, deals, tickets, notes) before API calls
-- Enhanced error parsing to handle HubSpot API response formats and HTTP status codes properly
-- Validated all property names against official HubSpot documentation (all were correct)
-- Improved data integrity with email format validation, phone number validation, and required field checks
-- Added comprehensive validation for numeric fields (employee count, revenue, deal amounts)
-- Enhanced association creation with better error handling and validation
-
-**January 7, 2025** - Complete Simulation Setup Flow Implemented
-- Implemented comprehensive HubSpot validation system with prerequisite checking before simulation setup
-- Updated theme selection with 16 specific popular franchises (Beatles, Star Wars, Zelda, Friends, etc.) instead of generic categories
-- Created industry selection page with 12 business industry options (SaaS, Healthcare, Finance, etc.)
-- Built WinAmp-style record frequency mixer page with vertical sliders for each HubSpot object type
-- Added complete navigation flow: Theme Selection → Industry Selection → Record Frequency → Simulation
-- Created equalizer-style interface for configuring data generation frequency (Contacts, Companies, Deals, Tickets, Notes with Calls/Tasks coming soon)
-- Enhanced all pages with consistent Game Boy visual design and user feedback systems
-- Maintained intelligent redirect flow ensuring HubSpot connection before simulation setup
 
 ## System Architecture
 
-### Frontend Architecture
-- **React with TypeScript** - Component-based UI using React 18 with full TypeScript support
-- **Wouter routing** - Lightweight client-side routing for navigation between game screens
-- **shadcn/ui components** - Consistent design system with Radix UI primitives and Tailwind CSS
-- **Game Boy theming** - Custom CSS variables and styling to replicate authentic Game Boy aesthetics
-- **TanStack Query** - Server state management for API calls and caching
-- **Zustand** - Client-side state management with persistence for user sessions
+### UI/UX Decisions
+The platform features a distinctive Game Boy aesthetic, implemented through:
+- **Game Boy Theming**: Custom CSS variables, `Press Start 2P` font, and custom CSS animations (scanlines, blinking text) replicate authentic Game Boy visuals.
+- **Color Palette**: A comprehensive unified color palette is applied across all pages (excluding login/signup). This includes specific colors for backgrounds, headers, text, active/inactive buttons, and container elements, maintaining consistency.
+- **Responsive Design**: A mobile-first approach ensures optimal display across devices, with Game Boy console scaling.
+- **Interactive Elements**: Features like a WinAmp-style record frequency mixer page with vertical sliders and an equalizer-style interface enhance user interaction. Information tooltips provide clarity on functionalities like the "Time Span" dropdown.
 
-### Backend Architecture
-- **Express.js server** - RESTful API server with middleware for request handling
-- **In-memory storage** - Current implementation uses Map-based storage with interface for future database integration
-- **Session-based authentication** - Simple username/password authentication with session management
-- **Modular route handling** - Separation of concerns with dedicated route handlers
+### Technical Implementations
+- **Frontend**: Built with React 18 and TypeScript for component-based UI, utilizing Wouter for routing, shadcn/ui for a consistent design system (based on Radix UI and Tailwind CSS), TanStack Query for server state management, and Zustand for client-side state management with persistence.
+- **Backend**: An Express.js server provides a RESTful API with modular route handling and session-based authentication. Currently uses in-memory storage, with an interface for future database integration.
+- **Data Models**: Includes `Users` for player profiles, `Sessions` for user state (HubSpot tokens, selected themes, industries, simulation settings), and `Player Tiers` defining hierarchical progression with increasing credit limits.
+- **Simulation Logic**: The system now focuses solely on generating AI-powered CRM simulation strategies and business scenarios, removing all previous simulation execution logic. It supports comprehensive custom property creation for all HubSpot property types (text, number, date, bool, single-select, multi-select) with intelligent type detection, automatic property creation, and option management. It also includes an owner assignment system that resolves owner emails to HubSpot IDs and a pipeline/stage validation system for deal creation/updates, caching HubSpot data to minimize API calls.
 
-### Data Models
-- **Users** - Player profiles with username/password credentials
-- **Sessions** - User state including HubSpot tokens, selected themes, industries, and simulation settings
-- **Player Tiers** - Hierarchical progression system with credit limits (New Player: 150, Level 1: 325, Level 2: 500, Level 3: 1000, Level 4: Contact Us)
-
-### Game Flow Architecture
-- **Landing → Login/Registration** - Entry point with Game Boy start screen
-- **Profile Management** - SaaS connection setup (currently HubSpot-focused)
-- **Theme Selection** - Choose from music, movies, TV shows, or video games categories
-- **Industry Selection** - Business context selection (salon, SaaS, law firm, etc.)
-- **Frequency Selection** - Simulation timing options (1h, 4h, 1d, 1w, 1m, custom)
-- **Simulation Setup** - Mixer board interface for configuring HubSpot object distributions
-
-### Styling System
-- **Tailwind CSS** - Utility-first CSS framework with custom Game Boy color palette
-- **Press Start 2P font** - Authentic 8-bit typography
-- **Custom CSS animations** - Screen effects like scanlines and blinking text
-- **Responsive design** - Mobile-first approach with Game Boy console scaling
+### Feature Specifications
+- **Simulation Setup Flow**: Users navigate through Landing → Login/Registration → Profile Management (HubSpot connection) → Theme Selection (16 specific franchises) → Industry Selection (12 business industries) → Record Frequency (mixer board for HubSpot object distribution) → AI Strategy Generation → AI Results Display.
+- **AI Strategy Generation**: Integrates with OpenAI (gpt-5-nano with gpt-4.1-nano fallback) to generate CRM simulation strategies and business scenarios, displaying processing states (processing, completed, failed) and storing responses.
+- **Data Validation & Error Handling**: Comprehensive validation is implemented for HubSpot object types, including email format, phone number, required fields, and numeric values. HubSpot-specific error handling provides detailed messages for validation, authentication, authorization, and rate limit errors. Invalid data combinations are marked as `failed_non_retryable` with clear feedback.
 
 ## External Dependencies
 
 ### Core Dependencies
-- **Vite** - Build tool and development server with React plugin
-- **Drizzle ORM** - Database toolkit configured for PostgreSQL with schema definitions
-- **@neondatabase/serverless** - PostgreSQL database driver for serverless environments
+- **Vite**: Build tool and development server.
+- **Drizzle ORM**: Database toolkit (configured for PostgreSQL).
+- **@neondatabase/serverless**: PostgreSQL database driver for serverless environments.
 
 ### UI and Styling
-- **Radix UI** - Accessible component primitives (dialogs, popovers, form controls)
-- **class-variance-authority** - Component variant management
-- **Tailwind CSS** - Utility-first CSS framework with custom theming
+- **Radix UI**: Provides accessible component primitives.
+- **class-variance-authority**: Manages component variants.
+- **Tailwind CSS**: Utility-first CSS framework for styling.
 
 ### State Management
-- **TanStack React Query** - Server state management and caching
-- **Zustand** - Lightweight state management with persistence middleware
+- **TanStack React Query**: Manages server state and caching.
+- **Zustand**: Lightweight client-side state management.
 
 ### Development Tools
-- **TypeScript** - Type safety across frontend, backend, and shared code
-- **ESBuild** - Fast JavaScript bundler for production builds
-- **Replit integrations** - Development environment optimizations and error overlays
+- **TypeScript**: Ensures type safety across the codebase.
+- **ESBuild**: Fast JavaScript bundler.
 
 ### External Services
-- **HubSpot API** - Primary CRM integration for data simulation
-- **PostgreSQL** - Database backend (configured but using in-memory storage currently)
-- **Express sessions** - Server-side session management
-
-The architecture is designed to be modular and extensible, with clear separation between the game interface, business logic, and data persistence layers. The Game Boy aesthetic serves as both a unique user experience differentiator and a way to make CRM concepts more approachable through familiar gaming metaphors.
+- **HubSpot API**: Primary CRM integration for data simulation and management.
+- **PostgreSQL**: Configured database backend (currently uses in-memory storage).
+- **OpenAI API**: Used for AI strategy and scenario generation.
+- **Express sessions**: For server-side session management.

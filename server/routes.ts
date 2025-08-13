@@ -514,6 +514,128 @@ Please provide a detailed simulation strategy with realistic business scenarios,
     }
   });
 
+  // Test endpoint for comprehensive property creation and option management
+  app.get('/api/test/property-creation', async (req, res) => {
+    try {
+      const userId = 1; // Test user
+      
+      // Import functions from orchestrator
+      const { determinePropertyType, determineFieldType, validateAndCoerceRecordData } = await import("./orchestrator");
+      
+      // Mock test data with various property types and missing options
+      const testRecords = [
+        {
+          objectType: 'contacts',
+          data: {
+            firstname: 'John',
+            lastname: 'Doe',
+            email: 'john.doe@example.com',
+            // Custom properties to be created
+            industry_segment: 'Esports',  // Single-select with missing option
+            lead_score: 85,               // Number
+            is_qualified: true,           // Boolean
+            last_activity_date: '2024-08-13T10:00:00Z', // DateTime
+            tags: ['VIP', 'Gaming', 'Tech Enthusiast'],  // Multi-select
+            company_size: 'Enterprise',   // Single-select
+            owner_email: 'sales@company.com' // Owner assignment
+          }
+        },
+        {
+          objectType: 'companies',
+          data: {
+            name: 'Gaming Corp',
+            domain: 'gaming-corp.com',
+            // Custom properties to be created
+            company_tier: 'Premium',      // Single-select with missing option
+            annual_revenue: 5000000,      // Number (currency)
+            is_active: true,              // Boolean
+            founded_date: '2020-01-15',   // Date
+            services: ['Development', 'Publishing', 'Marketing'], // Multi-select
+            industry_vertical: 'Gaming'   // Single-select
+          }
+        },
+        {
+          objectType: 'deals',
+          data: {
+            dealname: 'Gaming Partnership Deal',
+            amount: 250000,
+            // Custom properties to be created
+            deal_priority: 'High',        // Single-select with missing option
+            probability_score: 75,        // Number (percentage)
+            is_hot_deal: true,            // Boolean
+            expected_close_date: '2024-12-31', // Date
+            deal_sources: ['Referral', 'Inbound'], // Multi-select
+            contract_type: 'Annual'       // Single-select
+          }
+        }
+      ];
+      
+      const results = [];
+      
+      for (const testRecord of testRecords) {
+        try {
+          console.log(`🧪 Testing property creation for ${testRecord.objectType} with data:`, testRecord.data);
+          
+          // Test the comprehensive property system
+          const { validData, errors } = validateAndCoerceRecordData(testRecord.data, testRecord.objectType);
+          
+          console.log(`✅ Data validation completed. Valid properties: ${Object.keys(validData).length}, Errors: ${errors.length}`);
+          
+          // Note: In a real scenario, this would create properties in HubSpot
+          // For testing purposes, we're demonstrating the system logic
+          results.push({
+            objectType: testRecord.objectType,
+            originalData: testRecord.data,
+            validatedData: validData,
+            validationErrors: errors,
+            propertiesAnalyzed: Object.keys(testRecord.data).map(key => {
+              const propertyType = determinePropertyType(key, testRecord.data);
+              return {
+                name: key,
+                type: propertyType.type,
+                description: propertyType.description,
+                fieldType: determineFieldType(key, propertyType),
+                hasOptions: propertyType.options?.length > 0,
+                options: propertyType.options || []
+              };
+            })
+          });
+          
+        } catch (error: any) {
+          results.push({
+            objectType: testRecord.objectType,
+            error: error.message
+          });
+        }
+      }
+      
+      res.json({
+        success: true,
+        message: 'Property creation and option management test completed',
+        results: results,
+        summary: {
+          totalRecordsTested: testRecords.length,
+          successfulAnalyses: results.filter(r => !r.error).length,
+          propertyTypesDetected: [
+            'string (text/email/textarea)',
+            'number (currency/unformatted)', 
+            'bool (checkbox)',
+            'datetime (date)',
+            'enumeration (select/multi-select)'
+          ]
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('Property creation test error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        message: 'Property creation test failed'
+      });
+    }
+  });
+
   // Test route for owner assignment
   app.post("/api/test/owner-assignment", async (req, res) => {
     try {

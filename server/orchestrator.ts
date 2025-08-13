@@ -554,10 +554,10 @@ async function executeJobStepAction(step: any): Promise<any> {
     // Execute the specific action
     switch (typeOfAction) {
       case 'create_contact':
-        return await executeCreateContact(generatedData, hubspotToken);
+        return await executeCreateContact(generatedData, hubspotToken, step);
         
       case 'create_company':
-        return await executeCreateCompany(generatedData, hubspotToken);
+        return await executeCreateCompany(generatedData, hubspotToken, step);
         
       case 'create_deal':
         return await executeCreateDeal(generatedData, hubspotToken, step);
@@ -769,7 +769,7 @@ async function getHubSpotToken(simulationId: number): Promise<string | null> {
 /**
  * Execute contact creation with deduplication
  */
-async function executeCreateContact(data: any, token: string): Promise<any> {
+async function executeCreateContact(data: any, token: string, step: any): Promise<any> {
   // Check for existing contact if search fallback is enabled and email exists
   if (ENABLE_SEARCH_FALLBACK && data.email) {
     const searchResult = await searchContact(data.email, token);
@@ -800,12 +800,18 @@ async function executeCreateContact(data: any, token: string): Promise<any> {
   const job = await getJobById(step.jobId);
   const resolvedData = await resolveOwnerEmail(job.simulationId, data, token);
   
+  // Validate and coerce data types
+  const { validData: validatedData, errors } = validateAndCoerceRecordData(resolvedData, 'contacts');
+  if (errors.length > 0) {
+    console.warn(`⚠️ Data validation warnings for contact:`, errors);
+  }
+
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('contacts', Object.keys(resolvedData), token);
+  await ensureHubSpotProperties('contacts', Object.keys(validatedData), token, validatedData);
   
   // Create contact via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/contacts', {
-    properties: resolvedData
+    properties: validatedData
   }, token);
   
   return {
@@ -821,7 +827,7 @@ async function executeCreateContact(data: any, token: string): Promise<any> {
 /**
  * Execute company creation with deduplication
  */
-async function executeCreateCompany(data: any, token: string): Promise<any> {
+async function executeCreateCompany(data: any, token: string, step: any): Promise<any> {
   // Check for existing company if search fallback is enabled and domain exists
   if (ENABLE_SEARCH_FALLBACK && data.domain) {
     const searchResult = await searchCompany(data.domain, token);
@@ -852,12 +858,18 @@ async function executeCreateCompany(data: any, token: string): Promise<any> {
   const job = await getJobById(step.jobId);
   const resolvedData = await resolveOwnerEmail(job.simulationId, data, token);
   
+  // Validate and coerce data types
+  const { validData: validatedData, errors } = validateAndCoerceRecordData(resolvedData, 'companies');
+  if (errors.length > 0) {
+    console.warn(`⚠️ Data validation warnings for company:`, errors);
+  }
+
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('companies', Object.keys(resolvedData), token);
+  await ensureHubSpotProperties('companies', Object.keys(validatedData), token, validatedData);
   
   // Create company via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/companies', {
-    properties: resolvedData
+    properties: validatedData
   }, token);
   
   return {
@@ -948,12 +960,18 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
   // Resolve owner email to HubSpot owner ID if provided
   const finalData = await resolveOwnerEmail(simulation.userId, validatedData, token);
   
+  // Validate and coerce data types
+  const { validData: coercedData, errors } = validateAndCoerceRecordData(finalData, 'deals');
+  if (errors.length > 0) {
+    console.warn(`⚠️ Data validation warnings for deal:`, errors);
+  }
+
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('deals', Object.keys(finalData), token);
+  await ensureHubSpotProperties('deals', Object.keys(coercedData), token, coercedData);
   
   // Create deal via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/deals', {
-    properties: finalData
+    properties: coercedData
   }, token);
   
   // Handle associations if specified
@@ -1131,26 +1149,34 @@ async function executeCloseTicket(data: any, token: string, step: any): Promise<
 
 /**
  * Ensure HubSpot properties exist for the given object type
+ * Handles all property types and automatically creates missing select options
  */
-async function ensureHubSpotProperties(objectType: string, propertyNames: string[], token: string): Promise<void> {
+async function ensureHubSpotProperties(objectType: string, propertyNames: string[], token: string, recordData?: any): Promise<void> {
   try {
     // Get existing properties
     const existingProperties = await makeHubSpotRequest('GET', `/crm/v3/properties/${objectType}`, null, token);
     const existingNames = new Set(existingProperties.results.map((prop: any) => prop.name));
+    const existingPropertiesMap = new Map(existingProperties.results.map((prop: any) => [prop.name, prop]));
     
     // Check which properties are missing
     const missingProperties = propertyNames.filter(name => !existingNames.has(name));
     
     // Create missing properties
     for (const propertyName of missingProperties) {
-      const propertyConfig = createPropertyConfig(propertyName, objectType);
+      const propertyConfig = await createComprehensivePropertyConfig(propertyName, objectType, recordData);
       try {
-        await makeHubSpotRequest('POST', `/crm/v3/properties/${objectType}`, propertyConfig, token);
-        console.log(`Created missing property: ${propertyName} for ${objectType}`);
+        const createdProperty = await makeHubSpotRequest('POST', `/crm/v3/properties/${objectType}`, propertyConfig, token);
+        console.log(`✅ Created missing property: ${propertyName} (${propertyConfig.type}/${propertyConfig.fieldType}) for ${objectType}`);
+        existingPropertiesMap.set(propertyName, createdProperty);
       } catch (error: any) {
-        console.warn(`Failed to create property ${propertyName}:`, error.message);
+        console.warn(`❌ Failed to create property ${propertyName}:`, error.message);
         // Continue with other properties
       }
+    }
+
+    // Handle select field options for existing properties
+    if (recordData) {
+      await ensureSelectOptions(objectType, existingPropertiesMap, recordData, token);
     }
   } catch (error: any) {
     console.warn(`Error ensuring properties for ${objectType}:`, error.message);
@@ -1159,7 +1185,46 @@ async function ensureHubSpotProperties(objectType: string, propertyNames: string
 }
 
 /**
- * Create property configuration for HubSpot
+ * Create comprehensive property configuration for HubSpot with all types
+ */
+async function createComprehensivePropertyConfig(propertyName: string, objectType: string, recordData?: any): Promise<any> {
+  const propertyType = determinePropertyType(propertyName, recordData);
+  const fieldType = determineFieldType(propertyName, propertyType);
+  
+  const config: any = {
+    name: propertyName,
+    label: formatPropertyLabel(propertyName),
+    type: propertyType.type,
+    fieldType: fieldType,
+    groupName: getPropertyGroup(objectType),
+    description: `Auto-created ${propertyType.description} property for ${objectType}`
+  };
+
+  // Add type-specific configurations
+  if (propertyType.type === 'enumeration') {
+    config.options = propertyType.options || [];
+  }
+
+  if (propertyType.type === 'number') {
+    config.hasUniqueValue = false;
+    if (propertyType.constraints) {
+      config.numberDisplayHint = propertyType.constraints.displayHint || 'unformatted';
+    }
+  }
+
+  if (propertyType.type === 'datetime') {
+    config.hasUniqueValue = false;
+  }
+
+  if (propertyType.type === 'bool') {
+    config.hasUniqueValue = false;
+  }
+
+  return config;
+}
+
+/**
+ * Legacy property config for backward compatibility
  */
 function createPropertyConfig(propertyName: string, objectType: string): any {
   return {
@@ -1172,7 +1237,153 @@ function createPropertyConfig(propertyName: string, objectType: string): any {
 }
 
 /**
- * Determine property type based on property name
+ * Determine comprehensive property type based on property name and data
+ */
+function determinePropertyType(propertyName: string, recordData?: any): any {
+  const name = propertyName.toLowerCase();
+  
+  // Get actual value from record data if available
+  const value = recordData?.[propertyName];
+  
+  // Boolean fields
+  if (name.includes('is_') || name.includes('has_') || name.includes('can_') || 
+      name.includes('active') || name.includes('enabled') || name.includes('verified') ||
+      (typeof value === 'boolean')) {
+    return {
+      type: 'bool',
+      description: 'boolean'
+    };
+  }
+  
+  // Date/DateTime fields
+  if (name.includes('date') || name.includes('timestamp') || name.includes('created') || 
+      name.includes('updated') || name.includes('modified') || name.includes('_at') ||
+      (value && typeof value === 'string' && isValidDate(value))) {
+    return {
+      type: 'datetime',
+      description: 'date/time'
+    };
+  }
+  
+  // Number fields
+  if (name.includes('amount') || name.includes('price') || name.includes('cost') || 
+      name.includes('revenue') || name.includes('count') || name.includes('number') || 
+      name.includes('quantity') || name.includes('score') || name.includes('rating') ||
+      name.includes('size') || name.includes('weight') || name.includes('age') ||
+      (typeof value === 'number')) {
+    return {
+      type: 'number',
+      description: 'numeric',
+      constraints: {
+        displayHint: name.includes('amount') || name.includes('price') || name.includes('cost') || name.includes('revenue') 
+          ? 'currency' : 'unformatted'
+      }
+    };
+  }
+  
+  // Single-select enumeration fields (common business fields)
+  if (name.includes('status') || name.includes('stage') || name.includes('type') || 
+      name.includes('category') || name.includes('priority') || name.includes('level') ||
+      name.includes('tier') || name.includes('segment') || name.includes('industry') ||
+      name.includes('department') || name.includes('role') || name.includes('position') ||
+      name.includes('size') || name.includes('source') || name.includes('channel') ||
+      name.includes('method') || name.includes('grade') || name.includes('qualification')) {
+    
+    // Extract initial options from value if available
+    const options = value ? [{ label: value, value: value }] : [];
+    
+    return {
+      type: 'enumeration',
+      description: 'single-select',
+      options: options
+    };
+  }
+  
+  // Multi-select enumeration fields
+  if (name.includes('tags') || name.includes('skills') || name.includes('interests') ||
+      name.includes('categories') || name.includes('features') || name.includes('services') ||
+      (Array.isArray(value))) {
+    
+    // Extract options from array value if available
+    const options = Array.isArray(value) ? 
+      value.map(v => ({ label: v, value: v })) : [];
+    
+    return {
+      type: 'enumeration',
+      description: 'multi-select',
+      options: options
+    };
+  }
+  
+  // Default to string
+  return {
+    type: 'string',
+    description: 'text'
+  };
+}
+
+/**
+ * Determine field type based on property name and type info
+ */
+function determineFieldType(propertyName: string, propertyType: any): string {
+  const name = propertyName.toLowerCase();
+  
+  // Map property types to field types
+  switch (propertyType.type) {
+    case 'bool':
+      return 'booleancheckbox';
+    case 'datetime':
+      return 'date';
+    case 'number':
+      return 'number';
+    case 'enumeration':
+      return propertyType.description === 'multi-select' ? 'checkbox' : 'select';
+  }
+  
+  // String field types based on name patterns
+  if (name.includes('email')) return 'email';
+  if (name.includes('phone')) return 'phonenumber';
+  if (name.includes('url') || name.includes('website') || name.includes('link')) return 'text';
+  if (name.includes('description') || name.includes('notes') || name.includes('comment')) return 'textarea';
+  
+  return 'text';
+}
+
+/**
+ * Format property label for display
+ */
+function formatPropertyLabel(propertyName: string): string {
+  return propertyName
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, str => str.toUpperCase())
+    .replace(/\b\w/g, l => l.toUpperCase());
+}
+
+/**
+ * Get appropriate property group for object type
+ */
+function getPropertyGroup(objectType: string): string {
+  const groupMap: Record<string, string> = {
+    'contacts': 'contactinformation',
+    'companies': 'companyinformation', 
+    'deals': 'dealinformation',
+    'tickets': 'ticketinformation',
+    'notes': 'noteinformation'
+  };
+  
+  return groupMap[objectType] || 'contactinformation';
+}
+
+/**
+ * Check if string is a valid date
+ */
+function isValidDate(dateString: string): boolean {
+  const date = new Date(dateString);
+  return !isNaN(date.getTime()) && dateString.length > 8;
+}
+
+/**
+ * Legacy functions for backward compatibility
  */
 function getPropertyType(propertyName: string): string {
   if (propertyName.includes('email')) return 'string';
@@ -1182,15 +1393,138 @@ function getPropertyType(propertyName: string): string {
   return 'string';
 }
 
-/**
- * Determine field type based on property name
- */
 function getFieldType(propertyName: string): string {
   if (propertyName.includes('email')) return 'email';
   if (propertyName.includes('phone')) return 'phonenumber';
   if (propertyName.includes('amount') || propertyName.includes('number')) return 'number';
   if (propertyName.includes('date') || propertyName.includes('timestamp')) return 'date';
   return 'text';
+}
+
+/**
+ * Ensure select field options exist for enumeration properties
+ */
+async function ensureSelectOptions(objectType: string, propertiesMap: Map<string, any>, recordData: any, token: string): Promise<void> {
+  for (const [propertyName, property] of propertiesMap.entries()) {
+    if (property.type === 'enumeration' && recordData[propertyName]) {
+      const currentValue = recordData[propertyName];
+      const values = Array.isArray(currentValue) ? currentValue : [currentValue];
+      
+      // Get existing options
+      const existingOptions = new Set(property.options?.map((opt: any) => opt.value) || []);
+      
+      // Check for missing options
+      const missingOptions = values.filter((value: string) => !existingOptions.has(value));
+      
+      if (missingOptions.length > 0) {
+        try {
+          // Add missing options to the property
+          const newOptions = missingOptions.map((value: string) => ({
+            label: value,
+            value: value,
+            description: `Auto-created option for ${propertyName}`,
+            displayOrder: (property.options?.length || 0) + missingOptions.indexOf(value)
+          }));
+          
+          await makeHubSpotRequest('PUT', `/crm/v3/properties/${objectType}/${propertyName}`, {
+            options: [...(property.options || []), ...newOptions]
+          }, token);
+          
+          console.log(`✅ Added options [${missingOptions.join(', ')}] to property ${propertyName} for ${objectType}`);
+        } catch (error: any) {
+          console.warn(`❌ Failed to add options to property ${propertyName}:`, error.message);
+          // Continue with other properties
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Validate and coerce record data according to property constraints
+ */
+function validateAndCoerceRecordData(recordData: any, objectType: string): { validData: any; errors: string[] } {
+  const validData = { ...recordData };
+  const errors: string[] = [];
+
+  for (const [key, value] of Object.entries(recordData)) {
+    if (value === null || value === undefined) continue;
+    
+    const propertyType = determinePropertyType(key, recordData);
+    
+    try {
+      switch (propertyType.type) {
+        case 'number':
+          if (typeof value === 'string' && value.trim() !== '') {
+            const numValue = parseFloat(value);
+            if (!isNaN(numValue)) {
+              validData[key] = numValue;
+            } else {
+              errors.push(`Cannot convert "${value}" to number for property ${key}`);
+              delete validData[key];
+            }
+          } else if (typeof value !== 'number') {
+            errors.push(`Invalid number value for property ${key}: ${value}`);
+            delete validData[key];
+          }
+          break;
+          
+        case 'bool':
+          if (typeof value === 'string') {
+            const lowerValue = value.toLowerCase();
+            if (['true', '1', 'yes', 'on', 'enabled', 'active'].includes(lowerValue)) {
+              validData[key] = true;
+            } else if (['false', '0', 'no', 'off', 'disabled', 'inactive'].includes(lowerValue)) {
+              validData[key] = false;
+            } else {
+              errors.push(`Cannot convert "${value}" to boolean for property ${key}`);
+              delete validData[key];
+            }
+          } else if (typeof value !== 'boolean') {
+            errors.push(`Invalid boolean value for property ${key}: ${value}`);
+            delete validData[key];
+          }
+          break;
+          
+        case 'datetime':
+          if (typeof value === 'string') {
+            const date = new Date(value);
+            if (isNaN(date.getTime())) {
+              errors.push(`Invalid date format for property ${key}: ${value}`);
+              delete validData[key];
+            } else {
+              validData[key] = date.toISOString();
+            }
+          }
+          break;
+          
+        case 'string':
+          if (typeof value !== 'string') {
+            validData[key] = String(value);
+          }
+          // Validate string length constraints
+          if (typeof validData[key] === 'string' && validData[key].length > 65536) {
+            errors.push(`String too long for property ${key} (max 65536 characters)`);
+            validData[key] = validData[key].substring(0, 65536);
+          }
+          break;
+          
+        case 'enumeration':
+          // Enumeration values are handled by ensureSelectOptions
+          if (Array.isArray(value)) {
+            validData[key] = value.map(v => String(v));
+          } else {
+            validData[key] = String(value);
+          }
+          break;
+      }
+    } catch (error: any) {
+      errors.push(`Error processing property ${key}: ${error.message}`);
+      delete validData[key];
+    }
+  }
+
+  return { validData, errors };
 }
 
 /**
@@ -1423,7 +1757,14 @@ async function resolveOwnerEmail(userId: number, recordData: Record<string, any>
 }
 
 // Export functions for testing and external use
-export { resolveOwnerEmail, getOwnerIdByEmail, fetchAndCacheOwners };
+export { 
+  resolveOwnerEmail, 
+  getOwnerIdByEmail, 
+  fetchAndCacheOwners,
+  determinePropertyType,
+  determineFieldType,
+  validateAndCoerceRecordData
+};
 
 /**
  * Validate deal stage against cached pipeline/stage data
