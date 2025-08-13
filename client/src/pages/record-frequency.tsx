@@ -116,8 +116,8 @@ export default function RecordFrequency() {
         background: '#1a1f2e',
         border: '2px solid #0f1419',
         padding: '20px',
-        width: '700px',
-        maxWidth: '80vw',
+        width: '1000px',
+        maxWidth: '95vw',
         fontFamily: "'Courier New', monospace",
         boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
         userSelect: 'none'
@@ -154,13 +154,13 @@ export default function RecordFrequency() {
           .sliders-grid {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
-            gap: 20px;
+            gap: 15px;
             margin-bottom: 30px;
-            padding: 30px;
+            padding: 20px;
             background: #0f1419;
             border: 1px solid #2d3748;
             width: 100%;
-            min-width: 600px;
+            overflow-x: auto;
           }
 
           .slider-column {
@@ -168,7 +168,8 @@ export default function RecordFrequency() {
             flex-direction: column;
             align-items: center;
             position: relative;
-            min-width: 80px;
+            min-width: 70px;
+            flex: 1;
           }
 
           .slider-column.disabled {
