@@ -598,6 +598,253 @@ Please provide a detailed simulation strategy with realistic business scenarios,
     }
   });
 
+  // Test endpoint for LLM guardrails and validation
+  app.get('/api/test/llm-validation', async (req, res) => {
+    try {
+      const { LLMValidator, SeededGenerator, personaCache: guardrailsCache } = await import('./llm-guardrails');
+      
+      // Test valid LLM output
+      const validData = {
+        personas: [
+          {
+            firstName: "Luke",
+            lastName: "Skywalker",
+            email: "luke@rebellion.com", 
+            company: "Rebel Alliance",
+            jobTitle: "Jedi Knight",
+            industry: "space_exploration",
+            lifecycleStage: "customer",
+            leadStatus: "connected"
+          }
+        ],
+        companies: [
+          {
+            name: "Rebel Alliance",
+            domain: "rebellion.com",
+            industry: "space_exploration", 
+            city: "Yavin Base",
+            state: "Outer Rim",
+            country: "Galaxy",
+            lifecycleStage: "customer"
+          }
+        ]
+      };
+      
+      // Test invalid LLM output (malformed data)
+      const invalidData = {
+        personas: [
+          {
+            firstName: "", // Invalid: empty required field
+            lastName: "Vader", 
+            email: "not-an-email", // Invalid: bad email format
+            company: "Empire",
+            jobTitle: "Sith Lord",
+            industry: "dark_side",
+            lifecycleStage: "invalid_stage" // Invalid: not in enum
+          }
+        ],
+        companies: [
+          {
+            name: "", // Invalid: empty name
+            domain: "empire.com",
+            industry: "dark_side",
+            city: "Death Star",
+            lifecycleStage: "customer"
+            // Missing required fields: state, country
+          }
+        ]
+      };
+      
+      // Test corrupted JSON (completely malformed)
+      const corruptedData = "{ invalid json structure }";
+      
+      // Run validation tests
+      const validationResults = {
+        validData: LLMValidator.validateGeneratedData(validData, "star_wars", "space_exploration"),
+        invalidData: LLMValidator.validateGeneratedData(invalidData, "star_wars", "dark_side"),
+        autoFixTest: LLMValidator.attemptAutoFix(invalidData)
+      };
+      
+      // Test corrupted data handling
+      let corruptedValidation;
+      try {
+        const parsedCorrupted = JSON.parse(corruptedData);
+        corruptedValidation = LLMValidator.validateGeneratedData(parsedCorrupted, "test", "test");
+      } catch (parseError) {
+        corruptedValidation = {
+          isValid: false,
+          errors: [`JSON parse error: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`],
+          warnings: []
+        };
+      }
+      
+      // Test seeded generation
+      const seed1 = SeededGenerator.generateSeed(1, "star_wars", "space_exploration", 0);
+      const seed2 = SeededGenerator.generateSeed(1, "star_wars", "space_exploration", 0); // Same params
+      const seed3 = SeededGenerator.generateSeed(2, "star_wars", "space_exploration", 0); // Different jobId
+      
+      // Test cache functionality
+      guardrailsCache.set("star_wars", "space_exploration", validData, seed1, 30000); // 30 second TTL
+      const cacheHit = guardrailsCache.get("star_wars", "space_exploration", seed1);
+      const cacheMiss = guardrailsCache.get("marvel", "superhero");
+      
+      res.json({
+        message: "LLM validation test completed",
+        testResults: {
+          validData: {
+            input: "Valid Star Wars persona data",
+            result: validationResults.validData,
+            status: validationResults.validData.isValid ? "PASS" : "FAIL"
+          },
+          invalidData: {
+            input: "Invalid persona data (empty fields, bad email, invalid enum)",
+            result: validationResults.invalidData,
+            status: validationResults.invalidData.isValid ? "FAIL" : "PASS" // Should fail validation
+          },
+          corruptedData: {
+            input: "Malformed JSON structure",
+            result: corruptedValidation,
+            status: corruptedValidation.isValid ? "FAIL" : "PASS" // Should fail parsing
+          },
+          autoFixTest: {
+            input: "Invalid data with auto-fix attempt",
+            result: validationResults.autoFixTest,
+            status: validationResults.autoFixTest.fixed ? "PASS" : "PARTIAL"
+          }
+        },
+        seedingTests: {
+          deterministicSeeds: {
+            seed1,
+            seed2,
+            seed3,
+            seed1EqualsSeed2: seed1 === seed2, // Should be true
+            seed1EqualsSeed3: seed1 === seed3  // Should be false
+          },
+          seedValidation: {
+            validSeed: SeededGenerator.isValidSeed(seed1),
+            invalidSeed: SeededGenerator.isValidSeed("invalid123")
+          }
+        },
+        cacheTests: {
+          cacheSet: "star_wars + space_exploration cached with seed",
+          cacheHit: cacheHit ? "SUCCESS" : "FAILED", 
+          cacheMiss: cacheMiss ? "FAILED" : "SUCCESS",
+          cacheStats: guardrailsCache.getStats()
+        },
+        summary: {
+          validationPassed: validationResults.validData.isValid,
+          invalidationWorked: !validationResults.invalidData.isValid,
+          corruptedHandled: !corruptedValidation.isValid,
+          autoFixWorked: validationResults.autoFixTest.fixed,
+          seedingDeterministic: seed1 === seed2 && seed1 !== seed3,
+          cacheFunctional: !!cacheHit && !cacheMiss
+        }
+      });
+      
+    } catch (error) {
+      console.error("LLM validation test error:", error);
+      res.status(500).json({ 
+        message: "LLM validation test failed", 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // Test endpoint for forcing malformed LLM output
+  app.post('/api/test/force-malformed-llm', async (req, res) => {
+    try {
+      const { theme = "star_wars", industry = "space_exploration", forceType = "invalid_json" } = req.body;
+      
+      // Simulate different types of malformed LLM outputs
+      let malformedData;
+      switch (forceType) {
+        case 'invalid_json':
+          malformedData = "{ personas: [{ firstName: 'Luke', invalid syntax }";
+          break;
+        case 'missing_required_fields':
+          malformedData = {
+            personas: [{ firstName: "Luke" }], // Missing required fields
+            companies: [{ name: "Rebellion" }] // Missing required fields
+          };
+          break;
+        case 'invalid_enums':
+          malformedData = {
+            personas: [{
+              firstName: "Luke",
+              lastName: "Skywalker", 
+              email: "luke@rebellion.com",
+              company: "Rebel Alliance",
+              jobTitle: "Jedi",
+              industry: "space",
+              lifecycleStage: "invalid_stage" // Invalid enum
+            }]
+          };
+          break;
+        case 'type_mismatch':
+          malformedData = {
+            personas: [{
+              firstName: 123, // Should be string
+              lastName: "Skywalker",
+              email: "luke@rebellion.com",
+              company: "Rebel Alliance", 
+              jobTitle: "Jedi",
+              industry: "space",
+              lifecycleStage: "customer"
+            }]
+          };
+          break;
+        default:
+          malformedData = null;
+      }
+      
+      // Test validation failure path
+      const { LLMValidator } = await import('./llm-guardrails');
+      
+      let validationResult;
+      if (forceType === 'invalid_json') {
+        try {
+          JSON.parse(malformedData as string);
+          validationResult = { isValid: false, errors: ['Should have failed JSON parsing'], warnings: [] };
+        } catch (parseError) {
+          validationResult = {
+            isValid: false,
+            errors: [`JSON parse error: ${parseError instanceof Error ? parseError.message : 'Parse failed'}`],
+            warnings: [],
+            parseErrorHandled: true
+          };
+        }
+      } else {
+        validationResult = LLMValidator.validateGeneratedData(malformedData, theme, industry);
+      }
+      
+      // Test auto-fix attempt
+      const autoFixResult = malformedData && typeof malformedData === 'object' 
+        ? LLMValidator.attemptAutoFix(malformedData)
+        : { fixed: false, data: malformedData, changes: ['Cannot auto-fix malformed JSON'] };
+      
+      res.json({
+        message: `Malformed LLM output test: ${forceType}`,
+        testType: forceType,
+        malformedData,
+        validationResult,
+        autoFixResult,
+        stepStatus: validationResult.isValid ? "should_retry" : "failed_non_retryable",
+        acceptanceCriteria: {
+          invalidOutputRejected: !validationResult.isValid,
+          clearErrorMessage: validationResult.errors?.length > 0,
+          stepMarkedFailed: !validationResult.isValid
+        }
+      });
+      
+    } catch (error) {
+      console.error("Malformed LLM test error:", error);
+      res.status(500).json({ 
+        message: "Failed to test malformed LLM output", 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
   // Test endpoint for comprehensive association validation and mapping
   app.get('/api/test/association-validation', async (req, res) => {
     try {

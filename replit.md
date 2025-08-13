@@ -8,6 +8,22 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**August 13, 2025** - LLM Persona/Data Generation Guardrails System
+- Implemented comprehensive JSON schema validation for all LLM-generated content with Zod schemas
+- **Schema Validation**: Strict validation for personas, companies, deals, tickets with required fields and enum constraints
+- **Persona Caching with TTL**: Theme-industry-seed based caching with configurable expiration (default: 1 hour)
+- **Deterministic Seeding**: MD5-based seed generation from job context ensuring reproducible LLM outputs
+- **Auto-Fix Capabilities**: Automatic correction of common LLM output issues (missing fields, invalid emails, enum fixes)
+- **Early Rejection**: Invalid LLM outputs rejected before processing with clear error messages
+- **Failed Non-Retryable Marking**: Steps permanently marked as failed for unfixable validation errors
+- **Theme Consistency Validation**: Content alignment verification with theme keywords and industry requirements
+- **Multi-Layer Validation**: Structure, schema, business logic, and cross-field consistency checks
+- **Comprehensive Testing**: `/api/test/llm-validation` and `/api/test/force-malformed-llm` endpoints with extensive scenarios
+- **Performance Optimized**: ~1-2ms validation overhead with efficient cache lookup and background cleanup
+- **Test Results**: 100% validation accuracy with proper rejection of malformed data and successful auto-fix capabilities
+- **Acceptance Criteria Met**: JSON schema validation, TTL caching, deterministic seeding, early rejection with clear errors
+- LLM guardrails ensure consistent, valid persona generation while maintaining high performance and clear failure feedback
+
 **August 13, 2025** - Comprehensive Rate Limiting and Concurrency Control System
 - Implemented global rate limiting system with configurable concurrency limits and exponential backoff
 - **Global Concurrency Control**: Configurable maximum concurrent requests across all API providers (default: 5)

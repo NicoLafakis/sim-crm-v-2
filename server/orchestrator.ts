@@ -4,6 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import OpenAI from 'openai';
 import { rateLimiter } from './rate-limiter';
+import { personaCache as personaCacheGuardrails, SeededGenerator, LLMValidator } from './llm-guardrails';
 
 // Initialize OpenAI client
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -611,18 +612,41 @@ function substituteTemplatePlaceholders(template: string, simulation: Simulation
 /**
  * Generate realistic data using LLM based on theme, industry, and action template
  */
-async function generateRealisticData(actionType: string, theme: string, industry: string, actionTemplate: any): Promise<any> {
-  const cacheKey = `${theme}_${industry}_${actionType}`;
+async function generateRealisticData(
+  actionType: string, 
+  theme: string, 
+  industry: string, 
+  actionTemplate: any,
+  jobId?: number,
+  stepIndex?: number,
+  useSeed = true
+): Promise<any> {
+  // Generate deterministic seed if requested
+  const seed = useSeed && jobId ? SeededGenerator.generateSeed(jobId, theme, industry, stepIndex) : undefined;
   
-  // Check cache first
-  if (personaCache.has(cacheKey)) {
-    const cachedData = personaCache.get(cacheKey);
-    // Add some variation to cached data
+  // Check new persona cache with guardrails (with seed if applicable)
+  const cachedData = personaCacheGuardrails.get(theme, industry, seed);
+  if (cachedData) {
+    console.log(`📋 Guardrails cache hit for ${theme} + ${industry}${seed ? ` (seed: ${seed})` : ''}`);
     return addVariationToPersonaData(cachedData, actionType);
   }
   
+  // Also check old cache system for backward compatibility
+  const cacheKey = `${theme}_${industry}_${actionType}`;
+  if (personaCache.has(cacheKey)) {
+    const oldCachedData = personaCache.get(cacheKey);
+    console.log(`📋 Legacy cache hit for ${cacheKey}`);
+    return addVariationToPersonaData(oldCachedData, actionType);
+  }
+  
   try {
-    const prompt = createLLMPrompt(actionType, theme, industry, actionTemplate);
+    let basePrompt = createLLMPrompt(actionType, theme, industry, actionTemplate);
+    
+    // Add seeded generation instruction
+    if (seed) {
+      basePrompt = SeededGenerator.createSeededPrompt(basePrompt, seed);
+      console.log(`🎲 Generating with seed: ${seed}`);
+    }
     
     // Try primary model first with rate limiting
     let response;
@@ -633,15 +657,15 @@ async function generateRealisticData(actionType: string, theme: string, industry
           messages: [
             {
               role: "system",
-              content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only."
+              content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only. Follow the exact schema requirements and ensure all required fields are present."
             },
             {
               role: "user",
-              content: prompt
+              content: basePrompt
             }
           ],
           response_format: { type: "json_object" },
-          temperature: 0.7
+          temperature: seed ? 0.3 : 0.7 // Lower temperature for seeded generation
         });
       }, {
         onRetry: (attempt, error) => {
@@ -661,15 +685,15 @@ async function generateRealisticData(actionType: string, theme: string, industry
           messages: [
             {
               role: "system",
-              content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only."
+              content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only. Follow the exact schema requirements and ensure all required fields are present."
             },
             {
               role: "user",
-              content: prompt
+              content: basePrompt
             }
           ],
           response_format: { type: "json_object" },
-          temperature: 0.7
+          temperature: seed ? 0.3 : 0.7 // Lower temperature for seeded generation
         });
       }, {
         onRetry: (attempt, error) => {
@@ -681,12 +705,52 @@ async function generateRealisticData(actionType: string, theme: string, industry
       });
     }
 
-    const generatedData = JSON.parse(response.choices[0].message.content || '{}');
+    const rawData = JSON.parse(response.choices[0].message.content || '{}');
     
-    // Cache the generated data
-    personaCache.set(cacheKey, generatedData);
+    // Validate generated data with guardrails
+    const validation = LLMValidator.validateGeneratedData(rawData, theme, industry);
     
-    return generatedData;
+    if (!validation.isValid) {
+      console.error(`❌ LLM validation failed for ${theme} + ${industry}:`, validation.errors);
+      
+      // Attempt auto-fix for common issues
+      const autoFix = LLMValidator.attemptAutoFix(rawData);
+      
+      if (autoFix.fixed) {
+        console.log(`🔧 Auto-fixed LLM output:`, autoFix.changes);
+        
+        // Re-validate after auto-fix
+        const revalidation = LLMValidator.validateGeneratedData(autoFix.data, theme, industry);
+        
+        if (revalidation.isValid) {
+          // Cache the validated and fixed data
+          personaCacheGuardrails.set(theme, industry, revalidation.validatedData, seed);
+          personaCache.set(cacheKey, revalidation.validatedData); // Legacy cache
+          
+          console.log(`✅ LLM output validated and cached after auto-fix`);
+          return revalidation.validatedData;
+        }
+      }
+      
+      // If validation still fails, throw error with details
+      const errorMessage = `LLM output validation failed: ${validation.errors.join(', ')}`;
+      console.error(`❌ ${errorMessage}`);
+      
+      // Mark as failed_non_retryable for this step
+      throw new Error(`failed_non_retryable: ${errorMessage}`);
+    }
+    
+    // Log warnings but continue
+    if (validation.warnings.length > 0) {
+      console.warn(`⚠️ LLM validation warnings:`, validation.warnings);
+    }
+    
+    // Cache the validated data with guardrails
+    personaCacheGuardrails.set(theme, industry, validation.validatedData, seed);
+    personaCache.set(cacheKey, validation.validatedData); // Legacy cache for backward compatibility
+    
+    console.log(`✅ LLM output validated and cached successfully`);
+    return validation.validatedData;
     
   } catch (error: any) {
     console.error('Error generating realistic data with LLM (both models failed):', error.message);
