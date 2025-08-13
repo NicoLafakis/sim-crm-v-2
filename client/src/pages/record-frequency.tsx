@@ -699,7 +699,7 @@ export default function RecordFrequency() {
           className="start-button"
           data-testid="button-start-simulation"
         >
-          🤖 GENERATE AI STRATEGY
+          Start Simulation
         </button>
       </div>
     </div>
