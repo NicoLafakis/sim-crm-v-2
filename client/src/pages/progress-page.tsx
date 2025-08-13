@@ -39,13 +39,13 @@ export default function ProgressPage() {
       queryClient.invalidateQueries({ queryKey: [`/api/user/${user?.id}/simulations`] });
       toast({
         title: "Configuration deleted",
-        description: "The AI strategy has been removed.",
+        description: "The simulation has been removed.",
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to delete AI strategy.",
+        description: "Failed to delete simulation.",
         variant: "destructive",
       });
     },
@@ -91,15 +91,15 @@ export default function ProgressPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>
-            AI STRATEGY RESULTS
+            SIMULATION RESULTS
           </h1>
           <div style={{ color: '#000000', fontFamily: 'var(--font-gameboy)' }}>
-            Total AI Strategies: {simulations?.length || 0}
+            Total Simulations: {simulations?.length || 0}
           </div>
           <div className="mt-4 p-4 rounded border-2 flex items-center gap-3" style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000' }}>
             <Info className="w-5 h-5 flex-shrink-0" />
             <div>
-              <div className="font-bold mb-1">AI Strategy Generation Enabled</div>
+              <div className="font-bold mb-1">Simulation Generation Enabled</div>
               <div className="text-sm">Configurations are processed by OpenAI to generate detailed CRM simulation strategies and business scenarios.</div>
             </div>
           </div>
@@ -110,8 +110,8 @@ export default function ProgressPage() {
           {simulations?.length === 0 ? (
             <Card className="border-2 rounded-none" style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000' }}>
               <CardContent className="p-8 text-center">
-                <div className="text-xl mb-4" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>NO AI STRATEGIES FOUND</div>
-                <div className="text-sm" style={{ color: '#000000' }}>Generate an AI strategy to see detailed CRM simulation plans here.</div>
+                <div className="text-xl mb-4" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>NO SIMULATIONS FOUND</div>
+                <div className="text-sm" style={{ color: '#000000' }}>Generate a simulation to see detailed CRM simulation plans here.</div>
               </CardContent>
             </Card>
           ) : (
@@ -141,7 +141,7 @@ export default function ProgressPage() {
                               simulation.status === 'processing' ? 'bg-yellow-500 text-white' :
                               simulation.status === 'failed' ? 'bg-red-500 text-white' : 'bg-red-800 text-gray-300'
                             }`}>
-                              {simulation.status === 'completed' ? 'AI COMPLETE' :
+                              {simulation.status === 'completed' ? 'COMPLETE' :
                                simulation.status === 'processing' ? 'PROCESSING' :
                                simulation.status === 'failed' ? 'FAILED' : 'CONFIGURED'}
                             </Badge>
@@ -229,7 +229,7 @@ export default function ProgressPage() {
                               backgroundSize: '16px 16px'
                             }}>
                               <div className="text-sm mb-3" style={{ fontFamily: 'var(--font-gameboy)', color: '#1e3a5f' }}>
-                                🤖 AI STRATEGY RESULTS
+                                🤖 SIMULATION RESULTS
                               </div>
                               <div className="bg-gray-900 p-3 rounded text-xs font-mono text-green-400 max-h-64 overflow-y-auto">
                                 <pre className="whitespace-pre-wrap">
@@ -250,7 +250,7 @@ export default function ProgressPage() {
                               style={{ backgroundColor: '#8b0000', borderColor: '#8b0000', color: '#9fb89f' }}
                             >
                               <Trash2 className="w-4 h-4" />
-                              <span>Delete Strategy</span>
+                              <span>Delete Simulation</span>
                             </Button>
                           </div>
                         </div>
