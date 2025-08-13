@@ -116,8 +116,8 @@ export default function RecordFrequency() {
         background: '#1a1f2e',
         border: '2px solid #0f1419',
         padding: '20px',
-        width: '900px',
-        maxWidth: '95vw',
+        width: '700px',
+        maxWidth: '80vw',
         fontFamily: "'Courier New', monospace",
         boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
         userSelect: 'none'
@@ -160,7 +160,7 @@ export default function RecordFrequency() {
             background: #0f1419;
             border: 1px solid #2d3748;
             width: 100%;
-            min-width: 800px;
+            min-width: 600px;
           }
 
           .slider-column {
