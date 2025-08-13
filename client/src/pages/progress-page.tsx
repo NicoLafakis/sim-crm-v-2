@@ -145,6 +145,22 @@ export default function ProgressPage() {
                                simulation.status === 'processing' ? 'PROCESSING' :
                                simulation.status === 'failed' ? 'FAILED' : 'CONFIGURED'}
                             </Badge>
+                            {simulation.status === 'processing' && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent expanding the card
+                                  deleteMutation.mutate(simulation.id);
+                                }}
+                                disabled={deleteMutation.isPending}
+                                className="bg-red-600 hover:bg-red-700 text-white font-mono text-xs px-2 py-1 h-6"
+                                data-testid={`button-delete-${simulation.id}`}
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                DELETE
+                              </Button>
+                            )}
                             <span style={{ color: '#000000' }}>{isExpanded ? <ChevronUp /> : <ChevronDown />}</span>
                           </div>
                         </div>
