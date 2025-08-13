@@ -147,15 +147,9 @@ export async function scheduleSimulationJob(
     
     console.log(`Filtered to ${filteredRows.length} rows for execution`);
     
-    // Determine the actual template cycle length from the CSV data
-    const templateDays = filteredRows.map(row => row.templateDay);
-    const maxTemplateDay = Math.max(...templateDays);
-    const baseCycleDays = maxTemplateDay > 0 ? maxTemplateDay : 30; // Use actual template length or fallback to 30
-    
-    // Compute scaling factor for precise time scaling
+    // Compute scaling factor
+    const baseCycleDays = 30; // Default 30-day cycle
     const scalingFactor = acceleratorDays / baseCycleDays;
-    
-    console.log(`Template cycle analysis: max day = ${maxTemplateDay}, base cycle = ${baseCycleDays}, accelerator = ${acceleratorDays}, scaling factor = ${scalingFactor}`);
     
     // Create the job
     const jobData: InsertJob = {
@@ -178,31 +172,18 @@ export async function scheduleSimulationJob(
 
     const createdJob = await storage.createJob(jobData);
     
-    // Generate job steps with precise time scaling (hour/minute precision)
+    // Generate job steps with monotonic scaledDay values
     const jobStartTime = new Date();
     const jobStepsData: InsertJobStep[] = [];
     
     filteredRows.forEach((row, index) => {
-      // Calculate precise scaled time (preserves fractional days)
-      const scaledDaysPrecise = row.templateDay * scalingFactor;
-      
-      // Convert to milliseconds with full precision
-      const scaledTimeMs = scaledDaysPrecise * 24 * 60 * 60 * 1000;
-      const scheduledAt = new Date(jobStartTime.getTime() + scaledTimeMs);
-      
-      // Keep scaledDay for backward compatibility but with precise value
-      const scaledDay = scaledDaysPrecise;
+      const scaledDay = Math.floor(row.templateDay * scalingFactor);
+      const scheduledAt = new Date(jobStartTime.getTime() + scaledDay * 24 * 60 * 60 * 1000);
       
       // Substitute template placeholders
       const substitutedActionTpl = substituteTemplatePlaceholders(row.actionTpl, simulation);
       const substitutedReasonTpl = substituteTemplatePlaceholders(row.reasonTpl, simulation);
       const substitutedRecordIdTpl = substituteTemplatePlaceholders(row.recordIdTpl, simulation);
-      
-      // Calculate time offset for debugging
-      const hoursOffset = scaledDaysPrecise * 24;
-      const minutesOffset = (hoursOffset % 1) * 60;
-      
-      console.log(`Step ${index + 1}: Template day ${row.templateDay} → Scaled ${scaledDaysPrecise.toFixed(3)} days (${Math.floor(hoursOffset)}h ${Math.floor(minutesOffset)}m) → ${scheduledAt.toISOString()}`);
       
       jobStepsData.push({
         jobId: createdJob.id,
@@ -222,18 +203,8 @@ export async function scheduleSimulationJob(
       });
     });
 
-    // Sort by precise scaledDay to ensure monotonic scheduling
+    // Sort by scaledDay to ensure monotonic scheduling
     jobStepsData.sort((a, b) => (a.scaledDay || 0) - (b.scaledDay || 0));
-
-    // Log time distribution summary
-    const firstStep = jobStepsData[0];
-    const lastStep = jobStepsData[jobStepsData.length - 1];
-    const totalDurationMs = lastStep.scheduledAt.getTime() - firstStep.scheduledAt.getTime();
-    const totalHours = totalDurationMs / (1000 * 60 * 60);
-    
-    console.log(`📅 Precise timing summary: ${jobStepsData.length} steps scheduled over ${totalHours.toFixed(2)} hours (${(totalHours/24).toFixed(2)} days)`);
-    console.log(`📅 First action: ${firstStep.scheduledAt.toISOString()}`);
-    console.log(`📅 Last action: ${lastStep.scheduledAt.toISOString()}`);
 
     // Insert all job steps
     const createdSteps = await storage.createJobSteps(jobStepsData);
