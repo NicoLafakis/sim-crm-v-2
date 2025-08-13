@@ -71,6 +71,7 @@ export interface IStorage {
   createJobSteps(jobStepsData: InsertJobStep[]): Promise<JobStep[]>;
   getDueJobSteps(scheduledAt: Date): Promise<JobStep[]>;
   updateJobStepStatus(stepId: number, status: string, result?: any): Promise<JobStep>;
+  getJobById(jobId: number): Promise<Job | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -334,6 +335,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(jobSteps.id, stepId))
       .returning();
     return updatedStep;
+  }
+
+  async getJobById(jobId: number): Promise<Job | undefined> {
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId));
+    return job;
   }
 }
 
