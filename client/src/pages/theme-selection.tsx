@@ -154,23 +154,19 @@ export default function ThemeSelection() {
       </div>
       
       {/* Movies Section */}
-      <div className="px-8 mb-8" style={{ 
-        backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
-        backgroundSize: '20px 20px'
-      }}>
-        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
+      <div className="px-8 mb-8">
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: '#1e3a5f' }}>
           Movies
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
           {/* Star Wars */}
           <button
             onClick={() => handleThemeSelect('Star Wars')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Star Wars' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className="h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer"
+            style={selectedTheme === 'Star Wars' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-starwars"
           >
             <div className="text-lg mb-1">⭐</div>
@@ -182,11 +178,11 @@ export default function ThemeSelection() {
           {/* Marvel */}
           <button
             onClick={() => handleThemeSelect('Marvel')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Marvel' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className="h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer"
+            style={selectedTheme === 'Marvel' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-marvel"
           >
             <div className="text-lg mb-1">🦸</div>
@@ -198,11 +194,11 @@ export default function ThemeSelection() {
           {/* Harry Potter */}
           <button
             onClick={() => handleThemeSelect('Harry Potter')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Harry Potter' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className="h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer"
+            style={selectedTheme === 'Harry Potter' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-harrypotter"
           >
             <div className="text-lg mb-1">⚡</div>
@@ -214,11 +210,11 @@ export default function ThemeSelection() {
           {/* Fast & Furious */}
           <button
             onClick={() => handleThemeSelect('Fast & Furious')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Fast & Furious' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className="h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer"
+            style={selectedTheme === 'Fast & Furious' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-fastfurious"
           >
             <div className="text-lg mb-1">🏎️</div>
@@ -230,23 +226,19 @@ export default function ThemeSelection() {
       </div>
       
       {/* Video Games Section */}
-      <div className="px-8 mb-8" style={{ 
-        backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
-        backgroundSize: '20px 20px'
-      }}>
-        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
+      <div className="px-8 mb-8">
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: '#1e3a5f' }}>
           Video Games
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
           {/* Zelda */}
           <button
             onClick={() => handleThemeSelect('Zelda')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Zelda' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className="h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer"
+            style={selectedTheme === 'Zelda' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-zelda"
           >
             <div className="text-lg mb-1">🗡️</div>
@@ -258,11 +250,11 @@ export default function ThemeSelection() {
           {/* Red Dead Redemption */}
           <button
             onClick={() => handleThemeSelect('Red Dead Redemption')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Red Dead Redemption' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className="h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer"
+            style={selectedTheme === 'Red Dead Redemption' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-rdr"
           >
             <div className="text-lg mb-1">🤠</div>
@@ -274,11 +266,11 @@ export default function ThemeSelection() {
           {/* Megaman */}
           <button
             onClick={() => handleThemeSelect('Megaman')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Megaman' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className="h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer"
+            style={selectedTheme === 'Megaman' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-megaman"
           >
             <div className="text-lg mb-1">🤖</div>
@@ -290,11 +282,11 @@ export default function ThemeSelection() {
           {/* Final Fantasy */}
           <button
             onClick={() => handleThemeSelect('Final Fantasy')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Final Fantasy' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className="h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer"
+            style={selectedTheme === 'Final Fantasy' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-ff"
           >
             <div className="text-lg mb-1">⚔️</div>
@@ -306,23 +298,19 @@ export default function ThemeSelection() {
       </div>
       
       {/* TV Shows Section */}
-      <div className="px-8 mb-8" style={{ 
-        backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
-        backgroundSize: '20px 20px'
-      }}>
-        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
+      <div className="px-8 mb-8">
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: '#1e3a5f' }}>
           TV Shows
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
           {/* Friends */}
           <button
             onClick={() => handleThemeSelect('Friends')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Friends' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className="h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer"
+            style={selectedTheme === 'Friends' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-friends"
           >
             <div className="text-lg mb-1">☕</div>
@@ -334,11 +322,11 @@ export default function ThemeSelection() {
           {/* Game of Thrones */}
           <button
             onClick={() => handleThemeSelect('Game of Thrones')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Game of Thrones' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className="h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer"
+            style={selectedTheme === 'Game of Thrones' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-got"
           >
             <div className="text-lg mb-1">🐉</div>
@@ -350,11 +338,11 @@ export default function ThemeSelection() {
           {/* The Office */}
           <button
             onClick={() => handleThemeSelect('The Office')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'The Office' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className="h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer"
+            style={selectedTheme === 'The Office' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-office"
           >
             <div className="text-lg mb-1">📄</div>
@@ -366,11 +354,11 @@ export default function ThemeSelection() {
           {/* Breaking Bad */}
           <button
             onClick={() => handleThemeSelect('Breaking Bad')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Breaking Bad' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className="h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer"
+            style={selectedTheme === 'Breaking Bad' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-breakingbad"
           >
             <div className="text-lg mb-1">🧪</div>
@@ -388,13 +376,13 @@ export default function ThemeSelection() {
             <button
               onClick={handleProceedToSimulation}
               disabled={validationLoading}
-              className={`py-3 px-8 rounded text-sm font-bold transition-colors ${
-                validationLoading
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : isConnected
-                  ? 'bg-green-600 text-white hover:bg-green-500'
-                  : 'bg-yellow-600 text-white hover:bg-yellow-500'
-              }`}
+              className="py-3 px-8 rounded text-sm font-bold transition-colors"
+              style={validationLoading
+                ? { backgroundColor: '#6c7b7f', color: '#9fb89f', cursor: 'not-allowed' }
+                : isConnected
+                ? { backgroundColor: '#8b0000', color: 'white', cursor: 'pointer' }
+                : { backgroundColor: '#8b0000', color: 'white', cursor: 'pointer' }
+              }
               data-testid="button-proceed"
             >
               {validationLoading 

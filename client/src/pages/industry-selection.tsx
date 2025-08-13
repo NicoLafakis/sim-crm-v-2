@@ -104,11 +104,7 @@ export default function IndustrySelection() {
       </div>
       
       {/* Main Content */}
-      <div className="px-8 pb-8" style={{ 
-        backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
-        backgroundSize: '20px 20px'
-      }}>
+      <div className="px-8 pb-8">
         <div className="max-w-4xl mx-auto">
           
           {/* Industries Grid */}
@@ -122,13 +118,13 @@ export default function IndustrySelection() {
                   key={industry.id}
                   onClick={() => isEcommerce ? handleIndustrySelect(industry.id) : null}
                   disabled={isDisabled}
-                  className={`h-20 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-                    selectedIndustry === industry.id 
-                      ? 'border-yellow-400 bg-yellow-600 text-white' 
-                      : isEcommerce
-                        ? 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800 cursor-pointer'
-                        : 'border-gray-600 bg-gray-700 text-gray-400 cursor-not-allowed opacity-50'
-                  }`}
+                  className="h-20 rounded border-2 text-center flex flex-col justify-center items-center transition-all"
+                  style={selectedIndustry === industry.id 
+                    ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white', cursor: 'pointer' }
+                    : isEcommerce
+                      ? { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f', cursor: 'pointer' }
+                      : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f', cursor: 'not-allowed', opacity: 0.5 }
+                  }
                   data-testid={`industry-${industry.id}`}
                 >
                   <div className="text-lg mb-1">{industry.icon}</div>
@@ -147,7 +143,7 @@ export default function IndustrySelection() {
               onClick={() => setLocation('/theme-selection')}
               className="px-6 py-2 transition-all"
               style={{ 
-                color: 'rgb(200, 220, 140)',
+                color: '#1e3a5f',
                 textDecoration: 'underline',
                 fontFamily: 'Quantico',
                 fontSize: '0.75rem',
@@ -162,11 +158,11 @@ export default function IndustrySelection() {
             <button
               onClick={handleContinue}
               disabled={!selectedIndustry}
-              className={`px-8 py-3 rounded border-2 font-bold uppercase tracking-wide text-sm transition-all ${
-                selectedIndustry
-                  ? 'border-green-400 bg-green-600 text-white hover:bg-green-700 cursor-pointer'
-                  : 'border-gray-600 bg-gray-800 text-gray-400 cursor-not-allowed'
-              }`}
+              className="px-8 py-3 rounded border-2 font-bold uppercase tracking-wide text-sm transition-all"
+              style={selectedIndustry
+                ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white', cursor: 'pointer' }
+                : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f', cursor: 'not-allowed' }
+              }
               data-testid="button-continue"
             >
               Continue to Frequency Setup

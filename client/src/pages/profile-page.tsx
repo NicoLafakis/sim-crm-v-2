@@ -127,19 +127,19 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>
+          <h1 className="text-4xl font-bold mb-4" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>
             PLAYER PROFILE
           </h1>
         </div>
 
         {/* User Info Card */}
-        <Card className="border-2" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}>
+        <Card className="border-2" style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000' }}>
           <CardHeader>
             <div className="flex items-center space-x-4">
-              <User className="w-8 h-8" style={{ color: 'rgb(200, 220, 140)' }} />
+              <User className="w-8 h-8" style={{ color: '#1e3a5f' }} />
               <div>
-                <CardTitle className="text-2xl" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>{user?.username}</CardTitle>
-                <CardDescription style={{ color: 'rgb(200, 220, 140)' }}>
+                <CardTitle className="text-2xl" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>{user?.username}</CardTitle>
+                <CardDescription style={{ color: '#000000' }}>
                   Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
                 </CardDescription>
               </div>
@@ -147,70 +147,92 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
-                <div className="text-2xl font-bold" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>{user?.creditLimit || 0}</div>
-                <div className="text-sm" style={{ color: 'rgb(200, 220, 140)' }}>Credit Limit</div>
+              <div className="text-center p-4 rounded" style={{ 
+                backgroundColor: '#e8e8e8',
+                backgroundImage: `
+                  linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
+                `,
+                backgroundSize: '16px 16px'
+              }}>
+                <div className="text-2xl font-bold" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>{user?.creditLimit || 0}</div>
+                <div className="text-sm" style={{ color: '#000000' }}>Credit Limit</div>
               </div>
-              <div className="text-center p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
+              <div className="text-center p-4 rounded" style={{ 
+                backgroundColor: '#e8e8e8',
+                backgroundImage: `
+                  linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
+                `,
+                backgroundSize: '16px 16px'
+              }}>
                 <Badge className={`${getTierColor(user?.playerTier || 'New Player')} text-white`} style={{ fontFamily: 'var(--font-gameboy)' }}>
                   {user?.playerTier || 'New Player'}
                 </Badge>
-                <div className="text-sm mt-2" style={{ color: 'rgb(200, 220, 140)' }}>Player Tier</div>
+                <div className="text-sm mt-2" style={{ color: '#000000' }}>Player Tier</div>
               </div>
-              <div className="text-center p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
-                <div className="text-2xl font-bold" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>{tokens?.length || 0}</div>
-                <div className="text-sm" style={{ color: 'rgb(200, 220, 140)' }}>API Tokens</div>
+              <div className="text-center p-4 rounded" style={{ 
+                backgroundColor: '#e8e8e8',
+                backgroundImage: `
+                  linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
+                `,
+                backgroundSize: '16px 16px'
+              }}>
+                <div className="text-2xl font-bold" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>{tokens?.length || 0}</div>
+                <div className="text-sm" style={{ color: '#000000' }}>API Tokens</div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Password Change */}
-        <Card className="border-2" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}>
+        <Card className="border-2" style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000' }}>
           <CardHeader>
             <div className="flex items-center space-x-4">
-              <Shield className="w-6 h-6" style={{ color: 'rgb(200, 220, 140)' }} />
-              <CardTitle style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>Change Password</CardTitle>
+              <Shield className="w-6 h-6" style={{ color: '#1e3a5f' }} />
+              <CardTitle style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>Change Password</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="current-password" className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>Current Password</Label>
+              <Label htmlFor="current-password" className="font-mono" style={{ color: '#000000' }}>Current Password</Label>
               <Input
                 id="current-password"
                 type="password"
                 value={passwords.current}
                 onChange={(e) => setPasswords(prev => ({ ...prev, current: e.target.value }))}
-                style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140) !important' }}
+                style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000 !important' }}
                 data-testid="input-current-password"
               />
             </div>
             <div>
-              <Label htmlFor="new-password" className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>New Password</Label>
+              <Label htmlFor="new-password" className="font-mono" style={{ color: '#000000' }}>New Password</Label>
               <Input
                 id="new-password"
                 type="password"
                 value={passwords.new}
                 onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))}
-                style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140) !important' }}
+                style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000 !important' }}
                 data-testid="input-new-password"
               />
             </div>
             <div>
-              <Label htmlFor="confirm-password" className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>Confirm New Password</Label>
+              <Label htmlFor="confirm-password" className="font-mono" style={{ color: '#000000' }}>Confirm New Password</Label>
               <Input
                 id="confirm-password"
                 type="password"
                 value={passwords.confirm}
                 onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
-                style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140) !important' }}
+                style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000 !important' }}
                 data-testid="input-confirm-password"
               />
             </div>
             <Button
               onClick={() => changePasswordMutation.mutate()}
               disabled={changePasswordMutation.isPending || !passwords.current || !passwords.new || !passwords.confirm}
-              className="font-mono hover:bg-blue-700" style={{ backgroundColor: 'rgb(70, 120, 190)', borderColor: 'rgb(90, 140, 210)', color: 'rgb(200, 220, 140)' }}
+              className="font-mono"
+              style={{ backgroundColor: '#8b0000', borderColor: '#8b0000', color: 'white' }}
               data-testid="button-change-password"
             >
               Update Password

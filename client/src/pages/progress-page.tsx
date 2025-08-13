@@ -90,13 +90,13 @@ export default function ProgressPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>
+          <h1 className="text-4xl font-bold mb-4" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>
             AI STRATEGY RESULTS
           </h1>
-          <div style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>
+          <div style={{ color: '#000000', fontFamily: 'var(--font-gameboy)' }}>
             Total AI Strategies: {simulations?.length || 0}
           </div>
-          <div className="mt-4 p-4 rounded border-2 flex items-center gap-3" style={{ backgroundColor: 'rgb(60, 110, 60)', borderColor: 'rgb(180, 200, 120)', color: 'rgb(180, 200, 120)' }}>
+          <div className="mt-4 p-4 rounded border-2 flex items-center gap-3" style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000' }}>
             <Info className="w-5 h-5 flex-shrink-0" />
             <div>
               <div className="font-bold mb-1">AI Strategy Generation Enabled</div>

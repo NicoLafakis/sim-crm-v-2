@@ -133,7 +133,7 @@ export default function HubSpotSetup() {
               />
             </div>
 
-            <div className="text-xs leading-relaxed" style={{ color: 'rgb(180, 200, 120)' }}>
+            <div className="text-xs leading-relaxed" style={{ color: '#000000' }}>
               <p className="mb-2 font-bold">Quick Setup Instructions:</p>
               <ol className="list-decimal list-inside space-y-1 ml-2">
                 <li>Go to HubSpot → Settings → Integrations → Private Apps</li>
@@ -149,7 +149,10 @@ export default function HubSpotSetup() {
             <button
               onClick={handleSaveToken}
               disabled={validateTokenMutation.isPending}
-              className="bg-orange-600 text-white py-2 px-6 rounded text-sm font-bold hover:bg-orange-500 transition-colors disabled:opacity-50"
+              className="text-white py-2 px-6 rounded text-sm font-bold transition-colors disabled:opacity-50"
+              style={{ backgroundColor: validateTokenMutation.isPending ? '#6c7b7f' : '#8b0000' }}
+              onMouseEnter={(e) => !validateTokenMutation.isPending && (e.currentTarget.style.backgroundColor = '#a00000')}
+              onMouseLeave={(e) => !validateTokenMutation.isPending && (e.currentTarget.style.backgroundColor = '#8b0000')}
               data-testid="button-connect"
             >
               {validateTokenMutation.isPending ? 'CONNECTING...' : 'CONNECT'}
@@ -157,7 +160,10 @@ export default function HubSpotSetup() {
 
             <button
               onClick={handleSkip}
-              className="bg-gray-600 text-white py-2 px-6 rounded text-sm font-bold hover:bg-gray-500 transition-colors"
+              className="text-white py-2 px-6 rounded text-sm font-bold transition-colors"
+              style={{ backgroundColor: '#6c7b7f', color: '#9fb89f' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7c8b8f'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#6c7b7f'}
               data-testid="button-skip"
             >
               SKIP FOR NOW
@@ -170,7 +176,7 @@ export default function HubSpotSetup() {
               onClick={() => setLocation('/saas-selection')}
               className="px-6 py-2 font-bold tracking-wide transition-all"
               style={{
-                color: 'rgb(200, 220, 140)',
+                color: '#1e3a5f',
                 textDecoration: 'underline',
                 fontFamily: 'Open Sans, sans-serif',
                 fontSize: '0.75rem',
