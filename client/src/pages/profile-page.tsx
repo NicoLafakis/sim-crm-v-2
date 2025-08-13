@@ -241,15 +241,15 @@ export default function ProfilePage() {
         </Card>
 
         {/* API Tokens */}
-        <Card className="border-2" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}>
+        <Card className="border-2" style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000' }}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <Key className="w-6 h-6" style={{ color: 'rgb(200, 220, 140)' }} />
-                <CardTitle style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>API Tokens</CardTitle>
+                <Key className="w-6 h-6" style={{ color: '#1e3a5f' }} />
+                <CardTitle style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>API Tokens</CardTitle>
               </div>
             </div>
-            <CardDescription style={{ color: 'rgb(200, 220, 140)' }}>
+            <CardDescription style={{ color: '#000000' }}>
               Manage your API tokens for external services like HubSpot, OpenAI, etc.
             </CardDescription>
           </CardHeader>
@@ -258,14 +258,21 @@ export default function ProfilePage() {
             {tokens?.map((token) => (
               <div
                 key={token.id}
-                className="flex items-center justify-between p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}
+                className="flex items-center justify-between p-4 rounded" style={{ 
+                  backgroundColor: '#e8e8e8',
+                  backgroundImage: `
+                    linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '16px 16px'
+                }}
                 data-testid={`token-item-${token.id}`}
               >
                 <div className="flex-1">
-                  <div className="font-semibold" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>{token.service}</div>
-                  <div className="text-xs" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-mono)' }}>{token.maskedToken || token.accessToken.substring(0, 8) + '...' + token.accessToken.slice(-4)}</div>
+                  <div className="font-semibold" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>{token.service}</div>
+                  <div className="text-xs" style={{ color: '#000000', fontFamily: 'var(--font-mono)' }}>{token.maskedToken || token.accessToken.substring(0, 8) + '...' + token.accessToken.slice(-4)}</div>
                 </div>
-                <div className="text-right text-xs" style={{ color: 'rgb(200, 220, 140)' }}>
+                <div className="text-right text-xs" style={{ color: '#000000' }}>
                   <div>Added: {token.createdAt ? new Date(token.createdAt).toLocaleDateString() : 'Unknown'}</div>
                   {token.updatedAt && (
                     <div>Updated: {new Date(token.updatedAt).toLocaleDateString()}</div>
@@ -276,8 +283,8 @@ export default function ProfilePage() {
                   size="sm"
                   onClick={() => removeTokenMutation.mutate(token.id)}
                   disabled={removeTokenMutation.isPending}
-                  className="ml-4 bg-red-600 hover:bg-red-700"
-                  style={{ color: 'rgb(200, 220, 140)' }}
+                  className="ml-4"
+                  style={{ backgroundColor: '#8b0000', borderColor: '#8b0000', color: 'white' }}
                   data-testid={`button-remove-token-${token.id}`}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -285,29 +292,28 @@ export default function ProfilePage() {
               </div>
             ))}
 
-            <Separator style={{ backgroundColor: 'rgb(70, 140, 70)' }} />
+            <Separator style={{ backgroundColor: '#6c7b7f' }} />
 
             {/* Add New Token */}
             <div className="space-y-4">
-              <h3 className="font-semibold flex items-center" style={{ fontFamily: 'var(--font-gameboy)', color: 'rgb(200, 220, 140)' }}>
-                <Plus className="w-4 h-4 mr-2" style={{ color: 'rgb(200, 220, 140)' }} />
+              <h3 className="font-semibold flex items-center" style={{ fontFamily: 'var(--font-gameboy)', color: '#1e3a5f' }}>
+                <Plus className="w-4 h-4 mr-2" style={{ color: '#1e3a5f' }} />
                 Add New Token
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="token-service" className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>Service</Label>
+                  <Label htmlFor="token-service" className="font-mono" style={{ color: '#000000' }}>Service</Label>
                   <Input
                     id="token-service"
                     placeholder="e.g., HubSpot"
                     value={newToken.service}
                     onChange={(e) => setNewToken(prev => ({ ...prev, service: e.target.value }))}
-                    className="placeholder:text-[rgb(200,220,140)]"
-                    style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}
+                    style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000 !important' }}
                     data-testid="input-token-service"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="token-value" className="font-mono" style={{ color: 'rgb(200, 220, 140)' }}>Token</Label>
+                  <Label htmlFor="token-value" className="font-mono" style={{ color: '#000000' }}>Token</Label>
                   <div className="relative">
                     <Input
                       id="token-value"
@@ -315,14 +321,16 @@ export default function ProfilePage() {
                       placeholder="pat-na1-..."
                       value={newToken.token}
                       onChange={(e) => setNewToken(prev => ({ ...prev, token: e.target.value }))}
-                      className="pr-10 placeholder:text-[rgb(200,220,140)]" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)', borderColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}
+                      className="pr-10"
+                      style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000 !important' }}
                       data-testid="input-token-value"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-0 top-0 h-full px-3" style={{ color: 'rgb(200, 220, 140)' }}
+                      className="absolute right-0 top-0 h-full px-3"
+                      style={{ color: '#1e3a5f' }}
                       onClick={() => setShowPassword(!showPassword)}
                       data-testid="button-toggle-token-visibility"
                     >
@@ -334,7 +342,8 @@ export default function ProfilePage() {
               <Button
                 onClick={() => addTokenMutation.mutate()}
                 disabled={addTokenMutation.isPending || !newToken.service || !newToken.token}
-                className="font-mono hover:bg-green-700" style={{ backgroundColor: 'rgb(70, 140, 70)', color: 'rgb(200, 220, 140)' }}
+                className="font-mono"
+                style={{ backgroundColor: '#8b0000', borderColor: '#8b0000', color: 'white' }}
                 data-testid="button-add-token"
               >
                 <Plus className="w-4 h-4 mr-2" />
