@@ -57,7 +57,14 @@ export default function FloatingMenu() {
         style={{ minHeight: isOpen ? '320px' : '76px', minWidth: '76px' }}
       >
         <button
-          className="w-14 h-14 bg-[#1e2124] border-2 border-[#306230] rounded-lg shadow-lg flex items-center justify-center text-[#9bbc0f] hover:bg-[#306230] transition-colors duration-200"
+          className="w-14 h-14 border-2 rounded-lg shadow-lg flex items-center justify-center transition-colors duration-200"
+          style={{
+            backgroundColor: '#6c7b7f',
+            borderColor: '#6c7b7f',
+            color: '#1e3a5f'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#8b0000'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#6c7b7f'}
           data-testid="floating-menu-button"
         >
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -75,7 +82,11 @@ export default function FloatingMenu() {
 
         {/* Menu Panel */}
         {isOpen && (
-          <Card className="absolute top-16 right-full w-64 bg-[#1e2124] border-2 border-[#306230] shadow-xl">
+          <Card className="absolute top-16 right-full w-64 border-2 shadow-xl"
+                style={{
+                  backgroundColor: '#e8e8e8',
+                  borderColor: '#6c7b7f'
+                }}>
             <CardContent className="p-0">
               {menuItems.map((item, index) => {
                 const Icon = item.icon;
@@ -85,21 +96,26 @@ export default function FloatingMenu() {
                 return (
                   <Link key={index} href={item.path}>
                     <div
-                      className={`flex items-center space-x-3 p-4 hover:bg-[#306230]/20 cursor-pointer border-b border-[#306230]/30 last:border-b-0 transition-colors duration-200
-                        ${isActive ? 'bg-[#306230]/30 border-l-4 border-l-[#9bbc0f]' : ''}`}
+                      className="flex items-center space-x-3 p-4 cursor-pointer border-b last:border-b-0 transition-colors duration-200"
+                      style={{
+                        borderColor: 'rgba(108, 123, 127, 0.3)',
+                        backgroundColor: isActive ? 'rgba(139, 0, 0, 0.1)' : 'transparent'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(139, 0, 0, 0.05)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isActive ? 'rgba(139, 0, 0, 0.1)' : 'transparent'}
                       data-testid={`menu-item-${item.label.toLowerCase()}`}
                     >
                       <div className="relative">
-                        <Icon className={`w-5 h-5 ${isActive ? 'text-[#9bbc0f]' : 'text-[#9bbc0f]/75'}`} />
+                        <Icon className="w-5 h-5" style={{ color: isActive ? '#1e3a5f' : '#6c7b7f' }} />
                         {item.pulsing && (
                           <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                         )}
                       </div>
                       <div className="flex-1">
-                        <div className={`font-mono font-semibold ${isActive ? 'text-[#9bbc0f]' : 'text-[#9bbc0f]/75'}`}>
+                        <div className="font-mono font-semibold" style={{ color: isActive ? '#1e3a5f' : '#6c7b7f' }}>
                           {item.label}
                         </div>
-                        <div className="text-xs text-[#9bbc0f]/60">
+                        <div className="text-xs" style={{ color: '#9fb89f' }}>
                           {item.description}
                         </div>
                       </div>
@@ -117,11 +133,14 @@ export default function FloatingMenu() {
               
               {/* User info at bottom */}
               {user && (
-                <div className="p-4 bg-[#306230]/10 border-t border-[#306230]/30">
-                  <div className="text-xs font-mono text-[#9bbc0f]/75">
-                    Signed in as <span className="text-[#9bbc0f]">{user.username}</span>
+                <div className="p-4 border-t" style={{ 
+                  backgroundColor: 'rgba(159, 184, 159, 0.1)', 
+                  borderColor: 'rgba(108, 123, 127, 0.3)' 
+                }}>
+                  <div className="text-xs font-mono" style={{ color: '#6c7b7f' }}>
+                    Signed in as <span style={{ color: '#1e3a5f' }}>{user.username}</span>
                   </div>
-                  <div className="text-xs text-[#9bbc0f]/60 mt-1">
+                  <div className="text-xs mt-1" style={{ color: '#9fb89f' }}>
                     {user.playerTier || 'New Player'} • {user.creditLimit || 0} credits
                   </div>
                 </div>

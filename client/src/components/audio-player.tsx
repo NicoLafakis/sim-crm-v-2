@@ -64,17 +64,17 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
   return (
     <div className={`fixed bottom-4 right-4 z-50 ${className}`}>
       <div 
-        className="bg-opacity-80 backdrop-blur-sm rounded-lg p-3 border-2"
+        className="bg-opacity-90 backdrop-blur-sm rounded-lg p-3 border-2"
         style={{ 
-          backgroundColor: 'rgba(34, 78, 34, 0.9)',
-          borderColor: 'rgb(70, 120, 70)',
+          backgroundColor: 'rgba(108, 123, 127, 0.9)',
+          borderColor: '#6c7b7f',
         }}
       >
         {/* Volume Control */}
         <div className="flex flex-col items-center space-y-2">
           <div 
             className="text-xs font-bold uppercase tracking-wide"
-            style={{ color: 'rgb(180, 200, 120)' }}
+            style={{ color: '#1e3a5f' }}
           >
             ♪ Vol
           </div>
@@ -105,7 +105,7 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
           {/* Volume Percentage */}
           <div 
             className="text-xs"
-            style={{ color: 'rgb(180, 200, 120)' }}
+            style={{ color: '#1e3a5f' }}
           >
             {Math.round(volume * 100)}%
           </div>
@@ -113,7 +113,7 @@ export function AudioPlayer({ className = '' }: AudioPlayerProps) {
           {/* Play Status Indicator */}
           <div 
             className="text-xs cursor-pointer"
-            style={{ color: isPlaying ? 'rgb(100, 255, 100)' : 'rgb(255, 100, 100)' }}
+            style={{ color: isPlaying ? '#8b0000' : '#9fb89f' }}
             onClick={toggle}
             title={isPlaying ? 'Pause Music' : 'Play Music'}
           >

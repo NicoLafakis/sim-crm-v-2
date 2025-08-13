@@ -21,7 +21,7 @@ export default function SaasSelection() {
     <div className="min-h-screen font-gameboy" 
          style={{ 
            backgroundColor: '#e8e8e8',
-           backgroundImage: 'linear-gradient(#6c7b7f 1px, transparent 1px), linear-gradient(90deg, #6c7b7f 1px, transparent 1px)',
+           backgroundImage: 'linear-gradient(rgba(108, 123, 127, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(108, 123, 127, 0.5) 1px, transparent 1px)',
            backgroundSize: '20px 20px'
          }}>
 
@@ -58,11 +58,11 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('salesforce')}
             disabled
-            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed text-center flex flex-col justify-center items-center transition-all"
             style={{ 
-              backgroundColor: '#9fb89f', 
+              backgroundColor: '#6c7b7f', 
               borderColor: '#6c7b7f',
-              color: '#2d3e2d'
+              color: '#9fb89f'
             }}
             data-testid="saas-salesforce"
           >
@@ -76,11 +76,11 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('zoho')}
             disabled
-            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed text-center flex flex-col justify-center items-center transition-all"
             style={{ 
-              backgroundColor: '#9fb89f', 
+              backgroundColor: '#6c7b7f', 
               borderColor: '#6c7b7f',
-              color: '#2d3e2d'
+              color: '#9fb89f'
             }}
             data-testid="saas-zoho"
           >
@@ -94,11 +94,11 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('pipedrive')}
             disabled
-            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed text-center flex flex-col justify-center items-center transition-all"
             style={{ 
-              backgroundColor: '#9fb89f', 
+              backgroundColor: '#6c7b7f', 
               borderColor: '#6c7b7f',
-              color: '#2d3e2d'
+              color: '#9fb89f'
             }}
             data-testid="saas-pipedrive"
           >
@@ -120,11 +120,11 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('marketo')}
             disabled
-            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed text-center flex flex-col justify-center items-center transition-all"
             style={{ 
-              backgroundColor: '#9fb89f', 
+              backgroundColor: '#6c7b7f', 
               borderColor: '#6c7b7f',
-              color: '#2d3e2d'
+              color: '#9fb89f'
             }}
             data-testid="saas-marketo"
           >
@@ -138,11 +138,11 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('mailchimp')}
             disabled
-            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed text-center flex flex-col justify-center items-center transition-all"
             style={{ 
-              backgroundColor: '#9fb89f', 
+              backgroundColor: '#6c7b7f', 
               borderColor: '#6c7b7f',
-              color: '#2d3e2d'
+              color: '#9fb89f'
             }}
             data-testid="saas-mailchimp"
           >
@@ -156,11 +156,11 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('activecampaign')}
             disabled
-            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed text-center flex flex-col justify-center items-center transition-all"
             style={{ 
-              backgroundColor: '#9fb89f', 
+              backgroundColor: '#6c7b7f', 
               borderColor: '#6c7b7f',
-              color: '#2d3e2d'
+              color: '#9fb89f'
             }}
             data-testid="saas-activecampaign"
           >
@@ -174,11 +174,11 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('klaviyo')}
             disabled
-            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed text-center flex flex-col justify-center items-center transition-all"
             style={{ 
-              backgroundColor: '#9fb89f', 
+              backgroundColor: '#6c7b7f', 
               borderColor: '#6c7b7f',
-              color: '#2d3e2d'
+              color: '#9fb89f'
             }}
             data-testid="saas-klaviyo"
           >
@@ -200,11 +200,11 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('monday')}
             disabled
-            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed text-center flex flex-col justify-center items-center transition-all"
             style={{ 
-              backgroundColor: '#9fb89f', 
+              backgroundColor: '#6c7b7f', 
               borderColor: '#6c7b7f',
-              color: '#2d3e2d'
+              color: '#9fb89f'
             }}
             data-testid="saas-monday"
           >
@@ -218,11 +218,11 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('asana')}
             disabled
-            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed text-center flex flex-col justify-center items-center transition-all"
             style={{ 
-              backgroundColor: '#9fb89f', 
+              backgroundColor: '#6c7b7f', 
               borderColor: '#6c7b7f',
-              color: '#2d3e2d'
+              color: '#9fb89f'
             }}
             data-testid="saas-asana"
           >
@@ -236,11 +236,11 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('trello')}
             disabled
-            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed text-center flex flex-col justify-center items-center transition-all"
             style={{ 
-              backgroundColor: '#9fb89f', 
+              backgroundColor: '#6c7b7f', 
               borderColor: '#6c7b7f',
-              color: '#2d3e2d'
+              color: '#9fb89f'
             }}
             data-testid="saas-trello"
           >
@@ -254,11 +254,11 @@ export default function SaasSelection() {
           <button
             onClick={() => handleSaasSelect('notion')}
             disabled
-            className="h-24 rounded border-2 cursor-not-allowed opacity-60 text-center flex flex-col justify-center items-center transition-all"
+            className="h-24 rounded border-2 cursor-not-allowed text-center flex flex-col justify-center items-center transition-all"
             style={{ 
-              backgroundColor: '#9fb89f', 
+              backgroundColor: '#6c7b7f', 
               borderColor: '#6c7b7f',
-              color: '#2d3e2d'
+              color: '#9fb89f'
             }}
             data-testid="saas-notion"
           >
