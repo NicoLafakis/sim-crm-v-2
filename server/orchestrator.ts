@@ -25,6 +25,9 @@ interface CsvRow {
 // Job runner state
 let jobRunnerInterval: NodeJS.Timeout | null = null;
 
+// Search fallback configuration
+const ENABLE_SEARCH_FALLBACK = process.env.ENABLE_SEARCH_FALLBACK === 'true';
+
 /**
  * Determine outcome based on industry-specific win/loss rates
  */
@@ -216,12 +219,114 @@ export async function scheduleSimulationJob(
 }
 
 /**
+ * Search for existing HubSpot contact by email
+ */
+async function searchContact(email: string, token: string): Promise<{ found: boolean; recordId?: string; ambiguous?: boolean }> {
+  try {
+    const response = await makeHubSpotRequest('POST', '/crm/v3/objects/contacts/search', {
+      filterGroups: [{
+        filters: [{
+          propertyName: 'email',
+          operator: 'EQ',
+          value: email
+        }]
+      }],
+      limit: 2 // Get max 2 to detect ambiguous matches
+    }, token);
+
+    if (response.results && response.results.length > 0) {
+      if (response.results.length === 1) {
+        console.log(`Found existing contact: ${email} -> ${response.results[0].id}`);
+        return { found: true, recordId: response.results[0].id };
+      } else {
+        console.log(`Ambiguous contact search for ${email}: ${response.results.length} matches`);
+        return { found: true, ambiguous: true };
+      }
+    }
+
+    return { found: false };
+  } catch (error: any) {
+    console.error(`Contact search failed for ${email}:`, error.message);
+    return { found: false };
+  }
+}
+
+/**
+ * Search for existing HubSpot company by domain
+ */
+async function searchCompany(domain: string, token: string): Promise<{ found: boolean; recordId?: string; ambiguous?: boolean }> {
+  try {
+    const response = await makeHubSpotRequest('POST', '/crm/v3/objects/companies/search', {
+      filterGroups: [{
+        filters: [{
+          propertyName: 'domain',
+          operator: 'EQ',
+          value: domain
+        }]
+      }],
+      limit: 2 // Get max 2 to detect ambiguous matches
+    }, token);
+
+    if (response.results && response.results.length > 0) {
+      if (response.results.length === 1) {
+        console.log(`Found existing company: ${domain} -> ${response.results[0].id}`);
+        return { found: true, recordId: response.results[0].id };
+      } else {
+        console.log(`Ambiguous company search for ${domain}: ${response.results.length} matches`);
+        return { found: true, ambiguous: true };
+      }
+    }
+
+    return { found: false };
+  } catch (error: any) {
+    console.error(`Company search failed for ${domain}:`, error.message);
+    return { found: false };
+  }
+}
+
+/**
+ * Search for existing HubSpot deal by name
+ */
+async function searchDeal(dealName: string, token: string): Promise<{ found: boolean; recordId?: string; ambiguous?: boolean }> {
+  try {
+    const response = await makeHubSpotRequest('POST', '/crm/v3/objects/deals/search', {
+      filterGroups: [{
+        filters: [{
+          propertyName: 'dealname',
+          operator: 'EQ',
+          value: dealName
+        }]
+      }],
+      limit: 2 // Get max 2 to detect ambiguous matches
+    }, token);
+
+    if (response.results && response.results.length > 0) {
+      if (response.results.length === 1) {
+        console.log(`Found existing deal: ${dealName} -> ${response.results[0].id}`);
+        return { found: true, recordId: response.results[0].id };
+      } else {
+        console.log(`Ambiguous deal search for ${dealName}: ${response.results.length} matches`);
+        return { found: true, ambiguous: true };
+      }
+    }
+
+    return { found: false };
+  } catch (error: any) {
+    console.error(`Deal search failed for ${dealName}:`, error.message);
+    return { found: false };
+  }
+}
+
+/**
  * Resolve template references in recordIdTpl and associationsTpl using job context
+ * Enhanced with search fallback when references are missing
  */
 async function resolveTemplateReferences(
   jobId: number, 
   recordIdTpl: string, 
-  associationsTpl: any
+  associationsTpl: any,
+  stepData?: any,
+  token?: string
 ): Promise<{ resolvedRecordId: string; resolvedAssociations: any }> {
   // Get job context (mapping of template IDs to actual CRM IDs)
   const context = await storage.getJobContext(jobId);
@@ -239,22 +344,51 @@ async function resolveTemplateReferences(
     resolvedAssociations = JSON.parse(JSON.stringify(associationsTpl)); // Deep copy
     
     // Recursively resolve template references in associations
-    const resolveInObject = (obj: any): any => {
+    const resolveInObject = async (obj: any): Promise<any> => {
       if (typeof obj === 'string' && context[obj]) {
         console.log(`✓ Resolved association "${obj}" -> "${context[obj]}"`);
         return context[obj];
+      } else if (typeof obj === 'string' && ENABLE_SEARCH_FALLBACK && token && stepData) {
+        // Try search fallback for missing template references
+        const searchResult = await searchFallbackForTemplate(obj, stepData, token);
+        if (searchResult.found && searchResult.recordId) {
+          // Cache the found ID in context for future use
+          await storeRecordIdInContext(jobId, obj, searchResult.recordId);
+          console.log(`✓ Search fallback resolved "${obj}" -> "${searchResult.recordId}"`);
+          return searchResult.recordId;
+        }
       } else if (typeof obj === 'object' && obj !== null) {
         for (const key in obj) {
-          obj[key] = resolveInObject(obj[key]);
+          obj[key] = await resolveInObject(obj[key]);
         }
       }
       return obj;
     };
     
-    resolvedAssociations = resolveInObject(resolvedAssociations);
+    resolvedAssociations = await resolveInObject(resolvedAssociations);
   }
   
   return { resolvedRecordId, resolvedAssociations };
+}
+
+/**
+ * Search fallback for missing template references
+ */
+async function searchFallbackForTemplate(
+  templateRef: string, 
+  stepData: any, 
+  token: string
+): Promise<{ found: boolean; recordId?: string; ambiguous?: boolean }> {
+  // Determine search type based on template reference pattern
+  if (templateRef.includes('contact_') && stepData.email) {
+    return await searchContact(stepData.email, token);
+  } else if (templateRef.includes('company_') && stepData.domain) {
+    return await searchCompany(stepData.domain, token);
+  } else if (templateRef.includes('deal_') && stepData.dealname) {
+    return await searchDeal(stepData.dealname, token);
+  }
+  
+  return { found: false };
 }
 
 /**
@@ -290,11 +424,17 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
         // Mark step as processing
         await storage.updateJobStepStatus(step.id, 'processing');
 
-        // Resolve template references before execution
+        // Get HubSpot token for search operations
+        const job = await getJobById(step.jobId);
+        const hubspotToken = await getHubSpotToken(job.simulationId);
+
+        // Resolve template references before execution (with search fallback)
         const { resolvedRecordId, resolvedAssociations } = await resolveTemplateReferences(
           step.jobId, 
           step.recordIdTpl || '', 
-          step.associationsTpl
+          step.associationsTpl,
+          step.actionTpl,
+          hubspotToken
         );
         
         // Create enhanced step with resolved references
@@ -620,9 +760,35 @@ async function getHubSpotToken(simulationId: number): Promise<string | null> {
 }
 
 /**
- * Execute contact creation with property validation
+ * Execute contact creation with deduplication
  */
 async function executeCreateContact(data: any, token: string): Promise<any> {
+  // Check for existing contact if search fallback is enabled and email exists
+  if (ENABLE_SEARCH_FALLBACK && data.email) {
+    const searchResult = await searchContact(data.email, token);
+    
+    if (searchResult.found) {
+      if (searchResult.ambiguous) {
+        return {
+          success: false,
+          error: `Ambiguous contact match for email: ${data.email}`,
+          action: 'create_contact',
+          timestamp: new Date().toISOString()
+        };
+      } else if (searchResult.recordId) {
+        console.log(`🔍 Deduplication: Using existing contact ${searchResult.recordId} for ${data.email}`);
+        return {
+          success: true,
+          recordId: searchResult.recordId,
+          action: 'create_contact',
+          data: data,
+          deduplicated: true,
+          timestamp: new Date().toISOString()
+        };
+      }
+    }
+  }
+
   // Validate and ensure properties exist
   await ensureHubSpotProperties('contacts', Object.keys(data), token);
   
@@ -642,9 +808,35 @@ async function executeCreateContact(data: any, token: string): Promise<any> {
 }
 
 /**
- * Execute company creation with property validation
+ * Execute company creation with deduplication
  */
 async function executeCreateCompany(data: any, token: string): Promise<any> {
+  // Check for existing company if search fallback is enabled and domain exists
+  if (ENABLE_SEARCH_FALLBACK && data.domain) {
+    const searchResult = await searchCompany(data.domain, token);
+    
+    if (searchResult.found) {
+      if (searchResult.ambiguous) {
+        return {
+          success: false,
+          error: `Ambiguous company match for domain: ${data.domain}`,
+          action: 'create_company',
+          timestamp: new Date().toISOString()
+        };
+      } else if (searchResult.recordId) {
+        console.log(`🔍 Deduplication: Using existing company ${searchResult.recordId} for ${data.domain}`);
+        return {
+          success: true,
+          recordId: searchResult.recordId,
+          action: 'create_company',
+          data: data,
+          deduplicated: true,
+          timestamp: new Date().toISOString()
+        };
+      }
+    }
+  }
+
   // Validate and ensure properties exist
   await ensureHubSpotProperties('companies', Object.keys(data), token);
   
@@ -664,9 +856,41 @@ async function executeCreateCompany(data: any, token: string): Promise<any> {
 }
 
 /**
- * Execute deal creation with associations
+ * Execute deal creation with deduplication and associations
  */
 async function executeCreateDeal(data: any, token: string, step: any): Promise<any> {
+  // Check for existing deal if search fallback is enabled and dealname exists
+  if (ENABLE_SEARCH_FALLBACK && data.dealname) {
+    const searchResult = await searchDeal(data.dealname, token);
+    
+    if (searchResult.found) {
+      if (searchResult.ambiguous) {
+        return {
+          success: false,
+          error: `Ambiguous deal match for name: ${data.dealname}`,
+          action: 'create_deal',
+          timestamp: new Date().toISOString()
+        };
+      } else if (searchResult.recordId) {
+        console.log(`🔍 Deduplication: Using existing deal ${searchResult.recordId} for ${data.dealname}`);
+        
+        // Still handle associations for existing deal
+        if (step.associationsTpl && Object.keys(step.associationsTpl).length > 0) {
+          await createAssociations(searchResult.recordId, 'deals', step.associationsTpl, token);
+        }
+        
+        return {
+          success: true,
+          recordId: searchResult.recordId,
+          action: 'create_deal',
+          data: data,
+          deduplicated: true,
+          timestamp: new Date().toISOString()
+        };
+      }
+    }
+  }
+
   // Validate and ensure properties exist
   await ensureHubSpotProperties('deals', Object.keys(data), token);
   
