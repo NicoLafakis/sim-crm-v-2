@@ -514,6 +514,107 @@ Please provide a detailed simulation strategy with realistic business scenarios,
     }
   });
 
+  // Test endpoint for comprehensive association validation and mapping
+  app.get('/api/test/association-validation', async (req, res) => {
+    try {
+      // Import association functions from orchestrator
+      const { validateAssociation, getSupportedAssociations } = await import("./orchestrator");
+      
+      // Test scenarios for association validation
+      const testResults: any = {
+        supportedAssociations: getSupportedAssociations(),
+        validationTests: {
+          // Valid associations
+          validAssociations: [
+            { from: 'contacts', to: 'companies', expected: 'valid' },
+            { from: 'deals', to: 'contacts', expected: 'valid' },
+            { from: 'tickets', to: 'deals', expected: 'valid' },
+            { from: 'notes', to: 'contacts', expected: 'valid' },
+            { from: 'calls', to: 'companies', expected: 'valid' },
+            { from: 'emails', to: 'deals', expected: 'valid' },
+            { from: 'meetings', to: 'tickets', expected: 'valid' },
+            { from: 'tasks', to: 'contacts', expected: 'valid' },
+          ],
+          // Invalid associations
+          invalidAssociations: [
+            { from: 'notes', to: 'tickets', expected: 'invalid' }, // Test case: Note ↔ Ticket
+            { from: 'unsupported_type', to: 'contacts', expected: 'invalid' },
+            { from: 'contacts', to: 'nonexistent', expected: 'invalid' },
+            { from: 'products', to: 'contacts', expected: 'invalid' }, // Products can't associate with contacts
+          ]
+        },
+        detailedValidations: {} as any,
+        userRequestedTest: {} as any
+      };
+      
+      // Test valid associations
+      for (const test of testResults.validationTests.validAssociations) {
+        const validation = validateAssociation(test.from, test.to);
+        testResults.detailedValidations[`${test.from}_to_${test.to}`] = {
+          input: test,
+          result: validation,
+          status: validation.isValid ? 'PASS' : 'FAIL',
+          associationTypeId: validation.associationTypeId
+        };
+      }
+      
+      // Test invalid associations  
+      for (const test of testResults.validationTests.invalidAssociations) {
+        const validation = validateAssociation(test.from, test.to);
+        testResults.detailedValidations[`${test.from}_to_${test.to}`] = {
+          input: test,
+          result: validation,
+          status: !validation.isValid ? 'PASS' : 'FAIL', // Should fail for invalid
+          error: validation.error,
+          supportedAssociations: validation.supportedAssociations
+        };
+      }
+      
+      // Test specific user request: Note ↔ Ticket
+      const noteToTicketValidation = validateAssociation('notes', 'tickets');
+      const ticketToNoteValidation = validateAssociation('tickets', 'notes');
+      
+      testResults.userRequestedTest = {
+        noteToTicket: {
+          validation: noteToTicketValidation,
+          status: noteToTicketValidation.isValid ? 'SUPPORTED' : 'UNSUPPORTED',
+          message: noteToTicketValidation.isValid ? 
+            `Association supported with type ID: ${noteToTicketValidation.associationTypeId}` :
+            `Association not supported: ${noteToTicketValidation.error}`
+        },
+        ticketToNote: {
+          validation: ticketToNoteValidation, 
+          status: ticketToNoteValidation.isValid ? 'SUPPORTED' : 'UNSUPPORTED',
+          message: ticketToNoteValidation.isValid ?
+            `Association supported with type ID: ${ticketToNoteValidation.associationTypeId}` :
+            `Association not supported: ${ticketToNoteValidation.error}`
+        }
+      };
+      
+      // Summary statistics
+      const totalTests = Object.keys(testResults.detailedValidations).length;
+      const passedTests = Object.values(testResults.detailedValidations).filter((test: any) => test.status === 'PASS').length;
+      
+      res.json({
+        message: 'Association validation test completed',
+        summary: {
+          totalTests,
+          passed: passedTests,
+          failed: totalTests - passedTests,
+          successRate: `${Math.round((passedTests / totalTests) * 100)}%`
+        },
+        results: testResults
+      });
+      
+    } catch (error) {
+      console.error("Association validation test error:", error);
+      res.status(500).json({ 
+        message: "Association validation test failed", 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
   // Test endpoint for comprehensive property creation and option management
   app.get('/api/test/property-creation', async (req, res) => {
     try {

@@ -1176,7 +1176,7 @@ async function ensureHubSpotProperties(objectType: string, propertyNames: string
 
     // Handle select field options for existing properties
     if (recordData) {
-      await ensureSelectOptions(objectType, existingPropertiesMap, recordData, token);
+      await ensureSelectOptions(objectType, existingPropertiesMap as Map<string, any>, recordData, token);
     }
   } catch (error: any) {
     console.warn(`Error ensuring properties for ${objectType}:`, error.message);
@@ -1405,7 +1405,7 @@ function getFieldType(propertyName: string): string {
  * Ensure select field options exist for enumeration properties
  */
 async function ensureSelectOptions(objectType: string, propertiesMap: Map<string, any>, recordData: any, token: string): Promise<void> {
-  for (const [propertyName, property] of propertiesMap.entries()) {
+  for (const [propertyName, property] of Array.from(propertiesMap.entries())) {
     if (property.type === 'enumeration' && recordData[propertyName]) {
       const currentValue = recordData[propertyName];
       const values = Array.isArray(currentValue) ? currentValue : [currentValue];
@@ -1528,37 +1528,301 @@ function validateAndCoerceRecordData(recordData: any, objectType: string): { val
 }
 
 /**
- * Create associations between HubSpot records
+ * Create associations between HubSpot records with comprehensive validation
  */
-async function createAssociations(fromObjectId: string, fromObjectType: string, associations: any, token: string): Promise<void> {
+async function createAssociations(fromObjectId: string, fromObjectType: string, associations: any, token: string): Promise<{ 
+  successful: number; 
+  failed: number; 
+  errors: Array<{ association: string; error: string }> 
+}> {
+  const results = {
+    successful: 0,
+    failed: 0,
+    errors: [] as Array<{ association: string; error: string }>
+  };
+
   for (const [toObjectType, toObjectIdTemplate] of Object.entries(associations)) {
     try {
+      // Validate association before attempting to create
+      const validation = validateAssociation(fromObjectType, toObjectType as string);
+      
+      if (!validation.isValid) {
+        const errorMsg = validation.error || 'Unknown validation error';
+        console.error(`❌ Association validation failed: ${fromObjectType} → ${toObjectType}: ${errorMsg}`);
+        results.failed++;
+        results.errors.push({
+          association: `${fromObjectType} → ${toObjectType}`,
+          error: errorMsg
+        });
+        continue;
+      }
+
       const toObjectId = extractRecordId(toObjectIdTemplate as string);
       
+      if (!toObjectId || toObjectId.trim() === '') {
+        const errorMsg = `Invalid target object ID: ${toObjectIdTemplate}`;
+        console.error(`❌ ${errorMsg}`);
+        results.failed++;
+        results.errors.push({
+          association: `${fromObjectType} → ${toObjectType}`,
+          error: errorMsg
+        });
+        continue;
+      }
+
+      // Create the association using validated type ID
       await makeHubSpotRequest('PUT', `/crm/v4/objects/${fromObjectType}/${fromObjectId}/associations/${toObjectType}/${toObjectId}`, {
         associationCategory: 'HUBSPOT_DEFINED',
-        associationTypeId: getAssociationTypeId(fromObjectType, toObjectType as string)
+        associationTypeId: validation.associationTypeId
       }, token);
       
-      console.log(`Created association: ${fromObjectType}:${fromObjectId} -> ${toObjectType}:${toObjectId}`);
+      console.log(`✅ Created association: ${fromObjectType}:${fromObjectId} → ${toObjectType}:${toObjectId} (type: ${validation.associationTypeId})`);
+      results.successful++;
+      
     } catch (error: any) {
-      console.warn(`Failed to create association from ${fromObjectType} to ${toObjectType}:`, error.message);
+      const errorMsg = error.message || 'Unknown error';
+      console.error(`❌ Failed to create association ${fromObjectType} → ${toObjectType}:`, errorMsg);
+      results.failed++;
+      results.errors.push({
+        association: `${fromObjectType} → ${toObjectType}`,
+        error: errorMsg
+      });
     }
   }
+
+  // Log summary
+  console.log(`Association creation summary: ${results.successful} successful, ${results.failed} failed`);
+  if (results.errors.length > 0) {
+    console.log('Association errors:', results.errors);
+  }
+
+  return results;
 }
 
 /**
- * Get association type ID for HubSpot associations
+ * Comprehensive HubSpot Association Type Mapping
+ * 
+ * This centralized mapping covers all supported object relationships in HubSpot.
+ * Association type IDs are HubSpot-defined constants for standard relationships.
+ */
+const HUBSPOT_ASSOCIATION_MAP: Record<string, Record<string, number>> = {
+  // Contact associations
+  'contacts': {
+    'companies': 1,      // Contact to Company (Primary)
+    'deals': 4,          // Contact to Deal
+    'tickets': 15,       // Contact to Ticket
+    'calls': 193,        // Contact to Call
+    'emails': 197,       // Contact to Email
+    'meetings': 199,     // Contact to Meeting
+    'notes': 201,        // Contact to Note
+    'tasks': 203,        // Contact to Task
+    'quotes': 69,        // Contact to Quote
+    'line_items': 19,    // Contact to Line Item
+  },
+  
+  // Company associations  
+  'companies': {
+    'contacts': 2,       // Company to Contact (Primary)
+    'deals': 6,          // Company to Deal
+    'tickets': 26,       // Company to Ticket  
+    'calls': 181,        // Company to Call
+    'emails': 185,       // Company to Email
+    'meetings': 187,     // Company to Meeting
+    'notes': 189,        // Company to Note
+    'tasks': 191,        // Company to Task
+    'quotes': 70,        // Company to Quote
+    'line_items': 20,    // Company to Line Item
+  },
+  
+  // Deal associations
+  'deals': {
+    'contacts': 3,       // Deal to Contact
+    'companies': 5,      // Deal to Company
+    'tickets': 27,       // Deal to Ticket
+    'calls': 205,        // Deal to Call
+    'emails': 209,       // Deal to Email
+    'meetings': 211,     // Deal to Meeting
+    'notes': 213,        // Deal to Note
+    'tasks': 215,        // Deal to Task
+    'quotes': 67,        // Deal to Quote
+    'line_items': 21,    // Deal to Line Item
+    'products': 22,      // Deal to Product
+  },
+  
+  // Ticket associations
+  'tickets': {
+    'contacts': 16,      // Ticket to Contact
+    'companies': 25,     // Ticket to Company
+    'deals': 28,         // Ticket to Deal
+    'calls': 217,        // Ticket to Call
+    'emails': 221,       // Ticket to Email
+    'meetings': 223,     // Ticket to Meeting
+    'notes': 225,        // Ticket to Note
+    'tasks': 227,        // Ticket to Task
+  },
+  
+  // Note associations
+  'notes': {
+    'contacts': 202,     // Note to Contact
+    'companies': 190,    // Note to Company
+    'deals': 214,        // Note to Deal
+    'tickets': 226,      // Note to Ticket
+    'calls': 229,        // Note to Call
+    'emails': 233,       // Note to Email
+    'meetings': 235,     // Note to Meeting
+    'tasks': 237,        // Note to Task
+  },
+  
+  // Call associations
+  'calls': {
+    'contacts': 194,     // Call to Contact
+    'companies': 182,    // Call to Company
+    'deals': 206,        // Call to Deal
+    'tickets': 218,      // Call to Ticket
+    'notes': 230,        // Call to Note
+    'emails': 241,       // Call to Email
+    'meetings': 243,     // Call to Meeting
+    'tasks': 245,        // Call to Task
+  },
+  
+  // Email associations
+  'emails': {
+    'contacts': 198,     // Email to Contact
+    'companies': 186,    // Email to Company
+    'deals': 210,        // Email to Deal
+    'tickets': 222,      // Email to Ticket
+    'notes': 234,        // Email to Note
+    'calls': 242,        // Email to Call
+    'meetings': 247,     // Email to Meeting
+    'tasks': 249,        // Email to Task
+  },
+  
+  // Meeting associations
+  'meetings': {
+    'contacts': 200,     // Meeting to Contact
+    'companies': 188,    // Meeting to Company
+    'deals': 212,        // Meeting to Deal
+    'tickets': 224,      // Meeting to Ticket
+    'notes': 236,        // Meeting to Note
+    'calls': 244,        // Meeting to Call
+    'emails': 248,       // Meeting to Email
+    'tasks': 251,        // Meeting to Task
+  },
+  
+  // Task associations
+  'tasks': {
+    'contacts': 204,     // Task to Contact
+    'companies': 192,    // Task to Company
+    'deals': 216,        // Task to Deal
+    'tickets': 228,      // Task to Ticket
+    'notes': 238,        // Task to Note
+    'calls': 246,        // Task to Call
+    'emails': 250,       // Task to Email
+    'meetings': 252,     // Task to Meeting
+  },
+  
+  // Product associations
+  'products': {
+    'deals': 23,         // Product to Deal
+    'line_items': 24,    // Product to Line Item
+    'quotes': 71,        // Product to Quote
+  },
+  
+  // Line Item associations
+  'line_items': {
+    'contacts': 17,      // Line Item to Contact
+    'companies': 18,     // Line Item to Company
+    'deals': 29,         // Line Item to Deal
+    'products': 30,      // Line Item to Product
+    'quotes': 72,        // Line Item to Quote
+  },
+  
+  // Quote associations
+  'quotes': {
+    'contacts': 73,      // Quote to Contact
+    'companies': 74,     // Quote to Company
+    'deals': 68,         // Quote to Deal
+    'products': 75,      // Quote to Product
+    'line_items': 76,    // Quote to Line Item
+  }
+};
+
+/**
+ * Get association type ID for HubSpot associations with validation
  */
 function getAssociationTypeId(fromType: string, toType: string): number {
-  // Standard HubSpot association type IDs
-  const associationMap: Record<string, Record<string, number>> = {
-    'deals': { 'contacts': 3, 'companies': 5 },
-    'notes': { 'contacts': 202, 'companies': 190, 'deals': 214 },
-    'tickets': { 'contacts': 16, 'companies': 25, 'deals': 28 }
-  };
+  const normalizedFromType = fromType.toLowerCase();
+  const normalizedToType = toType.toLowerCase();
   
-  return associationMap[fromType]?.[toType] || 1;
+  const associationTypeId = HUBSPOT_ASSOCIATION_MAP[normalizedFromType]?.[normalizedToType];
+  
+  if (!associationTypeId) {
+    throw new Error(`Unsupported association: ${fromType} → ${toType}. Check supported associations with validateAssociation().`);
+  }
+  
+  return associationTypeId;
+}
+
+/**
+ * Validate if an association combination is supported
+ */
+function validateAssociation(fromType: string, toType: string): { 
+  isValid: boolean; 
+  associationTypeId?: number; 
+  error?: string; 
+  supportedAssociations?: string[] 
+} {
+  const normalizedFromType = fromType.toLowerCase();
+  const normalizedToType = toType.toLowerCase();
+  
+  // Check if source object type is supported
+  if (!HUBSPOT_ASSOCIATION_MAP[normalizedFromType]) {
+    const supportedTypes = Object.keys(HUBSPOT_ASSOCIATION_MAP);
+    return {
+      isValid: false,
+      error: `Unsupported source object type '${fromType}'. Supported types: ${supportedTypes.join(', ')}`,
+      supportedAssociations: supportedTypes
+    };
+  }
+  
+  // Check if target object type is supported for this source
+  const associationTypeId = HUBSPOT_ASSOCIATION_MAP[normalizedFromType][normalizedToType];
+  if (!associationTypeId) {
+    const supportedTargets = Object.keys(HUBSPOT_ASSOCIATION_MAP[normalizedFromType]);
+    return {
+      isValid: false,
+      error: `Unsupported association '${fromType} → ${toType}'. Supported associations from ${fromType}: ${supportedTargets.join(', ')}`,
+      supportedAssociations: supportedTargets.map(target => `${fromType} → ${target}`)
+    };
+  }
+  
+  return {
+    isValid: true,
+    associationTypeId
+  };
+}
+
+/**
+ * Get all supported associations for a given object type
+ */
+function getSupportedAssociations(objectType?: string): Record<string, string[]> | string[] {
+  if (!objectType) {
+    // Return all supported associations
+    const allAssociations: Record<string, string[]> = {};
+    Object.keys(HUBSPOT_ASSOCIATION_MAP).forEach(fromType => {
+      allAssociations[fromType] = Object.keys(HUBSPOT_ASSOCIATION_MAP[fromType]);
+    });
+    return allAssociations;
+  }
+  
+  const normalizedType = objectType.toLowerCase();
+  const supportedTargets = HUBSPOT_ASSOCIATION_MAP[normalizedType];
+  
+  if (!supportedTargets) {
+    return [];
+  }
+  
+  return Object.keys(supportedTargets);
 }
 
 /**
@@ -1763,7 +2027,10 @@ export {
   fetchAndCacheOwners,
   determinePropertyType,
   determineFieldType,
-  validateAndCoerceRecordData
+  validateAndCoerceRecordData,
+  validateAssociation,
+  getSupportedAssociations,
+  createAssociations
 };
 
 /**
