@@ -5,9 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Progress } from '@/components/ui/progress';
-import { ChevronDown, ChevronUp, Trash2, Info, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp, Trash2, Info } from 'lucide-react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Simulation {
@@ -22,58 +21,14 @@ interface Simulation {
   config: any;
 }
 
-interface JobStep {
-  stepIndex: number;
-  actionType: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed' | 'failed_non_retryable';
-  error?: string;
-  executedAt?: string;
-}
-
-interface JobStatus {
-  jobId: number;
-  simulationId: number;
-  status: 'running' | 'completed' | 'failed';
-  totalSteps: number;
-  completedSteps: number;
-  failedSteps: number;
-  queuedSteps: number;
-  steps: JobStep[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 export default function ProgressPage() {
   const { user } = useSession();
   const { toast } = useToast();
   const [expandedRuns, setExpandedRuns] = useState<Set<number>>(new Set());
-  const [currentJobId, setCurrentJobId] = useState<number | null>(null);
-
-  // Load current job ID from localStorage
-  useEffect(() => {
-    const storedJobId = localStorage.getItem('currentJobId');
-    if (storedJobId) {
-      setCurrentJobId(parseInt(storedJobId));
-    }
-  }, []);
 
   const { data: simulations, isLoading } = useQuery<Simulation[]>({
     queryKey: [`/api/user/${user?.id}/simulations`],
     enabled: !!user?.id,
-  });
-
-  // Poll job status if we have a current job ID
-  const { data: jobStatus, isLoading: jobStatusLoading } = useQuery<JobStatus>({
-    queryKey: [`/api/job/${currentJobId}/status`],
-    enabled: !!currentJobId,
-    refetchInterval: (data) => {
-      // Stop polling if job is completed or failed
-      if (data?.status === 'completed' || data?.status === 'failed') {
-        return false;
-      }
-      return 2000; // Poll every 2 seconds while job is running
-    },
-    refetchIntervalInBackground: true,
   });
 
   const deleteMutation = useMutation({
@@ -106,40 +61,6 @@ export default function ProgressPage() {
     setExpandedRuns(newExpanded);
   };
 
-  const getStatusIcon = (status: JobStep['status']) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'failed':
-      case 'failed_non_retryable':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'processing':
-        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-400" />;
-    }
-  };
-
-  const getStatusColor = (status: JobStep['status']) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-500';
-      case 'failed':
-      case 'failed_non_retryable':
-        return 'bg-red-500';
-      case 'processing':
-        return 'bg-blue-500';
-      default:
-        return 'bg-gray-400';
-    }
-  };
-
-  const clearCurrentJob = () => {
-    setCurrentJobId(null);
-    localStorage.removeItem('currentJobId');
-    localStorage.removeItem('currentSimulationId');
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen font-gameboy flex items-center justify-center" 
@@ -167,96 +88,6 @@ export default function ProgressPage() {
            backgroundSize: '16px 16px'
          }}>
       <div className="max-w-4xl mx-auto">
-
-        {/* Current Job Status */}
-        {currentJobId && jobStatus && (
-          <Card className="mb-6 border-2 border-gray-600 bg-gray-800 text-white">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Loader2 className={`h-5 w-5 ${jobStatus.status === 'running' ? 'animate-spin text-blue-500' : 'text-gray-500'}`} />
-                Current Job Progress (ID: {currentJobId})
-              </CardTitle>
-              <CardDescription className="text-gray-300">
-                Status: <Badge variant={jobStatus.status === 'running' ? 'default' : jobStatus.status === 'completed' ? 'secondary' : 'destructive'}>
-                  {jobStatus.status.toUpperCase()}
-                </Badge>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Progress Bar */}
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Progress: {jobStatus.completedSteps}/{jobStatus.totalSteps} steps</span>
-                  <span>{Math.round((jobStatus.completedSteps / jobStatus.totalSteps) * 100)}%</span>
-                </div>
-                <Progress 
-                  value={(jobStatus.completedSteps / jobStatus.totalSteps) * 100} 
-                  className="h-3"
-                  data-testid="progress-bar-job"
-                />
-              </div>
-
-              {/* Status Summary */}
-              <div className="flex gap-4 mb-4 text-sm">
-                <div className="flex items-center gap-1">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>Completed: {jobStatus.completedSteps}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <XCircle className="h-4 w-4 text-red-500" />
-                  <span>Failed: {jobStatus.failedSteps}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4 text-gray-400" />
-                  <span>Queued: {jobStatus.queuedSteps}</span>
-                </div>
-              </div>
-
-              {/* Step Details */}
-              <Collapsible>
-                <CollapsibleTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full justify-between">
-                    View Step Details
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-4">
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {jobStatus.steps?.map((step, index) => (
-                      <div key={index} className="flex items-center gap-3 p-2 bg-gray-700 rounded">
-                        {getStatusIcon(step.status)}
-                        <span className="flex-1 text-sm">
-                          Step {step.stepIndex + 1}: {step.actionType}
-                        </span>
-                        <Badge variant="outline" className={`text-xs ${getStatusColor(step.status)} text-white border-none`}>
-                          {step.status}
-                        </Badge>
-                        {step.error && (
-                          <div className="text-xs text-red-400 truncate max-w-xs" title={step.error}>
-                            Error: {step.error}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              {/* Clear Job Button */}
-              {(jobStatus.status === 'completed' || jobStatus.status === 'failed') && (
-                <Button 
-                  onClick={clearCurrentJob} 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-4"
-                  data-testid="button-clear-job"
-                >
-                  Clear Job Status
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>
