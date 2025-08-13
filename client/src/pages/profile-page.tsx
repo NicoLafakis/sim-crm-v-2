@@ -148,23 +148,13 @@ export default function ProfilePage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 rounded" style={{ 
-                backgroundColor: '#e8e8e8',
-                backgroundImage: `
-                  linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
-                  linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
-                `,
-                backgroundSize: '16px 16px'
+                backgroundColor: 'white'
               }}>
                 <div className="text-2xl font-bold" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>{user?.creditLimit || 0}</div>
                 <div className="text-sm" style={{ color: '#000000' }}>Credit Limit</div>
               </div>
               <div className="text-center p-4 rounded" style={{ 
-                backgroundColor: '#e8e8e8',
-                backgroundImage: `
-                  linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
-                  linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
-                `,
-                backgroundSize: '16px 16px'
+                backgroundColor: 'white'
               }}>
                 <Badge className={`${getTierColor(user?.playerTier || 'New Player')} text-white`} style={{ fontFamily: 'var(--font-gameboy)' }}>
                   {user?.playerTier || 'New Player'}
@@ -172,12 +162,7 @@ export default function ProfilePage() {
                 <div className="text-sm mt-2" style={{ color: '#000000' }}>Player Tier</div>
               </div>
               <div className="text-center p-4 rounded" style={{ 
-                backgroundColor: '#e8e8e8',
-                backgroundImage: `
-                  linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
-                  linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
-                `,
-                backgroundSize: '16px 16px'
+                backgroundColor: 'white'
               }}>
                 <div className="text-2xl font-bold" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>{tokens?.length || 0}</div>
                 <div className="text-sm" style={{ color: '#000000' }}>API Tokens</div>
