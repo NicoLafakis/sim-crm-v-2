@@ -1,0 +1,91 @@
+# Plan: Stagger simulation sets by Contacts count and scale CSV timings by hours
+
+# Goal: Use the existing Contacts slider to determine the number of simulation sets, stagger each set’s start time evenly across the selected duration, and schedule CSV-driven actions with hour-level precision.
+
+## What to change:
+* In `record-frequency.tsx`:
+  - Confirm `settings.record_distribution.contacts` is included in the serialized `settings` payload. No UI changes.
+
+* In `/api/simulation/start` route (e.g., `server/routes.ts`):
+  - After deserializing `settings`, derive set count:
+    - `const setCount = Math.max(1, settings.record_distribution?.contacts ?? 1);`
+  - Loop over sets and schedule one job per set:
+    - Add utility `calculateSetOffset(contactSeq: number, setCount: number, durationDays: number): number` (milliseconds) in the same module or a shared utility (e.g., `server/time-utils.ts`) and import it here.
+    - Replace single `scheduleSimulationJob(...)` call with:
+      ```
+      for (let contactSeq = 1; contactSeq <= setCount; contactSeq++) {
+        const setStartOffset = calculateSetOffset(contactSeq, setCount, settings.duration_days);
+        await scheduleSimulationJob(
+          simulation,
+          outcome,
+          settings.duration_days,  // acceleratorDays
+          contactSeq,
+          new Date(Date.now() + setStartOffset)
+        );
+      }
+      ```
+  - Implement `calculateSetOffset`:
+    ```
+    export function calculateSetOffset(contactSeq: number, setCount: number, durationDays: number): number {
+      const targetCycleHours = durationDays * 24;
+      const setSpacingHours = targetCycleHours / setCount;
+      const offsetHours = (contactSeq - 1) * setSpacingHours;
+      return offsetHours * 60 * 60 * 1000;
+    }
+    ```
+
+* In `server/orchestrator.ts` (or the module that defines scheduling):
+  - Update signature of `scheduleSimulationJob` to accept `contactSeq` and `setStartAt`:
+    ```
+    export async function scheduleSimulationJob(
+      simulation: Simulation,
+      outcome: Outcome,
+      acceleratorDays: number,
+      contactSeq: number,
+      setStartAt: Date
+    ): Promise<void> { ... }
+    ```
+  - Replace any hard-coded `contactSeq: 1` usage with the function parameter `contactSeq` when creating jobs and when passing variables into downstream functions.
+  - After loading and filtering CSV rows (`csvData`), compute dynamic base cycle:
+    ```
+    const baseCycleDays = Math.max(...csvData.map(row => row.templateDay));
+    ```
+    - Guard against empty CSV or missing `templateDay` values (throw a descriptive error).
+  - Scale timings in hours (not days):
+    ```
+    const baseCycleHours = baseCycleDays * 24;
+    const targetCycleHours = acceleratorDays * 24;
+    const scalingFactor = targetCycleHours / baseCycleHours;
+    ```
+    - For each CSV row, schedule using fractional hours:
+      ```
+      const scaledHours = row.templateDay * 24 * scalingFactor;
+      const scheduledAt = new Date(setStartAt.getTime() + scaledHours * 60 * 60 * 1000);
+      // use scheduledAt for job schedule time
+      ```
+    - Do not round or floor fractional hours.
+  - Ensure placeholder substitution uses the passed `contactSeq`:
+    - In `substituteTemplatePlaceholders` (or equivalent), map `{{contact_seq}}` → `String(contactSeq)` (remove any default `1`).
+
+* Error handling & safeguards (in route and orchestrator):
+  - If `setCount <= 0`, fallback to `1`.
+  - If `duration_days <= 0`, return 400 with message `"duration_days must be > 0"`.
+  - If `csvData.length === 0` or `templateDay` is missing/non-numeric for any row, throw an error: `"CSV template missing templateDay values"`.
+  - Validate `setStartAt` is a valid `Date` before scheduling; throw if invalid.
+
+* Tests (if repository has tests; otherwise add minimal unit tests):
+  - Add unit tests for `calculateSetOffset` to confirm spacing and monotonicity.
+  - Add tests/mocks for `scheduleSimulationJob` verifying:
+    - `baseCycleDays` derived from CSV max.
+    - `scheduledAt` uses fractional hours relative to `setStartAt`.
+    - `contactSeq` is propagated into job payloads and placeholder substitution.
+
+## Acceptance criteria:
+* Starting a simulation with `duration_days = 90` and `record_distribution.contacts = 30` schedules 30 jobs whose `setStartAt` values are spaced by ~72 hours (± millisecond arithmetic), with `contactSeq` values 1..30.
+* Starting a simulation with `duration_days = 1` and `record_distribution.contacts = 30` schedules 30 jobs whose `setStartAt` values are spaced by ~0.8 hours, preserving fractional-hour precision.
+* `scheduleSimulationJob` computes `baseCycleDays` from the CSV’s maximum `templateDay` (e.g., if the max is 68, scaling uses 68; if 90, uses 90). No hard-coded 30-day constant remains.
+* Each CSV row’s scheduled time equals `setStartAt + (row.templateDay * 24 * scalingFactor hours)` with no rounding; verification via logged or test-captured timestamps shows fractional-hour offsets.
+* Placeholders `{{contact_seq}}` in any generated artifacts (contacts, companies, deals, etc.) resolve to the correct `contactSeq` for that set; no occurrences hard-coded to `1`.
+* If `contacts` is undefined or 0, the system defaults to 1 set; no UI changes are required and no additional fields are rendered.
+* Invalid input (`duration_days <= 0`, empty CSV, or missing `templateDay`) produces clear, actionable errors and no jobs are scheduled.
+* Performance: scheduling 100 sets completes without blocking the event loop excessively (each call awaits scheduling within the loop; no unhandled promise rejections).

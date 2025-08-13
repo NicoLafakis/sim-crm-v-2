@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertSessionSchema } from "@shared/schema";
 import { scheduleSimulationJob, validateDealStage } from "./orchestrator";
+import { calculateSetOffset } from "./time-utils";
 import OpenAI from "openai";
 
 // Initialize OpenAI client
@@ -188,6 +189,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for staggered simulation scheduling
+  app.post("/api/test/staggered-scheduling", async (req, res) => {
+    try {
+      const { setCount = 5, durationDays = 30 } = req.body;
+      
+      const { calculateSetOffset } = await import('./time-utils');
+      
+      const results = [];
+      for (let contactSeq = 1; contactSeq <= setCount; contactSeq++) {
+        const setStartOffset = calculateSetOffset(contactSeq, setCount, durationDays);
+        const setStartAt = new Date(Date.now() + setStartOffset);
+        const offsetHours = setStartOffset / (60 * 60 * 1000);
+        
+        results.push({
+          contactSeq,
+          setStartAt: setStartAt.toISOString(),
+          offsetHours: Math.round(offsetHours * 100) / 100,
+          offsetMs: setStartOffset
+        });
+      }
+      
+      res.json({
+        setCount,
+        durationDays,
+        spacingHours: (durationDays * 24) / setCount,
+        sets: results
+      });
+    } catch (error) {
+      console.error("Staggered scheduling test error:", error);
+      res.status(500).json({ message: "Test failed", error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // HubSpot token validation (mock for now - in production this would validate with HubSpot API)
   app.post("/api/validate-hubspot-token", async (req, res) => {
     try {
@@ -228,7 +262,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const industry = settings.industry || session.selectedIndustry || 'business';
       const requestedOutcome = settings.outcome; // May be undefined for random assignment
       const baseCycleDays = 30; // Base cycle is 30 days from CSV template
-      const acceleratorDays = settings.acceleratorDays || baseCycleDays; // Default to base cycle
+      const acceleratorDays = settings.duration_days || settings.acceleratorDays || baseCycleDays; // Use duration_days from frontend
+      
+      // Validate duration_days
+      if (acceleratorDays <= 0) {
+        return res.status(400).json({ message: "duration_days must be > 0" });
+      }
+      
+      // Derive set count from contacts setting
+      const setCount = Math.max(1, settings.record_distribution?.contacts ?? 1);
       
       // Create simulation record in database
       const simulation = await storage.createSimulation({
@@ -261,8 +303,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log(`Outcome determination: Industry=${industry}, Requested=${requestedOutcome}, Final=${outcome}`);
         
-        // Schedule simulation job using the orchestrator
-        const jobResult = await scheduleSimulationJob(simulation, outcome, acceleratorDays);
+        // Schedule multiple simulation jobs (one per contact set)
+        console.log(`Scheduling ${setCount} simulation sets with ${acceleratorDays} day duration`);
+        
+        const jobResults = [];
+        for (let contactSeq = 1; contactSeq <= setCount; contactSeq++) {
+          const setStartOffset = calculateSetOffset(contactSeq, setCount, acceleratorDays);
+          const setStartAt = new Date(Date.now() + setStartOffset);
+          
+          console.log(`Scheduling set ${contactSeq}/${setCount} starting at ${setStartAt.toISOString()} (offset: ${Math.round(setStartOffset / 1000 / 60 / 60 * 100) / 100}h)`);
+          
+          const jobResult = await scheduleSimulationJob(
+            simulation,
+            outcome,
+            acceleratorDays,
+            contactSeq,
+            setStartAt
+          );
+          
+          jobResults.push(jobResult);
+        }
         
         // Call OpenAI with the simulation configuration for strategy generation
         const prompt = `Generate a comprehensive CRM simulation plan based on this configuration:
@@ -343,16 +403,21 @@ Please provide a detailed simulation strategy with realistic business scenarios,
 
         const aiResponse = JSON.parse(response.choices[0].message.content || '{}');
         
+        // Calculate total steps across all jobs
+        const totalStepsCount = jobResults.reduce((sum, result) => sum + result.stepsCount, 0);
+        const jobIds = jobResults.map(result => result.jobId);
+
         // Update simulation with AI response and job info
         await storage.updateSimulation(simulation.id, {
           status: 'active',
-          config: { ...settings, outcome, acceleratorDays, aiStrategy: aiResponse, jobId: jobResult.jobId }
+          config: { ...settings, outcome, acceleratorDays, aiStrategy: aiResponse, jobIds, setCount }
         });
 
-        console.log('Simulation job scheduled and AI strategy generated:', {
+        console.log('Simulation jobs scheduled and AI strategy generated:', {
           simulationId: simulation.id,
-          jobId: jobResult.jobId,
-          stepsCount: jobResult.stepsCount,
+          jobIds,
+          setCount,
+          totalStepsCount,
           aiResponseLength: response.choices[0].message.content?.length || 0
         });
 
@@ -360,8 +425,9 @@ Please provide a detailed simulation strategy with realistic business scenarios,
           status: "active",
           message: "Simulation started with job scheduling and AI strategy",
           simulationId: simulation.id,
-          jobId: jobResult.jobId,
-          stepsCount: jobResult.stepsCount,
+          jobIds,
+          setCount,
+          totalStepsCount,
           outcome,
           acceleratorDays,
           aiStrategy: aiResponse

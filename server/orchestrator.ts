@@ -55,7 +55,9 @@ function determineOutcome(industry: string, requestedOutcome?: string): 'won' | 
 export async function scheduleSimulationJob(
   simulation: Simulation, 
   outcome: 'won' | 'lost', 
-  acceleratorDays: number
+  acceleratorDays: number,
+  contactSeq: number,
+  setStartAt: Date
 ): Promise<{ jobId: number; stepsCount: number }> {
   try {
     // Determine which CSV template to use based on industry and outcome
@@ -147,9 +149,21 @@ export async function scheduleSimulationJob(
     
     console.log(`Filtered to ${filteredRows.length} rows for execution`);
     
-    // Compute scaling factor
-    const baseCycleDays = 30; // Default 30-day cycle
-    const scalingFactor = acceleratorDays / baseCycleDays;
+    // Guard against empty CSV or missing templateDay values
+    if (filteredRows.length === 0) {
+      throw new Error("CSV template missing templateDay values");
+    }
+    
+    // Compute dynamic base cycle from CSV data
+    const baseCycleDays = Math.max(...filteredRows.map(row => row.templateDay));
+    if (!baseCycleDays || baseCycleDays <= 0) {
+      throw new Error("CSV template missing templateDay values");
+    }
+    
+    // Scale timings in hours (not days)
+    const baseCycleHours = baseCycleDays * 24;
+    const targetCycleHours = acceleratorDays * 24;
+    const scalingFactor = targetCycleHours / baseCycleHours;
     
     // Create the job
     const jobData: InsertJob = {
@@ -157,11 +171,11 @@ export async function scheduleSimulationJob(
       outcome,
       theme: simulation.theme,
       industry: simulation.industry,
-      contactSeq: 1, // Could be derived from simulation config
+      contactSeq: contactSeq,
       originalSource: `orchestrator_${outcome}`,
       acceleratorDays,
       baseCycleDays,
-      jobStartAt: new Date(),
+      jobStartAt: setStartAt,
       status: 'pending',
       metadata: {
         scalingFactor,
@@ -172,24 +186,24 @@ export async function scheduleSimulationJob(
 
     const createdJob = await storage.createJob(jobData);
     
-    // Generate job steps with monotonic scaledDay values
-    const jobStartTime = new Date();
+    // Generate job steps with fractional hour precision
     const jobStepsData: InsertJobStep[] = [];
     
     filteredRows.forEach((row, index) => {
-      const scaledDay = Math.floor(row.templateDay * scalingFactor);
-      const scheduledAt = new Date(jobStartTime.getTime() + scaledDay * 24 * 60 * 60 * 1000);
+      // Scale timings using fractional hours (not days)
+      const scaledHours = row.templateDay * 24 * scalingFactor;
+      const scheduledAt = new Date(setStartAt.getTime() + scaledHours * 60 * 60 * 1000);
       
-      // Substitute template placeholders
-      const substitutedActionTpl = substituteTemplatePlaceholders(row.actionTpl, simulation);
-      const substitutedReasonTpl = substituteTemplatePlaceholders(row.reasonTpl, simulation);
-      const substitutedRecordIdTpl = substituteTemplatePlaceholders(row.recordIdTpl, simulation);
+      // Substitute template placeholders with contactSeq
+      const substitutedActionTpl = substituteTemplatePlaceholders(row.actionTpl, simulation, contactSeq);
+      const substitutedReasonTpl = substituteTemplatePlaceholders(row.reasonTpl, simulation, contactSeq);
+      const substitutedRecordIdTpl = substituteTemplatePlaceholders(row.recordIdTpl, simulation, contactSeq);
       
       jobStepsData.push({
         jobId: createdJob.id,
         stepIndex: index + 1,
         templateDay: row.templateDay,
-        scaledDay,
+        scaledDay: Math.floor(scaledHours / 24),
         scheduledAt,
         typeOfAction: row.typeOfAction,
         recordType: row.recordType,
@@ -597,7 +611,7 @@ async function executeJobStepAction(step: any): Promise<any> {
 /**
  * Substitute template placeholders with simulation data
  */
-function substituteTemplatePlaceholders(template: string, simulation: Simulation): string {
+function substituteTemplatePlaceholders(template: string, simulation: Simulation, contactSeq?: number): string {
   if (!template) return template;
   
   return template
@@ -606,6 +620,7 @@ function substituteTemplatePlaceholders(template: string, simulation: Simulation
     .replace(/\{\{frequency\}\}/g, simulation.frequency || '')
     .replace(/\{\{simulationId\}\}/g, simulation.id.toString())
     .replace(/\{\{userId\}\}/g, simulation.userId.toString())
+    .replace(/\{\{contact_seq\}\}/g, String(contactSeq || 1))
     .replace(/\{\{timestamp\}\}/g, new Date().toISOString());
 }
 
