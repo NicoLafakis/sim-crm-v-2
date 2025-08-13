@@ -65,11 +65,14 @@ export default function ProgressPage() {
     return (
       <div className="min-h-screen font-gameboy flex items-center justify-center" 
            style={{ 
-             backgroundColor: 'rgb(34, 78, 34)',
-             backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
-             backgroundSize: '20px 20px'
+             backgroundColor: '#e8e8e8',
+             backgroundImage: `
+               linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
+               linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
+             `,
+             backgroundSize: '16px 16px'
            }}>
-        <div className="text-xl" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>Loading Configurations...</div>
+        <div className="text-xl" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>Loading Configurations...</div>
       </div>
     );
   }
@@ -77,9 +80,12 @@ export default function ProgressPage() {
   return (
     <div className="min-h-screen font-gameboy p-6" 
          style={{ 
-           backgroundColor: 'rgb(34, 78, 34)',
-           backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
-           backgroundSize: '20px 20px'
+           backgroundColor: '#e8e8e8',
+           backgroundImage: `
+             linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
+             linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
+           `,
+           backgroundSize: '16px 16px'
          }}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}

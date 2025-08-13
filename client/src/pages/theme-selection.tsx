@@ -66,40 +66,35 @@ export default function ThemeSelection() {
   return (
     <div className="min-h-screen font-gameboy" 
          style={{ 
-           backgroundColor: 'rgb(34, 78, 34)',
-           backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
-           backgroundSize: '20px 20px'
+           backgroundColor: '#e8e8e8',
+           backgroundImage: `
+             linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
+             linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
+           `,
+           backgroundSize: '16px 16px'
          }}>
       
       {/* Header */}
-      <div className="text-center pt-8 pb-6" style={{ 
-        backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
-        backgroundSize: '20px 20px'
-      }}>
-        <h1 className="text-2xl font-bold uppercase tracking-wider mb-2" style={{ color: 'rgb(200, 220, 140)' }}>
+      <div className="text-center pt-8 pb-6">
+        <h1 className="text-2xl font-bold uppercase tracking-wider mb-2" style={{ color: '#1e3a5f' }}>
           Select a Theme
         </h1>
       </div>
       
       {/* Music Section */}
-      <div className="px-8 mb-8" style={{ 
-        backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.6) 1px, transparent 1px)',
-        backgroundSize: '20px 20px'
-      }}>
-        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: 'rgb(200, 220, 140)' }}>
+      <div className="px-8 mb-8">
+        <h2 className="text-lg font-bold uppercase tracking-wide text-center mb-6" style={{ color: '#1e3a5f' }}>
           Music
         </h2>
         <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
           {/* Beatles */}
           <button
             onClick={() => handleThemeSelect('Beatles')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Beatles' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer`}
+            style={selectedTheme === 'Beatles' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-beatles"
           >
             <div className="text-lg mb-1">🎸</div>
@@ -111,11 +106,11 @@ export default function ThemeSelection() {
           {/* Madonna */}
           <button
             onClick={() => handleThemeSelect('Madonna')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Madonna' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer`}
+            style={selectedTheme === 'Madonna' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-madonna"
           >
             <div className="text-lg mb-1">🎤</div>
@@ -127,11 +122,11 @@ export default function ThemeSelection() {
           {/* Drake */}
           <button
             onClick={() => handleThemeSelect('Drake')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Drake' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer`}
+            style={selectedTheme === 'Drake' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-drake"
           >
             <div className="text-lg mb-1">🎵</div>
@@ -143,11 +138,11 @@ export default function ThemeSelection() {
           {/* Daft Punk */}
           <button
             onClick={() => handleThemeSelect('Daft Punk')}
-            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all ${
-              selectedTheme === 'Daft Punk' 
-                ? 'border-yellow-400 bg-yellow-600 text-white' 
-                : 'border-blue-600 bg-blue-900 text-white hover:bg-blue-800'
-            } cursor-pointer`}
+            className={`h-24 rounded border-2 text-center flex flex-col justify-center items-center transition-all cursor-pointer`}
+            style={selectedTheme === 'Daft Punk' 
+              ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white' }
+              : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f' }
+            }
             data-testid="theme-daftpunk"
           >
             <div className="text-lg mb-1">🎹</div>
