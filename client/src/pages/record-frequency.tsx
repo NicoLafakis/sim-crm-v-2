@@ -114,7 +114,6 @@ export default function RecordFrequency() {
            `,
            backgroundSize: '16px 16px'
          }}>
-
       <div className="simulation-container" style={{
         background: '#6c7b7f',
         border: '2px solid #0f1419',
@@ -573,7 +572,7 @@ export default function RecordFrequency() {
           </div>
         </div>
 
-        <div className="sliders-grid">
+        <div className="sliders-grid bg-[#9fb89f]">
           {/* Auto Slider */}
           <div className="slider-column">
             <div className="slider-value">{autoMode ? autoValue : 0}</div>
