@@ -21,8 +21,11 @@ export default function SaasSelection() {
     <div className="min-h-screen font-gameboy" 
          style={{ 
            backgroundColor: '#e8e8e8',
-           backgroundImage: 'linear-gradient(rgba(108, 123, 127, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(108, 123, 127, 0.5) 1px, transparent 1px)',
-           backgroundSize: '20px 20px'
+           backgroundImage: `
+             linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
+             linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
+           `,
+           backgroundSize: '16px 16px'
          }}>
 
       {/* Header */}
