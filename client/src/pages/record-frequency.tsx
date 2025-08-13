@@ -559,7 +559,7 @@ export default function RecordFrequency() {
               alignItems: 'center',
               justifyContent: 'center'
             }}>i</span>
-            <div className="tooltip pl-[12px] pr-[12px] bg-[#2d3e2d]" style={{ 
+            <div className="tooltip bg-[#2d3e2d] text-[#e8e8e8] ml-[0px] mr-[0px] mt-[5px] mb-[5px] pl-[0px] pr-[0px] pt-[24px] pb-[24px]" style={{ 
               maxWidth: '300px', 
               whiteSpace: 'normal', 
               textAlign: 'center',
