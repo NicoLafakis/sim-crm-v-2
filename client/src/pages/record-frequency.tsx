@@ -116,7 +116,8 @@ export default function RecordFrequency() {
         background: '#1a1f2e',
         border: '2px solid #0f1419',
         padding: '20px',
-        width: '600px',
+        width: '900px',
+        maxWidth: '95vw',
         fontFamily: "'Courier New', monospace",
         boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
         userSelect: 'none'
@@ -153,11 +154,13 @@ export default function RecordFrequency() {
           .sliders-grid {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
-            gap: 15px;
+            gap: 20px;
             margin-bottom: 30px;
-            padding: 20px;
+            padding: 30px;
             background: #0f1419;
             border: 1px solid #2d3748;
+            width: 100%;
+            min-width: 800px;
           }
 
           .slider-column {
@@ -165,6 +168,7 @@ export default function RecordFrequency() {
             flex-direction: column;
             align-items: center;
             position: relative;
+            min-width: 80px;
           }
 
           .slider-column.disabled {
@@ -232,19 +236,20 @@ export default function RecordFrequency() {
 
           .slider-value {
             color: #4ade80;
-            font-size: 16px;
+            font-size: 20px;
             font-weight: bold;
-            margin-bottom: 10px;
-            min-height: 20px;
+            margin-bottom: 12px;
+            min-height: 24px;
             text-shadow: 0 0 5px rgba(74, 222, 128, 0.5);
           }
 
           .slider-label {
             color: #4ade80;
-            font-size: 10px;
+            font-size: 14px;
             text-align: center;
-            margin-top: 10px;
-            max-width: 60px;
+            margin-top: 12px;
+            max-width: 80px;
+            font-weight: bold;
           }
 
           .auto-toggle {
@@ -372,7 +377,17 @@ export default function RecordFrequency() {
 
           .locked-indicator {
             color: #6b7280;
-            font-size: 10px;
+            font-size: 12px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            margin-top: 8px;
+            text-align: center;
+          }
+
+          .slider-column:hover .locked-indicator {
+            opacity: 1;
+            visibility: visible;
           }
 
           .tooltip-container {
@@ -553,7 +568,14 @@ export default function RecordFrequency() {
             </div>
             <div className="slider-label">Auto</div>
             <div className="auto-toggle">
-              <div className="locked-indicator">ACTIVE</div>
+              <input 
+                type="checkbox" 
+                className="toggle-checkbox" 
+                checked={autoMode}
+                disabled={true}
+                readOnly
+              />
+              <label className="toggle-label"></label>
             </div>
           </div>
 
