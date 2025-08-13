@@ -148,13 +148,13 @@ export default function ProfilePage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 rounded" style={{ 
-                backgroundColor: 'white'
+                backgroundColor: '#d3d3d3'
               }}>
                 <div className="text-2xl font-bold" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>{user?.creditLimit || 0}</div>
                 <div className="text-sm" style={{ color: '#000000' }}>Credit Limit</div>
               </div>
               <div className="text-center p-4 rounded" style={{ 
-                backgroundColor: 'white'
+                backgroundColor: '#d3d3d3'
               }}>
                 <Badge className={`${getTierColor(user?.playerTier || 'New Player')} text-white`} style={{ fontFamily: 'var(--font-gameboy)' }}>
                   {user?.playerTier || 'New Player'}
@@ -162,7 +162,7 @@ export default function ProfilePage() {
                 <div className="text-sm mt-2" style={{ color: '#000000' }}>Player Tier</div>
               </div>
               <div className="text-center p-4 rounded" style={{ 
-                backgroundColor: 'white'
+                backgroundColor: '#d3d3d3'
               }}>
                 <div className="text-2xl font-bold" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>{tokens?.length || 0}</div>
                 <div className="text-sm" style={{ color: '#000000' }}>API Tokens</div>
