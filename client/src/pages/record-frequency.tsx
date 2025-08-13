@@ -107,7 +107,7 @@ export default function RecordFrequency() {
   return (
     <div className="min-h-screen font-gameboy flex items-center justify-center" 
          style={{ 
-           backgroundColor: '#e8e8e8',
+           backgroundColor: '#6c7b7f',
            backgroundImage: `
              linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
              linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
@@ -128,12 +128,12 @@ export default function RecordFrequency() {
 
         <style>{`
           .title {
-            color: #4ade80;
+            color: #e8e8e8;
             font-size: 32px;
             font-weight: bold;
             text-align: center;
             margin-bottom: 20px;
-            text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+            text-shadow: 0 0 20px rgba(232, 232, 232, 0.5);
             letter-spacing: 2px;
           }
 
@@ -142,7 +142,7 @@ export default function RecordFrequency() {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            color: #4ade80;
+            color: #e8e8e8;
             font-size: 14px;
           }
 
@@ -160,7 +160,7 @@ export default function RecordFrequency() {
             gap: 15px;
             margin-bottom: 30px;
             padding: 20px;
-            background: #0f1419;
+            background: #9fb89f;
             border: 1px solid #2d3748;
             width: 100%;
             overflow-x: auto;
@@ -192,14 +192,14 @@ export default function RecordFrequency() {
           .slider-track {
             width: 8px;
             height: 160px;
-            background: #2d3748;
+            background: #2d3e2d;
             border: 1px solid #4a5568;
             position: relative;
           }
 
           .slider-track.active {
-            background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
-            box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+            background: linear-gradient(180deg, #2d3e2d 0%, #1e2b1e 100%);
+            box-shadow: 0 0 10px rgba(45, 62, 45, 0.3);
           }
 
           .slider-track.disabled-track {
@@ -211,8 +211,8 @@ export default function RecordFrequency() {
             position: absolute;
             width: 24px;
             height: 12px;
-            background: #fbbf24;
-            border: 1px solid #f59e0b;
+            background: #8b0000;
+            border: 1px solid #a50000;
             cursor: grab;
             left: 50%;
             transform: translateX(-50%);
@@ -239,16 +239,16 @@ export default function RecordFrequency() {
           }
 
           .slider-value {
-            color: #4ade80;
+            color: #e8e8e8;
             font-size: 20px;
             font-weight: bold;
             margin-bottom: 12px;
             min-height: 24px;
-            text-shadow: 0 0 5px rgba(74, 222, 128, 0.5);
+            text-shadow: 0 0 5px rgba(232, 232, 232, 0.5);
           }
 
           .slider-label {
-            color: #4ade80;
+            color: #e8e8e8;
             font-size: 14px;
             text-align: center;
             margin-top: 12px;
@@ -323,7 +323,7 @@ export default function RecordFrequency() {
           }
 
           .checkbox-label {
-            color: #4ade80;
+            color: #e8e8e8;
             font-size: 14px;
             font-weight: bold;
           }
@@ -333,7 +333,7 @@ export default function RecordFrequency() {
           }
 
           .options-title {
-            color: #4ade80;
+            color: #e8e8e8;
             font-size: 16px;
             font-weight: bold;
             text-align: center;
@@ -345,7 +345,7 @@ export default function RecordFrequency() {
             grid-template-columns: 1fr 1fr;
             gap: 10px;
             padding: 15px;
-            background: #0f1419;
+            background: #9fb89f;
             border: 1px solid #2d3748;
           }
 
@@ -484,7 +484,7 @@ export default function RecordFrequency() {
           }
 
           .timespan-label {
-            color: #4ade80;
+            color: #e8e8e8;
             font-family: 'Quantico';
             font-size: 14px;
             font-weight: bold;
@@ -492,8 +492,8 @@ export default function RecordFrequency() {
 
           .timespan-dropdown {
             background: #1a1f2e;
-            border: 2px solid #4ade80;
-            color: #4ade80;
+            border: 2px solid #e8e8e8;
+            color: #e8e8e8;
             padding: 8px 12px;
             font-family: 'Quantico';
             font-size: 14px;
@@ -504,12 +504,12 @@ export default function RecordFrequency() {
 
           .timespan-dropdown:hover {
             background: #2d3748;
-            box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+            box-shadow: 0 0 10px rgba(232, 232, 232, 0.3);
           }
 
           .timespan-dropdown option {
             background: #1a1f2e;
-            color: #4ade80;
+            color: #e8e8e8;
             font-family: 'Quantico';
           }
 
@@ -546,6 +546,31 @@ export default function RecordFrequency() {
             <option value="190 days" disabled>190 days (unavailable)</option>
             <option value="Custom" disabled>Custom (unavailable)</option>
           </select>
+          <div className="tooltip-container" style={{ marginLeft: '10px' }}>
+            <span style={{ 
+              color: '#e8e8e8', 
+              cursor: 'help',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              border: '2px solid #e8e8e8',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>i</span>
+            <div className="tooltip" style={{ 
+              maxWidth: '300px', 
+              whiteSpace: 'normal', 
+              textAlign: 'center',
+              background: '#1a1f2e',
+              color: '#e8e8e8',
+              border: '1px solid #e8e8e8'
+            }}>
+              Time Span sets the total duration for CRM simulation. Records are distributed evenly across this period. Example: 30 contacts over 30 days = 1 contact per day.
+            </div>
+          </div>
         </div>
 
         <div className="sliders-grid">
