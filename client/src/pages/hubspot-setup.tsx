@@ -106,16 +106,12 @@ export default function HubSpotSetup() {
       </div>
 
       {/* Main Content */}
-      <div className="px-8 pb-8" style={{
-        backgroundColor: 'rgb(34, 78, 34)',
-        backgroundImage: 'linear-gradient(rgba(70, 120, 70, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 120, 70, 0.45) 1px, transparent 1px)',
-        backgroundSize: '20px 20px'
-      }}>
+      <div className="px-8 pb-8">
         <div className="max-w-2xl mx-auto">
 
           {/* Setup Instructions Header */}
           <div className="text-center mb-6">
-            <h2 className="text-lg font-bold uppercase tracking-wide mb-4" style={{ color: 'rgb(200, 220, 140)' }}>
+            <h2 className="text-lg font-bold uppercase tracking-wide mb-4" style={{ color: '#1e3a5f' }}>
               API Configuration
             </h2>
           </div>
@@ -123,7 +119,7 @@ export default function HubSpotSetup() {
           {/* HubSpot Integration Section */}
           <div className="space-y-6">
             <div>
-              <label className="block text-sm mb-2 font-bold uppercase tracking-wide" style={{ color: 'rgb(200, 220, 140)' }}>
+              <label className="block text-sm mb-2 font-bold uppercase tracking-wide" style={{ color: '#000000' }}>
                 HubSpot API Token
               </label>
               <input
