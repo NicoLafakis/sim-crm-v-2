@@ -530,7 +530,7 @@ export default function RecordFrequency() {
           <label className="timespan-label text-[16px]" htmlFor="timespan-select">Time Span:</label>
           <select
             id="timespan-select"
-            className="timespan-dropdown"
+            className="timespan-dropdown bg-[#2d3e2d]"
             value={timeSpan}
             onChange={(e) => setTimeSpan(e.target.value)}
             data-testid="dropdown-timespan"
@@ -654,7 +654,7 @@ export default function RecordFrequency() {
 
         {/* Additional Options */}
         <div className="additional-options">
-          <div className="options-title">Additional Options</div>
+          <div className="options-title text-[18px]">Additional Options</div>
           <div className="options-grid">
             <div className="option-item tooltip-container" title="Custom Objects requires Level 2 subscription">
               <div 
