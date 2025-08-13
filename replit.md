@@ -71,6 +71,22 @@ Preferred communication style: Simple, everyday language.
 - **Acceptance Criteria Met**: New properties auto-created, missing options added, constraints enforced with coercion
 - Custom property system ensures seamless CRM integration with zero manual property management required
 
+**August 13, 2025** - Staggered Simulation Scheduling System with Hour-Level Precision
+- Implemented comprehensive staggered scheduling system based on Contacts count with precise timing control
+- **Multi-Set Scheduling**: Contacts slider value determines number of simulation sets (1-30 sets)
+- **Staggered Start Times**: Each set starts at evenly distributed intervals across the simulation duration
+- **Fractional Hour Precision**: CSV timings scaled using hours instead of days for precise scheduling
+- **Dynamic Base Cycle**: Automatically calculates base cycle from CSV max templateDay (no hard-coded 30 days)
+- **12-Hour Compression**: "1 day" simulations compressed to 12 hours for faster execution and manageable API rates
+- **Contact Sequence Substitution**: {{contact_seq}} placeholder properly substituted with set number (1, 2, 3...)
+- **Enhanced Time Utilities**: calculateSetOffset function handles precise millisecond-level timing calculations
+- **Rate Limit Friendly**: 30 sets over 12 hours = 24-minute spacing, well within API rate limits
+- **Comprehensive Validation**: Error handling for invalid duration_days, empty CSV, missing templateDay values
+- **Test Endpoint**: `/api/test/staggered-scheduling` for validation and timing verification
+- **UI Indicators**: Clear labeling showing "1 day (12h compressed)" with updated tooltip explanations
+- **Acceptance Criteria Met**: All timing calculations precise, fractional hours preserved, contact sequences unique
+- Staggered scheduling creates realistic multi-customer simulation journeys with optimal API performance
+
 **August 13, 2025** - Owner Assignment System with Email-to-ID Resolution
 
 ## System Architecture

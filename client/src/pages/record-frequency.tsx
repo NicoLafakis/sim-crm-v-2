@@ -61,9 +61,13 @@ export default function RecordFrequency() {
 
     const totalRecords = values.reduce((a, b) => a + b, 0);
     
-    // Convert timeSpan to duration_days
+    // Convert timeSpan to duration_days (with special handling for 1 day = 12 hours)
     const getDurationDays = (timeSpan: string): number => {
       const numericValue = parseInt(timeSpan.split(' ')[0]);
+      // Special case: 1 day simulation compressed to 12 hours for faster execution
+      if (numericValue === 1) {
+        return 0.5; // 0.5 days = 12 hours
+      }
       return numericValue;
     };
 
@@ -535,7 +539,7 @@ export default function RecordFrequency() {
             onChange={(e) => setTimeSpan(e.target.value)}
             data-testid="dropdown-timespan"
           >
-            <option value="1 day">1 day</option>
+            <option value="1 day">1 day (12h compressed)</option>
             <option value="7 days">7 days</option>
             <option value="14 days">14 days</option>
             <option value="30 days">30 days</option>
@@ -567,7 +571,7 @@ export default function RecordFrequency() {
               color: '#e8e8e8',
               border: '1px solid #e8e8e8'
             }}>
-              Time Span sets the total duration for CRM simulation. Records are distributed evenly across this period. Example: 30 contacts over 30 days = 1 contact per day.
+              Time Span sets the simulation duration. The "1 day" option is compressed to 12 hours for faster execution. Records are staggered evenly across the period. Example: 30 contacts over 1 day = 1 set every 24 minutes.
             </div>
           </div>
         </div>
