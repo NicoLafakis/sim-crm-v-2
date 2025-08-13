@@ -9,11 +9,17 @@ import {
   InsertSimulation,
   ApiToken,
   InsertApiToken,
+  Job,
+  InsertJob,
+  JobStep,
+  InsertJobStep,
   users,
   sessions,
   playerTiers,
   simulations,
-  apiTokens
+  apiTokens,
+  jobs,
+  jobSteps
 } from "../shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";

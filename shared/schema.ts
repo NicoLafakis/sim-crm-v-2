@@ -75,8 +75,44 @@ export const playerTiers = pgTable('player_tiers', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Jobs table for tracking simulation jobs
+export const jobs = pgTable('jobs', {
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+  simulationId: integer('simulation_id').notNull().references(() => simulations.id, { onDelete: 'cascade' }),
+  outcome: varchar('outcome', { length: 50 }), // won/lost
+  theme: varchar('theme', { length: 255 }),
+  industry: varchar('industry', { length: 255 }),
+  contactSeq: integer('contact_seq'),
+  originalSource: text('original_source'),
+  acceleratorDays: integer('accelerator_days'),
+  baseCycleDays: integer('base_cycle_days'),
+  jobStartAt: timestamp('job_start_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  status: varchar('status', { length: 50 }).default('pending'), // pending/running/done
+  metadata: json('metadata')
+});
+
+// Job steps table for tracking individual steps in simulation jobs
+export const jobSteps = pgTable('job_steps', {
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+  jobId: integer('job_id').notNull().references(() => jobs.id, { onDelete: 'cascade' }),
+  stepIndex: integer('step_index'),
+  templateDay: integer('template_day'),
+  scaledDay: integer('scaled_day'),
+  scheduledAt: timestamp('scheduled_at'),
+  typeOfAction: varchar('type_of_action', { length: 255 }),
+  recordType: varchar('record_type', { length: 255 }),
+  recordIdTpl: text('record_id_tpl'),
+  associationsTpl: json('associations_tpl'),
+  originalSource: text('original_source'),
+  actionTpl: json('action_tpl'),
+  reasonTpl: text('reason_tpl'),
+  status: varchar('status', { length: 50 }),
+  result: json('result')
+});
+
 // Note: Simulation execution tables removed (scheduledJobs, cachedPersonas, hubspotRecords, hubspotAssociations)
-// Only configuration storage remains
+// Only configuration storage remains, plus new jobs/jobSteps tables for job tracking
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
@@ -92,17 +128,33 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   }),
 }));
 
-export const simulationsRelations = relations(simulations, ({ one }) => ({
+export const simulationsRelations = relations(simulations, ({ one, many }) => ({
   user: one(users, {
     fields: [simulations.userId],
     references: [users.id],
   }),
+  jobs: many(jobs),
 }));
 
 export const apiTokensRelations = relations(apiTokens, ({ one }) => ({
   user: one(users, {
     fields: [apiTokens.userId],
     references: [users.id],
+  }),
+}));
+
+export const jobsRelations = relations(jobs, ({ one, many }) => ({
+  simulation: one(simulations, {
+    fields: [jobs.simulationId],
+    references: [simulations.id],
+  }),
+  jobSteps: many(jobSteps),
+}));
+
+export const jobStepsRelations = relations(jobSteps, ({ one }) => ({
+  job: one(jobs, {
+    fields: [jobSteps.jobId],
+    references: [jobs.id],
   }),
 }));
 
@@ -117,6 +169,10 @@ export type ApiToken = typeof apiTokens.$inferSelect;
 export type InsertApiToken = typeof apiTokens.$inferInsert;
 export type PlayerTier = typeof playerTiers.$inferSelect;
 export type InsertPlayerTier = typeof playerTiers.$inferInsert;
+export type Job = typeof jobs.$inferSelect;
+export type InsertJob = typeof jobs.$inferInsert;
+export type JobStep = typeof jobSteps.$inferSelect;
+export type InsertJobStep = typeof jobSteps.$inferInsert;
 
 // Zod schemas with passcode validation
 export const insertUserSchema = createInsertSchema(users).omit({ 
@@ -157,5 +213,16 @@ export const insertPlayerTierSchema = createInsertSchema(playerTiers).omit({
   createdAt: true 
 });
 export type InsertPlayerTierType = z.infer<typeof insertPlayerTierSchema>;
+
+export const insertJobSchema = createInsertSchema(jobs).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertJobType = z.infer<typeof insertJobSchema>;
+
+export const insertJobStepSchema = createInsertSchema(jobSteps).omit({ 
+  id: true 
+});
+export type InsertJobStepType = z.infer<typeof insertJobStepSchema>;
 
 // Note: Execution-related schemas removed (ScheduledJob, CachedPersona, HubSpotRecord, HubSpotAssociation)
