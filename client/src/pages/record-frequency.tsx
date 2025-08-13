@@ -128,7 +128,7 @@ export default function RecordFrequency() {
 
         <style>{`
           .title {
-            color: #e8e8e8;
+            color: #6c7b7f;
             font-size: 32px;
             font-weight: bold;
             text-align: center;
