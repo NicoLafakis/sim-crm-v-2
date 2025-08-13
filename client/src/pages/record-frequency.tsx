@@ -116,7 +116,7 @@ export default function RecordFrequency() {
          }}>
 
       <div className="simulation-container" style={{
-        background: '#1a1f2e',
+        background: '#6c7b7f',
         border: '2px solid #0f1419',
         padding: '20px',
         width: '1000px',
@@ -239,16 +239,16 @@ export default function RecordFrequency() {
           }
 
           .slider-value {
-            color: #e8e8e8;
+            color: #2d3e2d;
             font-size: 20px;
             font-weight: bold;
             margin-bottom: 12px;
             min-height: 24px;
-            text-shadow: 0 0 5px rgba(232, 232, 232, 0.5);
+            text-shadow: 0 0 5px rgba(45, 62, 45, 0.5);
           }
 
           .slider-label {
-            color: #e8e8e8;
+            color: #2d3e2d;
             font-size: 14px;
             text-align: center;
             margin-top: 12px;
@@ -435,21 +435,21 @@ export default function RecordFrequency() {
 
           .start-button {
             width: 100%;
-            background: #4ade80;
-            color: #1a1f2e;
-            border: 2px solid #22c55e;
+            background: #8b0000;
+            color: #e8e8e8;
+            border: 2px solid #8b0000;
             padding: 15px;
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
-            box-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+            box-shadow: 0 0 20px rgba(139, 0, 0, 0.3);
             letter-spacing: 1px;
           }
 
           .start-button:hover {
-            background: #22c55e;
-            box-shadow: 0 0 30px rgba(74, 222, 128, 0.5);
+            background: #a50000;
+            box-shadow: 0 0 30px rgba(139, 0, 0, 0.5);
             transform: translateY(-2px);
           }
 
