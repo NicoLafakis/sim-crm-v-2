@@ -26,6 +26,25 @@ interface CsvRow {
 let jobRunnerInterval: NodeJS.Timeout | null = null;
 
 /**
+ * Determine outcome based on industry-specific win/loss rates
+ */
+function determineOutcome(industry: string, requestedOutcome?: string): 'won' | 'lost' {
+  // If outcome is explicitly requested, use it
+  if (requestedOutcome === 'won' || requestedOutcome === 'lost') {
+    return requestedOutcome;
+  }
+  
+  // Apply industry-specific win/loss rates
+  if (industry?.toLowerCase() === 'ecommerce') {
+    // 75% win rate, 25% loss rate for E-commerce
+    return Math.random() < 0.75 ? 'won' : 'lost';
+  }
+  
+  // Default 50/50 for other industries
+  return Math.random() < 0.5 ? 'won' : 'lost';
+}
+
+/**
  * Schedule a simulation job by reading CSV template, computing scaling, and inserting job/steps
  */
 export async function scheduleSimulationJob(

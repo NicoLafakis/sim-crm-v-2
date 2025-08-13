@@ -8,6 +8,23 @@ import OpenAI from "openai";
 // Initialize OpenAI client
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Determine outcome based on industry-specific win/loss rates
+function determineOutcome(industry: string, requestedOutcome?: string): 'won' | 'lost' {
+  // If outcome is explicitly requested, use it
+  if (requestedOutcome === 'won' || requestedOutcome === 'lost') {
+    return requestedOutcome;
+  }
+  
+  // Apply industry-specific win/loss rates
+  if (industry?.toLowerCase() === 'ecommerce') {
+    // 75% win rate, 25% loss rate for E-commerce
+    return Math.random() < 0.75 ? 'won' : 'lost';
+  }
+  
+  // Default 50/50 for other industries
+  return Math.random() < 0.5 ? 'won' : 'lost';
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Auth routes
@@ -207,8 +224,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User or session not found" });
       }
       
-      // Extract outcome and acceleratorDays from settings
-      const outcome = settings.outcome || 'won'; // Default to 'won' if not specified
+      // Extract outcome and acceleratorDays from settings with industry-specific logic
+      const industry = settings.industry || session.selectedIndustry || 'business';
+      const requestedOutcome = settings.outcome; // May be undefined for random assignment
       const baseCycleDays = 30; // Base cycle is 30 days from CSV template
       const acceleratorDays = settings.acceleratorDays || baseCycleDays; // Default to base cycle
       
@@ -239,6 +257,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       try {
+        // Determine final outcome using industry-specific rates
+        const outcome = determineOutcome(industry, requestedOutcome);
+        
+        console.log(`Outcome determination: Industry=${industry}, Requested=${requestedOutcome}, Final=${outcome}`);
+        
         // Schedule simulation job using the orchestrator
         const jobResult = await scheduleSimulationJob(simulation, outcome, acceleratorDays);
         
