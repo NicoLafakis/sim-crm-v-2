@@ -18,9 +18,8 @@ export default function RecordFrequency() {
   const [distributionWeights, setDistributionWeights] = useState(false);
   const [timeSpan, setTimeSpan] = useState('90 days');
   
-  // New outcome and accelerator settings
+  // New outcome setting - accelerator days now comes from timeSpan
   const [outcome, setOutcome] = useState('balanced'); // balanced, aggressive_growth, market_penetration
-  const [acceleratorDays, setAcceleratorDays] = useState(7); // Days to accelerate execution
   
   const labels = ['Contacts', 'Companies', 'Deals', 'Tickets', 'Notes'];
   const disabledLabels = ['Tasks', 'Calls'];
@@ -65,17 +64,19 @@ export default function RecordFrequency() {
 
     const totalRecords = values.reduce((a, b) => a + b, 0);
     
-    // Convert timeSpan to duration_days
+    // Convert timeSpan to duration_days and use as accelerator days
     const getDurationDays = (timeSpan: string): number => {
       const numericValue = parseInt(timeSpan.split(' ')[0]);
       return numericValue;
     };
 
+    const acceleratorDays = getDurationDays(timeSpan);
+
     // Build the simulation settings for backend API
     const simulationSettings = {
       theme: session?.selectedTheme || "generic",
       industry: session?.selectedIndustry || "business", 
-      duration_days: getDurationDays(timeSpan),
+      duration_days: acceleratorDays,
       timeSpan: timeSpan,
       outcome: outcome,
       acceleratorDays: acceleratorDays,
@@ -644,13 +645,22 @@ export default function RecordFrequency() {
               color: '#e8e8e8',
               border: '1px solid #e8e8e8'
             }}>
-              Time Span sets the total duration for CRM simulation. Records are distributed evenly across this period. Example: 30 contacts over 30 days = 1 contact per day.
+              Time Span sets both the simulation duration AND accelerator days. Records are distributed across this period, and execution is accelerated to this timeframe. Example: 30 days = 30-day simulation compressed into accelerated execution.
             </div>
           </div>
         </div>
 
         {/* Outcome and Accelerator Settings */}
-        <div className="outcome-accelerator-container">
+        <div className="outcome-accelerator-container" style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          margin: '20px 0',
+          padding: '15px',
+          background: '#2d3e2d',
+          border: '2px solid #e8e8e8',
+          borderRadius: '8px'
+        }}>
           <div className="outcome-section">
             <label className="outcome-label">Outcome Focus:</label>
             <div className="outcome-selector">
@@ -679,16 +689,19 @@ export default function RecordFrequency() {
           </div>
 
           <div className="accelerator-section">
-            <label className="accelerator-label">Accelerator (days):</label>
-            <input
-              type="number"
-              className="accelerator-input"
-              value={acceleratorDays}
-              onChange={(e) => setAcceleratorDays(Math.max(1, Math.min(30, parseInt(e.target.value) || 7)))}
-              min="1"
-              max="30"
-              data-testid="input-accelerator-days"
-            />
+            <label className="accelerator-label">Accelerator: {timeSpan.split(' ')[0]} days</label>
+            <div className="accelerator-display" style={{
+              color: '#e8e8e8',
+              fontSize: '14px',
+              fontFamily: 'Quantico',
+              background: '#2d3e2d',
+              border: '2px solid #e8e8e8',
+              padding: '6px 12px',
+              textAlign: 'center',
+              minWidth: '80px'
+            }}>
+              {timeSpan.split(' ')[0]}
+            </div>
           </div>
         </div>
 
