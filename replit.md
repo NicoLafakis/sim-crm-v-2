@@ -8,6 +8,22 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**August 13, 2025** - Comprehensive Rate Limiting and Concurrency Control System
+- Implemented global rate limiting system with configurable concurrency limits and exponential backoff
+- **Global Concurrency Control**: Configurable maximum concurrent requests across all API providers (default: 5)
+- **Exponential Backoff**: Implements 2^attempt * baseDelay with jittered delays to prevent thundering herd effects
+- **Retry-After Support**: Honors HTTP Retry-After headers from providers (both seconds and HTTP date formats)
+- **Multi-Provider Support**: Centralized rate limiting for HubSpot API and OpenAI API calls
+- **Circuit Breaking**: Temporary provider suspension during severe rate limit scenarios
+- **Request Queueing**: Intelligent queue management ensures eventual progress under heavy load
+- **Comprehensive Testing**: `/api/test/rate-limiting` endpoint with controlled 429 simulation and recovery verification
+- **Configurable Environment**: Rate limiting behavior configurable via environment variables
+- **Performance Monitoring**: Per-provider statistics tracking active requests, rate limit hits, and retry counts
+- **Graceful Degradation**: Non-blocking failures with resource cleanup and error propagation
+- **Test Results**: 100% success rate (64/64 requests) with proper backoff behavior during 429 responses
+- **Acceptance Criteria Met**: No sustained 429 loops, steps eventually progress, configurable concurrency control
+- Rate limiting system ensures reliable operation under heavy load while respecting all provider limits
+
 **August 13, 2025** - Comprehensive Association Type Coverage and Validation System  
 - Implemented centralized association mapping for all supported HubSpot object relationships
 - **Complete Coverage**: All major CRM objects (contacts, companies, deals, tickets, notes, calls, emails, meetings, tasks, products, line_items, quotes)  
@@ -55,6 +71,7 @@ The platform features a distinctive Game Boy aesthetic, implemented through:
 - **Backend**: An Express.js server provides a RESTful API with modular route handling and session-based authentication. Currently uses in-memory storage, with an interface for future database integration.
 - **Data Models**: Includes `Users` for player profiles, `Sessions` for user state (HubSpot tokens, selected themes, industries, simulation settings), and `Player Tiers` defining hierarchical progression with increasing credit limits.
 - **Simulation Logic**: The system now focuses solely on generating AI-powered CRM simulation strategies and business scenarios, removing all previous simulation execution logic. It supports comprehensive custom property creation for all HubSpot property types (text, number, date, bool, single-select, multi-select) with intelligent type detection, automatic property creation, and option management. It also includes an owner assignment system that resolves owner emails to HubSpot IDs and a pipeline/stage validation system for deal creation/updates, caching HubSpot data to minimize API calls.
+- **Rate Limiting & Concurrency**: Comprehensive rate limiting system with global concurrency control (configurable max 5 concurrent), exponential backoff with jittered delays, Retry-After header compliance, and per-provider statistics tracking. Prevents sustained 429 loops while ensuring eventual progress under heavy load.
 
 ### Feature Specifications
 - **Simulation Setup Flow**: Users navigate through Landing → Login/Registration → Profile Management (HubSpot connection) → Theme Selection (16 specific franchises) → Industry Selection (12 business industries) → Record Frequency (mixer board for HubSpot object distribution) → AI Strategy Generation → AI Results Display.

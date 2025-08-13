@@ -282,42 +282,62 @@ Please provide a detailed simulation strategy with realistic business scenarios,
 
         let response;
         try {
-          // Primary model: gpt-5-nano
-          response = await openai.chat.completions.create({
-            model: "gpt-5-nano",
-            messages: [
-              {
-                role: "system",
-                content: "You are a CRM simulation expert. Generate realistic business simulation strategies and data plans. Respond with valid JSON only."
-              },
-              {
-                role: "user", 
-                content: prompt
-              }
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.7,
-            max_tokens: 2000
+          // Primary model: gpt-5-nano with rate limiting
+          const { rateLimiter } = await import('./rate-limiter');
+          response = await rateLimiter.executeWithRateLimit('openai', async () => {
+            return await openai.chat.completions.create({
+              model: "gpt-5-nano",
+              messages: [
+                {
+                  role: "system",
+                  content: "You are a CRM simulation expert. Generate realistic business simulation strategies and data plans. Respond with valid JSON only."
+                },
+                {
+                  role: "user", 
+                  content: prompt
+                }
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.7,
+              max_tokens: 2000
+            });
+          }, {
+            onRetry: (attempt, error) => {
+              console.log(`🔄 OpenAI API retry ${attempt + 1} for gpt-5-nano simulation: ${error.message}`);
+            },
+            onRateLimit: (delayMs) => {
+              console.log(`🚦 OpenAI simulation rate limit triggered. Backing off for ${delayMs}ms`);
+            }
           });
         } catch (primaryError) {
           console.log('Primary model gpt-5-nano failed, trying backup model gpt-4.1-nano:', primaryError);
           
-          // Backup model: gpt-4.1-nano
-          response = await openai.chat.completions.create({
-            model: "gpt-4.1-nano",
-            messages: [
-              {
-                role: "system",
-                content: "You are a CRM simulation expert. Generate realistic business simulation strategies and data plans. Respond with valid JSON only."
-              },
-              {
-                role: "user", 
-                content: prompt
-              }
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.7,
-            max_tokens: 2000
+          // Backup model: gpt-4.1-nano with rate limiting
+          const { rateLimiter } = await import('./rate-limiter');
+          response = await rateLimiter.executeWithRateLimit('openai', async () => {
+            return await openai.chat.completions.create({
+              model: "gpt-4.1-nano",
+              messages: [
+                {
+                  role: "system",
+                  content: "You are a CRM simulation expert. Generate realistic business simulation strategies and data plans. Respond with valid JSON only."
+                },
+                {
+                  role: "user", 
+                  content: prompt
+                }
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.7,
+              max_tokens: 2000
+            });
+          }, {
+            onRetry: (attempt, error) => {
+              console.log(`🔄 OpenAI API retry ${attempt + 1} for gpt-4.1-nano simulation: ${error.message}`);
+            },
+            onRateLimit: (delayMs) => {
+              console.log(`🚦 OpenAI simulation fallback rate limit triggered. Backing off for ${delayMs}ms`);
+            }
           });
         }
 
@@ -509,6 +529,70 @@ Please provide a detailed simulation strategy with realistic business scenarios,
       console.error("Clear cache error:", error);
       res.status(500).json({ 
         message: "Failed to clear pipeline cache", 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // Test endpoint for rate limiting and concurrency control
+  app.get('/api/test/rate-limiting', async (req, res) => {
+    try {
+      const { rateLimitTester } = await import('./rate-limit-testing');
+      const { rateLimiter } = await import('./rate-limiter');
+      
+      // Run comprehensive rate limit test
+      const testResults = await rateLimitTester.runComprehensiveTest();
+      
+      res.json({
+        message: 'Rate limiting test completed',
+        ...testResults,
+        rateLimiterConfig: rateLimiter.getConfig(),
+        testStatus: rateLimitTester.getSimulationStatus()
+      });
+      
+    } catch (error) {
+      console.error("Rate limiting test error:", error);
+      res.status(500).json({ 
+        message: "Rate limiting test failed", 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // Test endpoint for simulating 429 responses on demand
+  app.post('/api/test/simulate-rate-limits', async (req, res) => {
+    try {
+      const { rateLimitTester } = await import('./rate-limit-testing');
+      const { 
+        everyNthRequest = 3, 
+        durationMs = 30000, 
+        providers = ['hubspot', 'openai'],
+        testRetryAfter = true 
+      } = req.body;
+      
+      rateLimitTester.enableSimulation({
+        simulateRateLimitEveryNth: everyNthRequest,
+        simulateDuration: durationMs,
+        providers,
+        testRetryAfterHeader: testRetryAfter,
+        concurrentRequests: 5
+      });
+      
+      res.json({
+        message: 'Rate limit simulation enabled',
+        config: {
+          everyNthRequest,
+          durationMs,
+          providers,
+          testRetryAfter
+        },
+        status: rateLimitTester.getSimulationStatus()
+      });
+      
+    } catch (error) {
+      console.error("Rate limit simulation error:", error);
+      res.status(500).json({ 
+        message: "Failed to enable rate limit simulation", 
         error: error instanceof Error ? error.message : 'Unknown error' 
       });
     }

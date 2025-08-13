@@ -3,6 +3,7 @@ import { Simulation, InsertJob, InsertJobStep } from '../shared/schema';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import OpenAI from 'openai';
+import { rateLimiter } from './rate-limiter';
 
 // Initialize OpenAI client
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -623,42 +624,60 @@ async function generateRealisticData(actionType: string, theme: string, industry
   try {
     const prompt = createLLMPrompt(actionType, theme, industry, actionTemplate);
     
-    // Try primary model first
+    // Try primary model first with rate limiting
     let response;
     try {
-      response = await openai.chat.completions.create({
-        model: "gpt-5-nano",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7
+      response = await rateLimiter.executeWithRateLimit('openai', async () => {
+        return await openai.chat.completions.create({
+          model: "gpt-5-nano",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.7
+        });
+      }, {
+        onRetry: (attempt, error) => {
+          console.log(`🔄 OpenAI API retry ${attempt + 1} for gpt-5-nano: ${error.message}`);
+        },
+        onRateLimit: (delayMs) => {
+          console.log(`🚦 OpenAI rate limit triggered. Backing off for ${delayMs}ms`);
+        }
       });
     } catch (primaryError: any) {
       console.warn(`Primary model gpt-5-nano failed: ${primaryError.message}. Trying fallback model.`);
       
-      // Fallback to secondary model
-      response = await openai.chat.completions.create({
-        model: "gpt-4.1-nano",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7
+      // Fallback to secondary model with rate limiting
+      response = await rateLimiter.executeWithRateLimit('openai', async () => {
+        return await openai.chat.completions.create({
+          model: "gpt-4.1-nano",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.7
+        });
+      }, {
+        onRetry: (attempt, error) => {
+          console.log(`🔄 OpenAI API retry ${attempt + 1} for gpt-4.1-nano: ${error.message}`);
+        },
+        onRateLimit: (delayMs) => {
+          console.log(`🚦 OpenAI fallback rate limit triggered. Backing off for ${delayMs}ms`);
+        }
       });
     }
 
@@ -1835,31 +1854,46 @@ function extractRecordId(template: string): string {
 }
 
 /**
- * Make HTTP request to HubSpot API
+ * Make HTTP request to HubSpot API with rate limiting
  */
 async function makeHubSpotRequest(method: string, endpoint: string, data: any, token: string): Promise<any> {
-  const url = `https://api.hubapi.com${endpoint}`;
-  
-  const options: RequestInit = {
-    method,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+  return rateLimiter.executeWithRateLimit('hubspot', async () => {
+    const url = `https://api.hubapi.com${endpoint}`;
+    
+    const options: RequestInit = {
+      method,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+    
+    if (data && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
+      options.body = JSON.stringify(data);
     }
-  };
-  
-  if (data && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
-    options.body = JSON.stringify(data);
-  }
-  
-  const response = await fetch(url, options);
-  
-  if (!response.ok) {
-    const errorData = await response.text();
-    throw new Error(`HubSpot API error (${response.status}): ${errorData}`);
-  }
-  
-  return await response.json();
+    
+    const response = await fetch(url, options);
+    
+    if (!response.ok) {
+      const errorData = await response.text();
+      
+      // Create error with proper status and headers for rate limiter
+      const error = new Error(`HubSpot API error (${response.status}): ${errorData}`);
+      (error as any).status = response.status;
+      (error as any).headers = Object.fromEntries(response.headers.entries());
+      
+      throw error;
+    }
+    
+    return await response.json();
+  }, {
+    onRetry: (attempt, error) => {
+      console.log(`🔄 HubSpot API retry ${attempt + 1} for ${method} ${endpoint}: ${error.message}`);
+    },
+    onRateLimit: (delayMs) => {
+      console.log(`🚦 HubSpot rate limit triggered. Backing off for ${delayMs}ms`);
+    }
+  });
 }
 
 /**
