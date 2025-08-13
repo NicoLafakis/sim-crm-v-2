@@ -28,7 +28,13 @@ Preferred communication style: Simple, everyday language.
 - Enhanced API response to include jobId, stepsCount, outcome, and acceleratorDays
 - Removed execution disabled notes - simulation execution now fully active through orchestrator
 - LLM models updated to gpt-5-nano (primary) with gpt-4.1-nano fallback for cost optimization
-- Verification testing confirms LLM integration, caching, CRM validation, and API orchestrator integration work correctly
+- Added industry-specific CSV template support with new Ecommerce Closed Won/Lost cycles
+- Enhanced orchestrator with intelligent CSV template selection based on industry and outcome
+- Implemented proper CSV parsing for quoted fields containing commas in action descriptions
+- Ecommerce Won cycle: 21 steps spanning 85-90 days with post-sale onboarding
+- Ecommerce Lost cycle: 20 steps spanning 68 days without fulfillment processes
+- Fallback system ensures universal template is used for non-Ecommerce industries
+- Verification testing confirms LLM integration, caching, CRM validation, API orchestrator integration, and industry-specific templates work correctly
 
 **August 13, 2025** - Complete Unified Color Palette Implementation
 - Applied comprehensive color palette update across ALL pages (excluding login/signup as requested)

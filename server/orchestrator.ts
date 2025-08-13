@@ -34,14 +34,38 @@ export async function scheduleSimulationJob(
   acceleratorDays: number
 ): Promise<{ jobId: number; stepsCount: number }> {
   try {
-    // Read the appropriate CSV template based on outcome
-    const csvPath = join(process.cwd(), 'attached_assets', `universal_30day_timing_key.csv`);
+    // Determine which CSV template to use based on industry and outcome
+    let csvFileName = 'universal_30day_timing_key.csv'; // Default
+    
+    if (simulation.industry?.toLowerCase() === 'ecommerce') {
+      if (outcome?.toLowerCase() === 'won') {
+        csvFileName = 'Ecommerce_Cycle-ClosedWon_1755104746839.csv';
+      } else if (outcome?.toLowerCase() === 'lost') {
+        csvFileName = 'Ecommerce_Cycle-ClosedLost_1755104746839.csv';
+      }
+    }
+    
+    // Load industry-specific CSV template
+    const csvPath = join(process.cwd(), 'attached_assets', csvFileName);
     let csvContent: string;
+    
+    console.log(`Loading CSV template: ${csvFileName} for industry: ${simulation.industry}, outcome: ${outcome}`);
     
     try {
       csvContent = readFileSync(csvPath, 'utf-8');
     } catch (fileError) {
-      throw new Error(`CSV template file not found at ${csvPath}. Please ensure the template file exists.`);
+      console.error(`Error reading CSV template ${csvFileName}:`, fileError);
+      
+      // Fallback to universal template if industry-specific template fails
+      try {
+        console.log('Falling back to universal template');
+        const fallbackPath = join(process.cwd(), 'attached_assets', 'universal_30day_timing_key.csv');
+        csvContent = readFileSync(fallbackPath, 'utf-8');
+        csvFileName = 'universal_30day_timing_key.csv';
+      } catch (fallbackError) {
+        console.error('Error reading fallback CSV template:', fallbackError);
+        throw new Error('No CSV template file found');
+      }
     }
     
     // Parse CSV content (skip header row)
@@ -49,28 +73,55 @@ export async function scheduleSimulationJob(
     const headers = lines[0].split(',').map(h => h.trim());
     const rows: CsvRow[] = [];
     
+    console.log(`CSV has ${lines.length} lines including header`);
+    
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
-      if (values.length >= headers.length) {
+      // Handle CSV parsing with quoted fields that may contain commas
+      const line = lines[i];
+      const values: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let j = 0; j < line.length; j++) {
+        const char = line[j];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      values.push(current.trim()); // Don't forget the last value
+      
+      if (values.length >= 7) { // Ensure we have at least the required columns
         rows.push({
           templateDay: parseInt(values[0]) || 0,
-          typeOfAction: values[1] || '',
-          recordType: values[2] || '',
-          recordIdTpl: values[3] || '',
-          associationsTpl: values[4] || '',
-          originalSource: values[5] || '',
-          actionTpl: values[6] || '',
-          reasonTpl: values[7] || ''
+          typeOfAction: values[1]?.replace(/"/g, '') || '',
+          recordType: values[2]?.replace(/"/g, '') || '',
+          recordIdTpl: values[3]?.replace(/"/g, '') || '',
+          associationsTpl: values[4]?.replace(/"/g, '') || '',
+          originalSource: values[5]?.replace(/"/g, '') || '',
+          actionTpl: values[6]?.replace(/"/g, '') || '',
+          reasonTpl: values[7]?.replace(/"/g, '') || ''
         });
       }
     }
+    
+    console.log(`Parsed ${rows.length} rows from CSV template`);
 
-    // Filter rows based on outcome - include universal rows and outcome-specific rows
-    const filteredRows = rows.filter(row => 
-      row.originalSource === 'universal' || 
-      row.originalSource === outcome ||
-      row.originalSource.toLowerCase().includes(outcome)
-    );
+    // For Ecommerce templates, use all rows as they are outcome-specific already
+    // For universal template, filter by outcome
+    const filteredRows = csvFileName.includes('Ecommerce') 
+      ? rows  // Use all rows for Ecommerce templates
+      : rows.filter(row => 
+          row.originalSource === 'universal' || 
+          row.originalSource === outcome ||
+          row.originalSource.toLowerCase().includes(outcome)
+        );
+    
+    console.log(`Filtered to ${filteredRows.length} rows for execution`);
     
     // Compute scaling factor
     const baseCycleDays = 30; // Default 30-day cycle
@@ -91,7 +142,7 @@ export async function scheduleSimulationJob(
       metadata: {
         scalingFactor,
         originalRowCount: filteredRows.length,
-        csvSource: 'universal_30day_timing_key.csv'
+        csvSource: csvFileName
       }
     };
 
