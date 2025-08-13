@@ -520,7 +520,7 @@ export default function RecordFrequency() {
 
         <div className="title">Record Frequency</div>
 
-        <div className="header-row">
+        <div className="header-row text-[18px]">
           <div className="player-info">Player: {localStorage.getItem('username') || 'Guest'}</div>
           <div className="records-info">Records: {recordsDisplay}</div>
         </div>
