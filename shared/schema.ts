@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { integer, pgTable, text, timestamp, varchar, boolean, json } from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, timestamp, varchar, boolean, json, jsonb, serial } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
@@ -89,7 +89,8 @@ export const jobs = pgTable('jobs', {
   jobStartAt: timestamp('job_start_at'),
   createdAt: timestamp('created_at').defaultNow(),
   status: varchar('status', { length: 50 }).default('pending'), // pending/running/done
-  metadata: json('metadata')
+  metadata: json('metadata'),
+  context: json('context').$type<Record<string, string>>() // Record ID resolution context
 });
 
 // Job steps table for tracking individual steps in simulation jobs

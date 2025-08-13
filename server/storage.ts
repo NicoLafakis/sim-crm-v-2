@@ -72,6 +72,10 @@ export interface IStorage {
   getDueJobSteps(scheduledAt: Date): Promise<JobStep[]>;
   updateJobStepStatus(stepId: number, status: string, result?: any): Promise<JobStep>;
   getJobById(jobId: number): Promise<Job | undefined>;
+  
+  // Job context operations for record ID resolution
+  getJobContext(jobId: number): Promise<Record<string, string>>;
+  updateJobContext(jobId: number, context: Record<string, string>): Promise<Job>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -340,6 +344,20 @@ export class DatabaseStorage implements IStorage {
   async getJobById(jobId: number): Promise<Job | undefined> {
     const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId));
     return job;
+  }
+
+  async getJobContext(jobId: number): Promise<Record<string, string>> {
+    const job = await this.getJobById(jobId);
+    return job?.context as Record<string, string> || {};
+  }
+
+  async updateJobContext(jobId: number, context: Record<string, string>): Promise<Job> {
+    const [result] = await db
+      .update(jobs)
+      .set({ context })
+      .where(eq(jobs.id, jobId))
+      .returning();
+    return result;
   }
 }
 

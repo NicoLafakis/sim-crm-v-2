@@ -237,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         theme: settings.theme || session.selectedTheme || 'generic',
         industry: settings.industry || session.selectedIndustry || 'business',
         frequency: settings.timeSpan || '1d',
-        config: { ...settings, outcome, acceleratorDays },
+        config: { ...settings, acceleratorDays },
         status: 'processing',
         startedAt: new Date(),
         creditsUsed: 0
@@ -245,14 +245,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update session with simulation config
       await storage.updateSession(userId, {
-        simulationConfig: { ...settings, outcome, acceleratorDays }
+        simulationConfig: { ...settings, acceleratorDays }
       });
       
       console.log('Simulation started with orchestrator job scheduling:', {
         simulationId: simulation.id,
         theme: settings.theme,
         industry: settings.industry,
-        outcome,
         acceleratorDays
       });
       

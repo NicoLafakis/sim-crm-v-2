@@ -37,7 +37,10 @@ Preferred communication style: Simple, everyday language.
 - Implemented industry-specific win/loss rate system: E-commerce 75% win / 25% loss, other industries 50/50
 - Enhanced outcome determination logic with explicit outcome request support and random assignment
 - Job runner automatically started with server initialization for continuous simulation processing
-- Verification testing confirms LLM integration, caching, CRM validation, API orchestrator integration, industry-specific templates, and win/loss rate distribution work correctly
+- Implemented Record ID Resolution System: added job context JSONB column to store recordTpl -> actualCrmId mappings
+- Enhanced job step execution with template reference resolution before API calls
+- Added automatic storage of created record IDs for linking subsequent simulation steps
+- Verification testing confirms LLM integration, caching, CRM validation, API orchestrator integration, industry-specific templates, win/loss rate distribution, and record ID resolution work correctly
 
 **August 13, 2025** - Complete Unified Color Palette Implementation
 - Applied comprehensive color palette update across ALL pages (excluding login/signup as requested)

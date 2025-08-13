@@ -216,6 +216,62 @@ export async function scheduleSimulationJob(
 }
 
 /**
+ * Resolve template references in recordIdTpl and associationsTpl using job context
+ */
+async function resolveTemplateReferences(
+  jobId: number, 
+  recordIdTpl: string, 
+  associationsTpl: any
+): Promise<{ resolvedRecordId: string; resolvedAssociations: any }> {
+  // Get job context (mapping of template IDs to actual CRM IDs)
+  const context = await storage.getJobContext(jobId);
+  
+  // Resolve recordIdTpl
+  let resolvedRecordId = recordIdTpl;
+  if (recordIdTpl && context[recordIdTpl]) {
+    resolvedRecordId = context[recordIdTpl];
+    console.log(`✓ Resolved recordIdTpl "${recordIdTpl}" -> "${resolvedRecordId}"`);
+  }
+  
+  // Resolve associationsTpl - replace template references with actual IDs
+  let resolvedAssociations = associationsTpl;
+  if (associationsTpl && typeof associationsTpl === 'object') {
+    resolvedAssociations = JSON.parse(JSON.stringify(associationsTpl)); // Deep copy
+    
+    // Recursively resolve template references in associations
+    const resolveInObject = (obj: any): any => {
+      if (typeof obj === 'string' && context[obj]) {
+        console.log(`✓ Resolved association "${obj}" -> "${context[obj]}"`);
+        return context[obj];
+      } else if (typeof obj === 'object' && obj !== null) {
+        for (const key in obj) {
+          obj[key] = resolveInObject(obj[key]);
+        }
+      }
+      return obj;
+    };
+    
+    resolvedAssociations = resolveInObject(resolvedAssociations);
+  }
+  
+  return { resolvedRecordId, resolvedAssociations };
+}
+
+/**
+ * Store a newly created record ID in job context for future reference
+ */
+async function storeRecordIdInContext(
+  jobId: number, 
+  recordIdTpl: string, 
+  actualCrmId: string
+): Promise<void> {
+  const context = await storage.getJobContext(jobId);
+  context[recordIdTpl] = actualCrmId;
+  await storage.updateJobContext(jobId, context);
+  console.log(`💾 Stored in context: "${recordIdTpl}" -> "${actualCrmId}"`);
+}
+
+/**
  * Run due job steps by querying pending steps and executing their actions
  */
 export async function runDueJobSteps(): Promise<{ processed: number; successful: number; failed: number }> {
@@ -234,11 +290,30 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
         // Mark step as processing
         await storage.updateJobStepStatus(step.id, 'processing');
 
+        // Resolve template references before execution
+        const { resolvedRecordId, resolvedAssociations } = await resolveTemplateReferences(
+          step.jobId, 
+          step.recordIdTpl || '', 
+          step.associationsTpl
+        );
+        
+        // Create enhanced step with resolved references
+        const enhancedStep = {
+          ...step,
+          recordIdTpl: resolvedRecordId,
+          associationsTpl: resolvedAssociations
+        };
+
         // Execute the action based on step type
-        const result = await executeJobStepAction(step);
+        const result = await executeJobStepAction(enhancedStep);
         
         // Mark as completed with result
         if (result.success) {
+          // Store the created record ID in context for future steps
+          if (result.recordId && step.recordIdTpl && step.typeOfAction?.startsWith('create_')) {
+            await storeRecordIdInContext(step.jobId, step.recordIdTpl, result.recordId);
+          }
+          
           await storage.updateJobStepStatus(step.id, 'completed', result);
           successful++;
         } else {
