@@ -65,6 +65,12 @@ export interface IStorage {
   getUserTokens(userId: number): Promise<ApiToken[]>;
   createUserToken(tokenData: InsertApiToken): Promise<ApiToken>;
   deleteUserToken(tokenId: number): Promise<void>;
+
+  // Job operations
+  createJob(jobData: InsertJob): Promise<Job>;
+  createJobSteps(jobStepsData: InsertJobStep[]): Promise<JobStep[]>;
+  getDueJobSteps(scheduledAt: Date): Promise<JobStep[]>;
+  updateJobStepStatus(stepId: number, status: string, result?: any): Promise<JobStep>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -294,6 +300,40 @@ export class DatabaseStorage implements IStorage {
   
   async deleteUserToken(tokenId: number): Promise<void> {
     await db.delete(apiTokens).where(eq(apiTokens.id, tokenId));
+  }
+
+  // Job operations
+  async createJob(jobData: InsertJob): Promise<Job> {
+    const [job] = await db.insert(jobs).values(jobData).returning();
+    return job;
+  }
+
+  async createJobSteps(jobStepsData: InsertJobStep[]): Promise<JobStep[]> {
+    const insertedSteps = await db.insert(jobSteps).values(jobStepsData).returning();
+    return insertedSteps;
+  }
+
+  async getDueJobSteps(scheduledAt: Date): Promise<JobStep[]> {
+    const dueSteps = await db.select().from(jobSteps)
+      .where(and(
+        eq(jobSteps.status, 'pending'),
+        sql`${jobSteps.scheduledAt} <= ${scheduledAt}`
+      ))
+      .orderBy(jobSteps.scheduledAt);
+    return dueSteps;
+  }
+
+  async updateJobStepStatus(stepId: number, status: string, result?: any): Promise<JobStep> {
+    const updateData: Partial<JobStep> = { status };
+    if (result !== undefined) {
+      updateData.result = result;
+    }
+    
+    const [updatedStep] = await db.update(jobSteps)
+      .set(updateData)
+      .where(eq(jobSteps.id, stepId))
+      .returning();
+    return updatedStep;
   }
 }
 
