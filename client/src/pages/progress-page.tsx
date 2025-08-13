@@ -108,10 +108,10 @@ export default function ProgressPage() {
         {/* Simulations List */}
         <div className="space-y-4">
           {simulations?.length === 0 ? (
-            <Card className="border-2 text-white" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)' }}>
+            <Card className="border-2" style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000' }}>
               <CardContent className="p-8 text-center">
-                <div className="text-xl mb-4" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>NO AI STRATEGIES FOUND</div>
-                <div className="text-sm" style={{ color: 'rgb(180, 200, 120)' }}>Generate an AI strategy to see detailed CRM simulation plans here.</div>
+                <div className="text-xl mb-4" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>NO AI STRATEGIES FOUND</div>
+                <div className="text-sm" style={{ color: '#000000' }}>Generate an AI strategy to see detailed CRM simulation plans here.</div>
               </CardContent>
             </Card>
           ) : (
@@ -119,33 +119,33 @@ export default function ProgressPage() {
               const isExpanded = expandedRuns.has(simulation.id);
               
               return (
-                <Card key={simulation.id} className="border-2 text-white" style={{ backgroundColor: 'rgb(50, 100, 50)', borderColor: 'rgb(70, 140, 70)' }}>
+                <Card key={simulation.id} className="border-2" style={{ backgroundColor: '#e8e8e8', borderColor: '#6c7b7f', color: '#000000' }}>
                   <Collapsible>
                     <CollapsibleTrigger asChild onClick={() => toggleExpanded(simulation.id)}>
-                      <CardHeader className="cursor-pointer hover:bg-opacity-30" style={{ backgroundColor: 'rgba(70, 140, 70, 0.1)' }}>
+                      <CardHeader className="cursor-pointer" style={{ backgroundColor: '#e8e8e8' }}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
-                            <div className="w-3 h-3 rounded-full bg-blue-500" />
+                            <div className="w-3 h-3 rounded-full bg-red-800" />
                             <div>
-                              <CardTitle className="text-left text-xl" style={{ color: 'rgb(200, 220, 140)', fontFamily: 'var(--font-gameboy)' }}>
+                              <CardTitle className="text-left text-xl" style={{ color: '#1e3a5f', fontFamily: 'var(--font-gameboy)' }}>
                                 {simulation.name}
                               </CardTitle>
-                              <CardDescription className="text-left" style={{ color: 'rgb(180, 200, 120)', fontFamily: 'var(--font-mono)' }}>
+                              <CardDescription className="text-left" style={{ color: '#000000', fontFamily: 'var(--font-mono)' }}>
                                 {simulation.theme} • {simulation.industry} • {simulation.frequency}
                               </CardDescription>
                             </div>
                           </div>
                           <div className="flex items-center space-x-4">
-                            <Badge variant="secondary" className={`text-white font-mono ${
-                              simulation.status === 'completed' ? 'bg-green-500' : 
-                              simulation.status === 'processing' ? 'bg-yellow-500' :
-                              simulation.status === 'failed' ? 'bg-red-500' : 'bg-blue-500'
+                            <Badge variant="secondary" className={`font-mono ${
+                              simulation.status === 'completed' ? 'bg-green-500 text-white' : 
+                              simulation.status === 'processing' ? 'bg-yellow-500 text-white' :
+                              simulation.status === 'failed' ? 'bg-red-500 text-white' : 'bg-red-800 text-gray-300'
                             }`}>
                               {simulation.status === 'completed' ? 'AI COMPLETE' :
                                simulation.status === 'processing' ? 'PROCESSING' :
                                simulation.status === 'failed' ? 'FAILED' : 'CONFIGURED'}
                             </Badge>
-                            {isExpanded ? <ChevronUp /> : <ChevronDown />}
+                            <span style={{ color: '#000000' }}>{isExpanded ? <ChevronUp /> : <ChevronDown />}</span>
                           </div>
                         </div>
                       </CardHeader>
@@ -155,12 +155,19 @@ export default function ProgressPage() {
                       <CardContent className="pt-0">
                         <div className="space-y-4">
                           {/* Configuration Details */}
-                          <div className="grid grid-cols-2 gap-4 p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.3)' }}>
+                          <div className="grid grid-cols-2 gap-4 p-4 rounded" style={{ 
+                            backgroundColor: '#e8e8e8',
+                            backgroundImage: `
+                              linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
+                            `,
+                            backgroundSize: '16px 16px'
+                          }}>
                             <div>
-                              <div className="text-sm mb-2" style={{ fontFamily: 'var(--font-gameboy)', color: 'rgb(200, 220, 140)' }}>
+                              <div className="text-sm mb-2" style={{ fontFamily: 'var(--font-gameboy)', color: '#1e3a5f' }}>
                                 CONFIGURATION
                               </div>
-                              <div className="space-y-1 text-xs" style={{ color: 'rgb(180, 200, 120)' }}>
+                              <div className="space-y-1 text-xs" style={{ color: '#000000' }}>
                                 <div className="flex justify-between">
                                   <span>Theme:</span>
                                   <span className="font-mono">{simulation.theme}</span>
@@ -181,10 +188,10 @@ export default function ProgressPage() {
                             </div>
                             
                             <div>
-                              <div className="text-sm mb-2" style={{ fontFamily: 'var(--font-gameboy)', color: 'rgb(200, 220, 140)' }}>
+                              <div className="text-sm mb-2" style={{ fontFamily: 'var(--font-gameboy)', color: '#1e3a5f' }}>
                                 PLANNED RECORDS
                               </div>
-                              <div className="space-y-1 text-xs" style={{ color: 'rgb(180, 200, 120)' }}>
+                              <div className="space-y-1 text-xs" style={{ color: '#000000' }}>
                                 {simulation.config?.record_distribution && Object.entries(simulation.config.record_distribution).map(([type, count]) => (
                                   <div key={type} className="flex justify-between">
                                     <span className="capitalize">{type}:</span>
@@ -197,8 +204,15 @@ export default function ProgressPage() {
 
                           {/* AI Strategy Results */}
                           {simulation.config?.aiStrategy && (
-                            <div className="p-4 rounded" style={{ backgroundColor: 'rgba(70, 140, 70, 0.2)' }}>
-                              <div className="text-sm mb-3" style={{ fontFamily: 'var(--font-gameboy)', color: 'rgb(200, 220, 140)' }}>
+                            <div className="p-4 rounded" style={{ 
+                              backgroundColor: '#e8e8e8',
+                              backgroundImage: `
+                                linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
+                                linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
+                              `,
+                              backgroundSize: '16px 16px'
+                            }}>
+                              <div className="text-sm mb-3" style={{ fontFamily: 'var(--font-gameboy)', color: '#1e3a5f' }}>
                                 🤖 AI STRATEGY RESULTS
                               </div>
                               <div className="bg-gray-900 p-3 rounded text-xs font-mono text-green-400 max-h-64 overflow-y-auto">
@@ -217,6 +231,7 @@ export default function ProgressPage() {
                               onClick={() => deleteMutation.mutate(simulation.id)}
                               disabled={deleteMutation.isPending}
                               className="flex items-center space-x-1"
+                              style={{ backgroundColor: '#8b0000', borderColor: '#8b0000', color: '#9fb89f' }}
                             >
                               <Trash2 className="w-4 h-4" />
                               <span>Delete Strategy</span>
