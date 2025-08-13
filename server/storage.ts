@@ -13,13 +13,19 @@ import {
   InsertJob,
   JobStep,
   InsertJobStep,
+  HubspotPipeline,
+  InsertHubspotPipeline,
+  HubspotStage,
+  InsertHubspotStage,
   users,
   sessions,
   playerTiers,
   simulations,
   apiTokens,
   jobs,
-  jobSteps
+  jobSteps,
+  hubspotPipelines,
+  hubspotStages
 } from "../shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
@@ -76,6 +82,13 @@ export interface IStorage {
   // Job context operations for record ID resolution
   getJobContext(jobId: number): Promise<Record<string, string>>;
   updateJobContext(jobId: number, context: Record<string, string>): Promise<Job>;
+  
+  // Pipeline and stage operations
+  cacheHubspotPipelines(userId: number, pipelines: InsertHubspotPipeline[]): Promise<HubspotPipeline[]>;
+  cacheHubspotStages(stages: InsertHubspotStage[]): Promise<HubspotStage[]>;
+  getHubspotPipelines(userId: number, objectType: string): Promise<HubspotPipeline[]>;
+  getHubspotStages(pipelineId: number): Promise<HubspotStage[]>;
+  clearHubspotCache(userId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -358,6 +371,49 @@ export class DatabaseStorage implements IStorage {
       .where(eq(jobs.id, jobId))
       .returning();
     return result;
+  }
+
+  // Pipeline and stage operations
+  async cacheHubspotPipelines(userId: number, pipelines: InsertHubspotPipeline[]): Promise<HubspotPipeline[]> {
+    // Clear existing pipelines for this user first
+    await db.delete(hubspotPipelines).where(eq(hubspotPipelines.userId, userId));
+    
+    if (pipelines.length === 0) {
+      return [];
+    }
+    
+    const insertedPipelines = await db.insert(hubspotPipelines).values(pipelines).returning();
+    return insertedPipelines;
+  }
+
+  async cacheHubspotStages(stages: InsertHubspotStage[]): Promise<HubspotStage[]> {
+    if (stages.length === 0) {
+      return [];
+    }
+    
+    const insertedStages = await db.insert(hubspotStages).values(stages).returning();
+    return insertedStages;
+  }
+
+  async getHubspotPipelines(userId: number, objectType: string): Promise<HubspotPipeline[]> {
+    const pipelines = await db.select().from(hubspotPipelines)
+      .where(and(
+        eq(hubspotPipelines.userId, userId),
+        eq(hubspotPipelines.objectType, objectType)
+      ))
+      .orderBy(hubspotPipelines.displayOrder);
+    return pipelines;
+  }
+
+  async getHubspotStages(pipelineId: number): Promise<HubspotStage[]> {
+    const stages = await db.select().from(hubspotStages)
+      .where(eq(hubspotStages.pipelineId, pipelineId))
+      .orderBy(hubspotStages.displayOrder);
+    return stages;
+  }
+
+  async clearHubspotCache(userId: number): Promise<void> {
+    await db.delete(hubspotPipelines).where(eq(hubspotPipelines.userId, userId));
   }
 }
 

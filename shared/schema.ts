@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { integer, pgTable, text, timestamp, varchar, boolean, json, jsonb, serial } from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, timestamp, varchar, boolean, json, jsonb, serial, numeric } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
@@ -112,6 +112,30 @@ export const jobSteps = pgTable('job_steps', {
   result: json('result')
 });
 
+// HubSpot pipelines and stages cache tables
+export const hubspotPipelines = pgTable('hubspot_pipelines', {
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  hubspotId: varchar('hubspot_id', { length: 255 }).notNull(),
+  label: varchar('label', { length: 255 }).notNull(),
+  displayOrder: integer('display_order'),
+  objectType: varchar('object_type', { length: 50 }).notNull(), // deals, tickets, etc.
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const hubspotStages = pgTable('hubspot_stages', {
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+  pipelineId: integer('pipeline_id').notNull().references(() => hubspotPipelines.id, { onDelete: 'cascade' }),
+  hubspotId: varchar('hubspot_id', { length: 255 }).notNull(),
+  label: varchar('label', { length: 255 }).notNull(),
+  displayOrder: integer('display_order'),
+  probability: numeric('probability', { precision: 5, scale: 2 }), // Win probability percentage
+  isClosed: boolean('is_closed').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Note: Simulation execution tables removed (scheduledJobs, cachedPersonas, hubspotRecords, hubspotAssociations)
 // Only configuration storage remains, plus new jobs/jobSteps tables for job tracking
 
@@ -120,6 +144,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   simulations: many(simulations),
   apiTokens: many(apiTokens),
+  hubspotPipelines: many(hubspotPipelines),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -159,6 +184,21 @@ export const jobStepsRelations = relations(jobSteps, ({ one }) => ({
   }),
 }));
 
+export const hubspotPipelinesRelations = relations(hubspotPipelines, ({ one, many }) => ({
+  user: one(users, {
+    fields: [hubspotPipelines.userId],
+    references: [users.id],
+  }),
+  stages: many(hubspotStages),
+}));
+
+export const hubspotStagesRelations = relations(hubspotStages, ({ one }) => ({
+  pipeline: one(hubspotPipelines, {
+    fields: [hubspotStages.pipelineId],
+    references: [hubspotPipelines.id],
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -174,6 +214,10 @@ export type Job = typeof jobs.$inferSelect;
 export type InsertJob = typeof jobs.$inferInsert;
 export type JobStep = typeof jobSteps.$inferSelect;
 export type InsertJobStep = typeof jobSteps.$inferInsert;
+export type HubspotPipeline = typeof hubspotPipelines.$inferSelect;
+export type InsertHubspotPipeline = typeof hubspotPipelines.$inferInsert;
+export type HubspotStage = typeof hubspotStages.$inferSelect;
+export type InsertHubspotStage = typeof hubspotStages.$inferInsert;
 
 // Zod schemas with passcode validation
 export const insertUserSchema = createInsertSchema(users).omit({ 
@@ -225,5 +269,19 @@ export const insertJobStepSchema = createInsertSchema(jobSteps).omit({
   id: true 
 });
 export type InsertJobStepType = z.infer<typeof insertJobStepSchema>;
+
+export const insertHubspotPipelineSchema = createInsertSchema(hubspotPipelines).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertHubspotPipelineType = z.infer<typeof insertHubspotPipelineSchema>;
+
+export const insertHubspotStageSchema = createInsertSchema(hubspotStages).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertHubspotStageType = z.infer<typeof insertHubspotStageSchema>;
 
 // Note: Execution-related schemas removed (ScheduledJob, CachedPersona, HubSpotRecord, HubSpotAssociation)

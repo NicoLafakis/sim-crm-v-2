@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertSessionSchema } from "@shared/schema";
-import { scheduleSimulationJob } from "./orchestrator";
+import { scheduleSimulationJob, validateDealStage } from "./orchestrator";
 import OpenAI from "openai";
 
 // Initialize OpenAI client
@@ -469,6 +469,48 @@ Please provide a detailed simulation strategy with realistic business scenarios,
     } catch (error) {
       console.error("Update password error:", error);
       res.status(500).json({ message: "Failed to update password" });
+    }
+  });
+
+  // Test route for pipeline validation
+  app.post("/api/test/pipeline-validation", async (req, res) => {
+    try {
+      const { userId, dealData } = req.body;
+      
+      // Get user's HubSpot token
+      const session = await storage.getSession(userId);
+      if (!session?.hubspotToken) {
+        return res.status(400).json({ message: "HubSpot token not found" });
+      }
+      
+      // Use imported validation function
+      const validation = await validateDealStage(userId, dealData, session.hubspotToken);
+      
+      res.json({
+        validation,
+        message: validation.isValid ? "Validation passed" : "Validation failed"
+      });
+    } catch (error) {
+      console.error("Pipeline validation test error:", error);
+      res.status(500).json({ 
+        message: "Pipeline validation test failed", 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // Clear pipeline cache for testing
+  app.post("/api/test/clear-pipeline-cache", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      await storage.clearHubspotCache(userId);
+      res.json({ message: "Pipeline cache cleared successfully" });
+    } catch (error) {
+      console.error("Clear cache error:", error);
+      res.status(500).json({ 
+        message: "Failed to clear pipeline cache", 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
     }
   });
 

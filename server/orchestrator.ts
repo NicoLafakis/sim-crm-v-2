@@ -432,9 +432,9 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
         const { resolvedRecordId, resolvedAssociations } = await resolveTemplateReferences(
           step.jobId, 
           step.recordIdTpl || '', 
-          step.associationsTpl,
-          step.actionTpl,
-          hubspotToken
+          step.associationsTpl || {},
+          step.actionTpl || undefined,
+          hubspotToken || undefined
         );
         
         // Create enhanced step with resolved references
@@ -457,8 +457,15 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
           await storage.updateJobStepStatus(step.id, 'completed', result);
           successful++;
         } else {
-          await storage.updateJobStepStatus(step.id, 'failed', result);
+          // Check if this is a non-retryable failure (e.g., validation error)
+          const status = result.nonRetryable ? 'failed_non_retryable' : 'failed';
+          await storage.updateJobStepStatus(step.id, status, result);
           failed++;
+          
+          // Log validation errors more prominently
+          if (result.nonRetryable) {
+            console.error(`❌ Non-retryable failure for step ${step.id} (${step.typeOfAction}): ${result.error}`);
+          }
         }
         
       } catch (error: any) {
@@ -683,7 +690,7 @@ function createLLMPrompt(actionType: string, theme: string, industry: string, te
       return `${basePrompt} Generate a company with name, domain, city, state, industry, and employee count that fits the ${theme} theme. Be creative but realistic. Return JSON with: {"name": "", "domain": "", "city": "", "state": "", "industry": "", "numberofemployees": ""}`;
       
     case 'create_deal':
-      return `${basePrompt} Generate a deal with name and amount that fits the ${theme} theme in ${industry}. Return JSON with: {"dealname": "", "amount": "", "dealstage": "appointmentscheduled", "pipeline": "default"}`;
+      return `${basePrompt} Generate a deal with name and amount that fits the ${theme} theme in ${industry}. You can use common stage names like "Qualified Lead", "Appointment Scheduled", "Decision Maker Bought-In", "Contract Sent", or "Closed Won". Return JSON with: {"dealname": "", "amount": "", "dealstage": "Qualified Lead", "pipeline": "default"}`;
       
     case 'create_note':
       return `${basePrompt} Generate a professional note body for a ${theme}-themed ${industry} business interaction. Keep it under 200 characters. Return JSON with: {"hs_note_body": ""}`;
@@ -859,20 +866,59 @@ async function executeCreateCompany(data: any, token: string): Promise<any> {
  * Execute deal creation with deduplication and associations
  */
 async function executeCreateDeal(data: any, token: string, step: any): Promise<any> {
+  // Get user ID from job
+  const job = await getJobById(step.jobId);
+  if (!job) {
+    return {
+      success: false,
+      error: 'Job not found for deal creation',
+      action: 'create_deal',
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  // Get user ID for pipeline validation
+  const simulation = await storage.getSimulationById(job.simulationId);
+  if (!simulation) {
+    return {
+      success: false,
+      error: 'Simulation not found for pipeline validation',
+      action: 'create_deal',
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  // Validate pipeline and stage
+  const validation = await validateDealStage(simulation.userId, data, token);
+  if (!validation.isValid) {
+    console.error(`Deal stage validation failed: ${validation.error}`);
+    return {
+      success: false,
+      error: `Pipeline/Stage validation failed: ${validation.error}`,
+      action: 'create_deal',
+      timestamp: new Date().toISOString(),
+      nonRetryable: true // Mark as non-retryable failure
+    };
+  }
+
+  // Use validated data with resolved pipeline and stage IDs
+  const validatedData = validation.resolvedData;
+  console.log(`✅ Deal stage validation passed. Pipeline: ${validatedData.pipeline}, Stage: ${validatedData.dealstage}`);
+
   // Check for existing deal if search fallback is enabled and dealname exists
-  if (ENABLE_SEARCH_FALLBACK && data.dealname) {
-    const searchResult = await searchDeal(data.dealname, token);
+  if (ENABLE_SEARCH_FALLBACK && validatedData.dealname) {
+    const searchResult = await searchDeal(validatedData.dealname, token);
     
     if (searchResult.found) {
       if (searchResult.ambiguous) {
         return {
           success: false,
-          error: `Ambiguous deal match for name: ${data.dealname}`,
+          error: `Ambiguous deal match for name: ${validatedData.dealname}`,
           action: 'create_deal',
           timestamp: new Date().toISOString()
         };
       } else if (searchResult.recordId) {
-        console.log(`🔍 Deduplication: Using existing deal ${searchResult.recordId} for ${data.dealname}`);
+        console.log(`🔍 Deduplication: Using existing deal ${searchResult.recordId} for ${validatedData.dealname}`);
         
         // Still handle associations for existing deal
         if (step.associationsTpl && Object.keys(step.associationsTpl).length > 0) {
@@ -883,7 +929,7 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
           success: true,
           recordId: searchResult.recordId,
           action: 'create_deal',
-          data: data,
+          data: validatedData,
           deduplicated: true,
           timestamp: new Date().toISOString()
         };
@@ -892,11 +938,11 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
   }
 
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('deals', Object.keys(data), token);
+  await ensureHubSpotProperties('deals', Object.keys(validatedData), token);
   
   // Create deal via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/deals', {
-    properties: data
+    properties: validatedData
   }, token);
   
   // Handle associations if specified
@@ -973,6 +1019,47 @@ async function executeCreateTicket(data: any, token: string, step: any): Promise
  */
 async function executeUpdateDeal(data: any, token: string, step: any): Promise<any> {
   const dealId = extractRecordId(step.recordIdTpl);
+  
+  // Get user ID from job for validation if pipeline/stage data is being updated
+  if (data.pipeline || data.dealstage) {
+    const job = await getJobById(step.jobId);
+    if (!job) {
+      return {
+        success: false,
+        error: 'Job not found for deal update validation',
+        action: 'update_deal',
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    // Get user ID for pipeline validation
+    const simulation = await storage.getSimulationById(job.simulationId);
+    if (!simulation) {
+      return {
+        success: false,
+        error: 'Simulation not found for pipeline validation',
+        action: 'update_deal',
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    // Validate pipeline and stage if they're being updated
+    const validation = await validateDealStage(simulation.userId, data, token);
+    if (!validation.isValid) {
+      console.error(`Deal update stage validation failed: ${validation.error}`);
+      return {
+        success: false,
+        error: `Pipeline/Stage validation failed: ${validation.error}`,
+        action: 'update_deal',
+        timestamp: new Date().toISOString(),
+        nonRetryable: true // Mark as non-retryable failure
+      };
+    }
+
+    // Use validated data with resolved pipeline and stage IDs
+    data = validation.resolvedData;
+    console.log(`✅ Deal update stage validation passed. Pipeline: ${data.pipeline}, Stage: ${data.dealstage}`);
+  }
   
   // Update deal via HubSpot API
   const response = await makeHubSpotRequest('PATCH', `/crm/v3/objects/deals/${dealId}`, {
@@ -1177,5 +1264,166 @@ function parseJsonSafely(str: string): any {
   } catch (error) {
     // If not valid JSON, return as object with original string
     return { original: str };
+  }
+}
+
+/**
+ * Fetch and cache HubSpot pipelines and stages for a user
+ */
+async function fetchAndCachePipelinesAndStages(userId: number, token: string): Promise<void> {
+  try {
+    console.log(`Fetching and caching pipelines and stages for user ${userId}`);
+    
+    // Fetch deal pipelines from HubSpot
+    const pipelinesResponse = await makeHubSpotRequest('GET', '/crm/v3/pipelines/deals', null, token);
+    
+    if (!pipelinesResponse.results || pipelinesResponse.results.length === 0) {
+      console.warn('No deal pipelines found in HubSpot');
+      return;
+    }
+
+    // Prepare pipeline data for caching
+    const pipelineData = pipelinesResponse.results.map((pipeline: any) => ({
+      userId,
+      hubspotId: pipeline.id,
+      label: pipeline.label,
+      displayOrder: pipeline.displayOrder,
+      objectType: 'deals'
+    }));
+
+    // Cache pipelines in database
+    const cachedPipelines = await storage.cacheHubspotPipelines(userId, pipelineData);
+    console.log(`Cached ${cachedPipelines.length} pipelines`);
+
+    // Fetch and cache stages for each pipeline
+    for (const cachedPipeline of cachedPipelines) {
+      const originalPipeline = pipelinesResponse.results.find((p: any) => p.id === cachedPipeline.hubspotId);
+      
+      if (originalPipeline && originalPipeline.stages && originalPipeline.stages.length > 0) {
+        const stageData = originalPipeline.stages.map((stage: any) => ({
+          pipelineId: cachedPipeline.id,
+          hubspotId: stage.id,
+          label: stage.label,
+          displayOrder: stage.displayOrder,
+          probability: stage.metadata?.probability || 0,
+          isClosed: stage.metadata?.isClosed || false
+        }));
+
+        const cachedStages = await storage.cacheHubspotStages(stageData);
+        console.log(`Cached ${cachedStages.length} stages for pipeline ${cachedPipeline.label}`);
+      }
+    }
+
+    console.log('Pipeline and stage caching completed successfully');
+    
+  } catch (error: any) {
+    console.error('Error fetching and caching pipelines/stages:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Validate deal stage against cached pipeline/stage data
+ */
+export async function validateDealStage(userId: number, dealData: any, token: string): Promise<{ isValid: boolean; error?: string; resolvedData?: any }> {
+  try {
+    // Get cached pipelines for deals
+    let pipelines = await storage.getHubspotPipelines(userId, 'deals');
+    
+    // If no cached pipelines, fetch and cache them first
+    if (pipelines.length === 0) {
+      console.log('No cached pipelines found, fetching from HubSpot...');
+      await fetchAndCachePipelinesAndStages(userId, token);
+      pipelines = await storage.getHubspotPipelines(userId, 'deals');
+    }
+
+    if (pipelines.length === 0) {
+      return {
+        isValid: false,
+        error: 'No deal pipelines found in HubSpot account'
+      };
+    }
+
+    const pipeline = dealData.pipeline;
+    const dealstage = dealData.dealstage;
+
+    if (!pipeline && !dealstage) {
+      // No pipeline or stage specified, use default
+      const defaultPipeline = pipelines[0]; // Use first pipeline as default
+      const stages = await storage.getHubspotStages(defaultPipeline.id);
+      
+      if (stages.length === 0) {
+        return {
+          isValid: false,
+          error: `No stages found for default pipeline '${defaultPipeline.label}'`
+        };
+      }
+
+      return {
+        isValid: true,
+        resolvedData: {
+          ...dealData,
+          pipeline: defaultPipeline.hubspotId,
+          dealstage: stages[0].hubspotId
+        }
+      };
+    }
+
+    // Find pipeline by ID or label
+    let targetPipeline = null;
+    if (pipeline) {
+      targetPipeline = pipelines.find(p => p.hubspotId === pipeline || p.label.toLowerCase() === pipeline.toLowerCase());
+      
+      if (!targetPipeline) {
+        return {
+          isValid: false,
+          error: `Invalid pipeline: '${pipeline}'. Available pipelines: ${pipelines.map(p => p.label).join(', ')}`
+        };
+      }
+    } else {
+      // Use first pipeline if not specified
+      targetPipeline = pipelines[0];
+    }
+
+    // Get stages for the pipeline
+    const stages = await storage.getHubspotStages(targetPipeline.id);
+    if (stages.length === 0) {
+      return {
+        isValid: false,
+        error: `No stages found for pipeline '${targetPipeline.label}'`
+      };
+    }
+
+    // Find stage by ID or label
+    let targetStage = null;
+    if (dealstage) {
+      targetStage = stages.find(s => s.hubspotId === dealstage || s.label.toLowerCase() === dealstage.toLowerCase());
+      
+      if (!targetStage) {
+        return {
+          isValid: false,
+          error: `Invalid stage: '${dealstage}' for pipeline '${targetPipeline.label}'. Available stages: ${stages.map(s => s.label).join(', ')}`
+        };
+      }
+    } else {
+      // Use first stage if not specified
+      targetStage = stages[0];
+    }
+
+    return {
+      isValid: true,
+      resolvedData: {
+        ...dealData,
+        pipeline: targetPipeline.hubspotId,
+        dealstage: targetStage.hubspotId
+      }
+    };
+
+  } catch (error: any) {
+    console.error('Error validating deal stage:', error.message);
+    return {
+      isValid: false,
+      error: `Stage validation failed: ${error.message}`
+    };
   }
 }

@@ -10,42 +10,23 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**August 13, 2025** - Advanced Orchestrator with LLM Integration and CRM Validation
-- Enhanced server/orchestrator.ts with comprehensive LLM data generation and HubSpot API integration
-- Implemented OpenAI integration for generating realistic business personas based on theme/industry context
-- Added persona caching system (personaCache) to optimize LLM usage and avoid repeated API calls
-- Implemented comprehensive HubSpot property validation: ensureHubSpotProperties() checks and creates missing properties
-- Added HubSpot association management for linking contacts, companies, deals, notes, and tickets
-- Enhanced all CRM actions with authentic data generation: executeCreateContact, executeCreateCompany, executeCreateDeal, etc.
-- Implemented property type detection and field type configuration for dynamic HubSpot property creation
-- Added comprehensive error handling for both LLM failures (fallback to template data) and HubSpot API errors
-- Enhanced job execution with theme/industry-specific prompts for realistic business scenarios
-- Added variation system for cached persona data to ensure unique records while maintaining performance
-- All 8 CRM actions fully implemented with proper API validation and association creation
-- System ready for production with LLM-generated personas, HubSpot validation, and complete CRM lifecycle management
-- Updated /api/simulation/start route to integrate with orchestrator: calls scheduleSimulationJob() after simulation creation
-- Added outcome and acceleratorDays settings support with defaults (won, 30 days base cycle)
-- Enhanced API response to include jobId, stepsCount, outcome, and acceleratorDays
-- Removed execution disabled notes - simulation execution now fully active through orchestrator
-- LLM models updated to gpt-5-nano (primary) with gpt-4.1-nano fallback for cost optimization
-- Added industry-specific CSV template support with new Ecommerce Closed Won/Lost cycles
-- Enhanced orchestrator with intelligent CSV template selection based on industry and outcome
-- Implemented proper CSV parsing for quoted fields containing commas in action descriptions
-- Ecommerce Won cycle: 21 steps spanning 85-90 days with post-sale onboarding
-- Ecommerce Lost cycle: 20 steps spanning 68 days without fulfillment processes
-- Fallback system ensures universal template is used for non-Ecommerce industries
-- Implemented industry-specific win/loss rate system: E-commerce 75% win / 25% loss, other industries 50/50
-- Enhanced outcome determination logic with explicit outcome request support and random assignment
-- Job runner automatically started with server initialization for continuous simulation processing
-- Implemented Record ID Resolution System: added job context JSONB column to store recordTpl -> actualCrmId mappings
-- Enhanced job step execution with template reference resolution before API calls
-- Added automatic storage of created record IDs for linking subsequent simulation steps
-- Implemented Search API with Deduplication: added searchContact, searchCompany, searchDeal functions with HubSpot search endpoints
-- Added ENABLE_SEARCH_FALLBACK config flag to control deduplication behavior
-- Enhanced all create functions (Contact, Company, Deal) with deduplication logic to prevent duplicate records
-- Implemented search fallback in template resolution for missing context references
-- Added ambiguous match detection and proper error handling for search operations
-- Verification testing confirms LLM integration, caching, CRM validation, API orchestrator integration, industry-specific templates, win/loss rate distribution, record ID resolution, and search deduplication work correctly
+**August 13, 2025** - Pipeline and Stage Validation System with Non-Retryable Failure Handling
+- Added comprehensive pipeline and stage validation system for deal creation/updates
+- **Database Schema Changes**: Added `hubspot_pipelines` and `hubspot_stages` tables to cache HubSpot pipeline/stage data per user integration
+- **Pipeline Caching System**: `fetchAndCachePipelinesAndStages()` automatically retrieves and stores pipeline/stage data from HubSpot API
+- **Storage Interface Extensions**: Added cacheHubspotPipelines(), cacheHubspotStages(), getHubspotPipelines(), getHubspotStages(), clearHubspotCache() methods
+- **Deal Validation Function**: `validateDealStage()` validates pipeline/stage IDs and resolves human-readable names to HubSpot IDs
+- **Name-to-ID Resolution**: Support for both HubSpot IDs and human-readable names in CSV templates (e.g., "Qualified Lead" → stage ID)
+- **Fallback Behavior**: Uses first available pipeline/stage as default when none specified
+- **Enhanced Deal Operations**: executeCreateDeal() and executeUpdateDeal() now validate pipeline/stage before API calls
+- **Non-Retryable Failure Handling**: Invalid pipeline/stage combinations marked as `failed_non_retryable` with clear error messages
+- **Clear Error Messages**: Validation failures include lists of available pipelines/stages for easy correction
+- **Test Endpoints**: Added `/api/test/pipeline-validation` and `/api/test/clear-pipeline-cache` for validation testing
+- **Cache Management**: Automatic cache refresh when no cached data exists, manual cache clearing for testing
+- **LLM Integration**: Updated deal generation prompts to use common stage names like "Qualified Lead", "Appointment Scheduled"
+- **Comprehensive Error Logging**: Validation failures logged prominently with ❌ indicators for easy identification
+- **Acceptance Criteria Met**: Invalid pipeline/stage triggers clear, non-retryable failure; valid names/IDs pass validation; comprehensive testing documented
+- Pipeline validation system ensures all deal operations use valid HubSpot pipeline/stage combinations, preventing API errors and providing actionable feedback for CSV data corrections
 
 **August 13, 2025** - Record Frequency Page Color Scheme Update
 - Updated record-frequency page with specialized color scheme per user requirements
