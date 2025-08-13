@@ -136,6 +136,19 @@ export const hubspotStages = pgTable('hubspot_stages', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// HubSpot owners cache table for email-to-ID resolution
+export const hubspotOwners = pgTable('hubspot_owners', {
+  id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  hubspotId: varchar('hubspot_id', { length: 255 }).notNull(),
+  email: varchar('email', { length: 255 }).notNull(),
+  firstName: varchar('first_name', { length: 255 }),
+  lastName: varchar('last_name', { length: 255 }),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Note: Simulation execution tables removed (scheduledJobs, cachedPersonas, hubspotRecords, hubspotAssociations)
 // Only configuration storage remains, plus new jobs/jobSteps tables for job tracking
 
@@ -199,6 +212,13 @@ export const hubspotStagesRelations = relations(hubspotStages, ({ one }) => ({
   }),
 }));
 
+export const hubspotOwnersRelations = relations(hubspotOwners, ({ one }) => ({
+  user: one(users, {
+    fields: [hubspotOwners.userId],
+    references: [users.id],
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -218,6 +238,8 @@ export type HubspotPipeline = typeof hubspotPipelines.$inferSelect;
 export type InsertHubspotPipeline = typeof hubspotPipelines.$inferInsert;
 export type HubspotStage = typeof hubspotStages.$inferSelect;
 export type InsertHubspotStage = typeof hubspotStages.$inferInsert;
+export type HubspotOwner = typeof hubspotOwners.$inferSelect;
+export type InsertHubspotOwner = typeof hubspotOwners.$inferInsert;
 
 // Zod schemas with passcode validation
 export const insertUserSchema = createInsertSchema(users).omit({ 

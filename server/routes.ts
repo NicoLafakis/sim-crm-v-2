@@ -514,6 +514,63 @@ Please provide a detailed simulation strategy with realistic business scenarios,
     }
   });
 
+  // Test route for owner assignment
+  app.post("/api/test/owner-assignment", async (req, res) => {
+    try {
+      const { userId, recordData, objectType = "contact" } = req.body;
+      
+      // Get user's HubSpot token
+      const session = await storage.getSession(userId);
+      if (!session?.hubspotToken) {
+        return res.status(400).json({ message: "HubSpot token not found" });
+      }
+      
+      // Import functions from orchestrator
+      const { resolveOwnerEmail } = await import("./orchestrator");
+      
+      // Test owner resolution
+      const resolvedData = await resolveOwnerEmail(userId, recordData, session.hubspotToken);
+      
+      res.json({
+        originalData: recordData,
+        resolvedData,
+        hasOwnerAssignment: !!resolvedData.hubspot_owner_id,
+        message: resolvedData.hubspot_owner_id ? "Owner resolved successfully" : "No owner assignment needed"
+      });
+    } catch (error) {
+      console.error("Owner assignment test error:", error);
+      res.status(500).json({ 
+        message: "Owner assignment test failed", 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // Test route for viewing cached owners
+  app.get("/api/test/owners/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const owners = await storage.getHubspotOwners(userId);
+      
+      res.json({
+        owners: owners.map(owner => ({
+          id: owner.hubspotId,
+          email: owner.email,
+          name: `${owner.firstName || ''} ${owner.lastName || ''}`.trim(),
+          isActive: owner.isActive
+        })),
+        count: owners.length,
+        message: `Found ${owners.length} cached owners`
+      });
+    } catch (error) {
+      console.error("Get owners error:", error);
+      res.status(500).json({ 
+        message: "Failed to get owners", 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

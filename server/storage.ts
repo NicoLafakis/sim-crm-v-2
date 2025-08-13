@@ -17,6 +17,8 @@ import {
   InsertHubspotPipeline,
   HubspotStage,
   InsertHubspotStage,
+  HubspotOwner,
+  InsertHubspotOwner,
   users,
   sessions,
   playerTiers,
@@ -25,7 +27,8 @@ import {
   jobs,
   jobSteps,
   hubspotPipelines,
-  hubspotStages
+  hubspotStages,
+  hubspotOwners
 } from "../shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
@@ -86,8 +89,10 @@ export interface IStorage {
   // Pipeline and stage operations
   cacheHubspotPipelines(userId: number, pipelines: InsertHubspotPipeline[]): Promise<HubspotPipeline[]>;
   cacheHubspotStages(stages: InsertHubspotStage[]): Promise<HubspotStage[]>;
+  cacheHubspotOwners(owners: InsertHubspotOwner[]): Promise<void>;
   getHubspotPipelines(userId: number, objectType: string): Promise<HubspotPipeline[]>;
   getHubspotStages(pipelineId: number): Promise<HubspotStage[]>;
+  getHubspotOwners(userId: number): Promise<HubspotOwner[]>;
   clearHubspotCache(userId: number): Promise<void>;
 }
 
@@ -412,8 +417,37 @@ export class DatabaseStorage implements IStorage {
     return stages;
   }
 
+  async cacheHubspotOwners(owners: InsertHubspotOwner[]): Promise<void> {
+    if (owners.length === 0) return;
+    
+    // Use upsert to handle email changes for existing owners
+    for (const owner of owners) {
+      await db.insert(hubspotOwners).values(owner).onConflictDoUpdate({
+        target: [hubspotOwners.userId, hubspotOwners.email],
+        set: {
+          hubspotId: sql`excluded.hubspot_id`,
+          firstName: sql`excluded.first_name`,
+          lastName: sql`excluded.last_name`,
+          isActive: sql`excluded.is_active`,
+          updatedAt: sql`now()`,
+        },
+      });
+    }
+  }
+
+  async getHubspotOwners(userId: number): Promise<HubspotOwner[]> {
+    const owners = await db.select().from(hubspotOwners)
+      .where(and(
+        eq(hubspotOwners.userId, userId),
+        eq(hubspotOwners.isActive, true)
+      ))
+      .orderBy(hubspotOwners.email);
+    return owners;
+  }
+
   async clearHubspotCache(userId: number): Promise<void> {
     await db.delete(hubspotPipelines).where(eq(hubspotPipelines.userId, userId));
+    await db.delete(hubspotOwners).where(eq(hubspotOwners.userId, userId));
   }
 }
 

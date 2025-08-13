@@ -10,6 +10,23 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**August 13, 2025** - Owner Assignment System with Email-to-ID Resolution
+- Implemented comprehensive owner assignment system for Contact, Company, and Deal records
+- **Database Schema Addition**: Added `hubspot_owners` table to cache HubSpot owner data per user integration
+- **Owner Caching System**: `fetchAndCacheOwners()` automatically retrieves and stores owner data from HubSpot API
+- **Storage Interface Extensions**: Added cacheHubspotOwners(), getHubspotOwners() methods with upsert functionality
+- **Email Resolution Function**: `resolveOwnerEmail()` converts owner emails to HubSpot owner IDs with graceful failure handling
+- **Multiple Field Support**: Recognizes owner, owner_email, ownerEmail fields from CSV templates
+- **Graceful Failure Mode**: Missing or invalid owner emails leave records unassigned without causing creation failures
+- **CRM Integration**: Enhanced executeCreateContact(), executeCreateCompany(), executeCreateDeal() with automatic owner resolution
+- **Cache Performance**: Owner data cached per user to minimize HubSpot API calls during simulations
+- **Test Endpoints**: Added /api/test/owner-assignment and /api/test/owners/:userId for comprehensive testing
+- **Field Cleanup**: Automatically removes email fields and replaces with hubspot_owner_id in final API calls
+- **Case-Insensitive Matching**: Owner email lookup works regardless of email case differences
+- **Active Owner Filtering**: Only considers active (non-archived) owners for assignment
+- **Comprehensive Testing**: Full test suite with valid/invalid emails, missing owners, and multiple field formats
+- Owner assignment system ensures reliable record ownership while maintaining data integrity and preventing simulation failures from missing owner data
+
 **August 13, 2025** - Pipeline and Stage Validation System with Non-Retryable Failure Handling
 - Added comprehensive pipeline and stage validation system for deal creation/updates
 - **Database Schema Changes**: Added `hubspot_pipelines` and `hubspot_stages` tables to cache HubSpot pipeline/stage data per user integration

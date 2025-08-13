@@ -796,12 +796,16 @@ async function executeCreateContact(data: any, token: string): Promise<any> {
     }
   }
 
+  // Resolve owner email to HubSpot owner ID if provided
+  const job = await getJobById(step.jobId);
+  const resolvedData = await resolveOwnerEmail(job.simulationId, data, token);
+  
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('contacts', Object.keys(data), token);
+  await ensureHubSpotProperties('contacts', Object.keys(resolvedData), token);
   
   // Create contact via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/contacts', {
-    properties: data
+    properties: resolvedData
   }, token);
   
   return {
@@ -844,12 +848,16 @@ async function executeCreateCompany(data: any, token: string): Promise<any> {
     }
   }
 
+  // Resolve owner email to HubSpot owner ID if provided
+  const job = await getJobById(step.jobId);
+  const resolvedData = await resolveOwnerEmail(job.simulationId, data, token);
+  
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('companies', Object.keys(data), token);
+  await ensureHubSpotProperties('companies', Object.keys(resolvedData), token);
   
   // Create company via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/companies', {
-    properties: data
+    properties: resolvedData
   }, token);
   
   return {
@@ -937,12 +945,15 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
     }
   }
 
+  // Resolve owner email to HubSpot owner ID if provided
+  const finalData = await resolveOwnerEmail(simulation.userId, validatedData, token);
+  
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('deals', Object.keys(validatedData), token);
+  await ensureHubSpotProperties('deals', Object.keys(finalData), token);
   
   // Create deal via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/deals', {
-    properties: validatedData
+    properties: finalData
   }, token);
   
   // Handle associations if specified
@@ -1321,6 +1332,98 @@ async function fetchAndCachePipelinesAndStages(userId: number, token: string): P
     throw error;
   }
 }
+
+/**
+ * Fetch and cache owners from HubSpot API for a user
+ */
+async function fetchAndCacheOwners(userId: number, token: string): Promise<void> {
+  try {
+    console.log(`Fetching and caching owners for user ${userId}`);
+    
+    // Fetch owners from HubSpot
+    const ownersResponse = await makeHubSpotRequest('GET', '/crm/v3/owners', null, token);
+    
+    if (!ownersResponse.results || ownersResponse.results.length === 0) {
+      console.warn('No owners found in HubSpot');
+      return;
+    }
+
+    // Prepare owner data for caching
+    const ownerData = ownersResponse.results.map((owner: any) => ({
+      userId,
+      hubspotId: owner.id,
+      email: owner.email,
+      firstName: owner.firstName || null,
+      lastName: owner.lastName || null,
+      isActive: owner.archived === false
+    }));
+
+    // Cache owners in database
+    await storage.cacheHubspotOwners(ownerData);
+    console.log(`Cached ${ownerData.length} owners`);
+    
+  } catch (error: any) {
+    console.error('Error fetching and caching owners:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get owner ID by email with caching
+ */
+async function getOwnerIdByEmail(userId: number, email: string, token: string): Promise<string | null> {
+  try {
+    // Get cached owners first
+    let cachedOwners = await storage.getHubspotOwners(userId);
+    
+    // If no cached owners, fetch and cache them
+    if (cachedOwners.length === 0) {
+      console.log('No cached owners found, fetching from HubSpot...');
+      await fetchAndCacheOwners(userId, token);
+      cachedOwners = await storage.getHubspotOwners(userId);
+    }
+    
+    // Find owner by email (case-insensitive)
+    const owner = cachedOwners.find(o => o.email.toLowerCase() === email.toLowerCase());
+    return owner ? owner.hubspotId : null;
+    
+  } catch (error: any) {
+    console.error('Error getting owner ID by email:', error.message);
+    return null; // Return null for missing owner (graceful failure)
+  }
+}
+
+/**
+ * Resolve owner email to HubSpot owner ID in record data
+ */
+async function resolveOwnerEmail(userId: number, recordData: Record<string, any>, token: string): Promise<Record<string, any>> {
+  const resolvedData = { ...recordData };
+  
+  // Check for owner field by email (support multiple field names)
+  const ownerEmailField = recordData.owner_email || recordData.ownerEmail || recordData.owner;
+  
+  if (ownerEmailField && typeof ownerEmailField === 'string' && ownerEmailField.includes('@')) {
+    const ownerId = await getOwnerIdByEmail(userId, ownerEmailField, token);
+    
+    if (ownerId) {
+      // Set the HubSpot owner ID field
+      resolvedData.hubspot_owner_id = ownerId;
+      console.log(`✅ Resolved owner email ${ownerEmailField} to ID ${ownerId}`);
+    } else {
+      console.log(`⚠️ Owner email ${ownerEmailField} not found - leaving unassigned`);
+    }
+    
+    // Remove the email fields from the final data
+    delete resolvedData.owner_email;
+    delete resolvedData.ownerEmail;
+    delete resolvedData.owner;
+  }
+  
+  return resolvedData;
+}
+
+// Export functions for testing and external use
+export { resolveOwnerEmail, getOwnerIdByEmail, fetchAndCacheOwners };
 
 /**
  * Validate deal stage against cached pipeline/stage data
