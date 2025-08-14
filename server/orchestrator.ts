@@ -705,6 +705,40 @@ async function executeJobStepAction(step: any): Promise<any> {
       enrichedData.closedate = enrichedData.closedate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     }
     
+    // For update/close operations, resolve template references first
+    let resolvedStep = step;
+    if (['update_deal', 'update_ticket', 'close_ticket', 'Update', 'update'].includes(typeOfAction)) {
+      try {
+        console.log(`🔧 Resolving template references for ${typeOfAction}: ${step.recordIdTpl}`);
+        const { resolvedRecordId, resolvedAssociations } = await resolveTemplateReferences(
+          jobId,
+          step.recordIdTpl,
+          step.associationsTpl || {},
+          generatedData,
+          hubspotToken,
+          job.id?.toString()
+        );
+        
+        // Create a new step object with resolved references
+        resolvedStep = {
+          ...step,
+          recordIdTpl: resolvedRecordId,
+          associationsTpl: resolvedAssociations
+        };
+        
+        console.log(`✅ Template resolution successful: ${step.recordIdTpl} -> ${resolvedRecordId}`);
+      } catch (error: any) {
+        console.error(`❌ Template resolution failed for ${step.recordIdTpl}: ${error.message}`);
+        return {
+          success: false,
+          error: `Template resolution failed: ${error.message}`,
+          action: typeOfAction,
+          timestamp: new Date().toISOString(),
+          nonRetryable: true
+        };
+      }
+    }
+
     // Execute the specific action
     switch (typeOfAction) {
       case 'create_contact':
@@ -723,22 +757,22 @@ async function executeJobStepAction(step: any): Promise<any> {
         return await executeCreateTicket(generatedData, hubspotToken, step);
         
       case 'update_deal':
-        return await executeUpdateDeal(generatedData, hubspotToken, step);
+        return await executeUpdateDeal(generatedData, hubspotToken, resolvedStep);
         
       case 'update_ticket':
-        return await executeUpdateTicket(generatedData, hubspotToken, step);
+        return await executeUpdateTicket(generatedData, hubspotToken, resolvedStep);
         
       case 'close_ticket':
-        return await executeCloseTicket(generatedData, hubspotToken, step);
+        return await executeCloseTicket(generatedData, hubspotToken, resolvedStep);
         
       case 'Update':
       case 'update':
         // Handle generic update actions - determine record type and route appropriately
         console.log(`📝 Processing generic update action for record type: ${recordType}`);
         if (recordType === 'Opportunity' || recordType === 'Deal') {
-          return await executeUpdateDeal(generatedData, hubspotToken, step);
+          return await executeUpdateDeal(generatedData, hubspotToken, resolvedStep);
         } else if (recordType === 'Ticket') {
-          return await executeUpdateTicket(generatedData, hubspotToken, step);
+          return await executeUpdateTicket(generatedData, hubspotToken, resolvedStep);
         } else if (recordType === 'Contact') {
           // For now, log and skip contact updates (could implement later)
           console.log(`⏭️ Skipping contact update - not implemented yet`);
@@ -1208,9 +1242,11 @@ function createLLMPrompt(actionType: string, theme: string, industry: string, te
       let dealPrompt = `${basePrompt} You MUST return complete deal data in valid JSON format. Include ALL required fields with realistic values.`;
       if (crmMetadata) {
         dealPrompt += `\n\nIMPORTANT - Use ONLY these exact pipeline and stage IDs from the target CRM:\n${getDealPipelineOptions(crmMetadata)}`;
+        dealPrompt += `\n\nDO NOT append any suffixes, seeds, or random values to the pipeline/stage IDs.`;
         dealPrompt += `\n\nExample expected output:\n{"dealname": "Enterprise Software License", "amount": 25000, "dealstage": "[USE_EXACT_STAGE_ID]", "pipeline": "[USE_EXACT_PIPELINE_ID]"}`;
       } else {
         dealPrompt += `\n\nExample expected output:\n{"dealname": "Enterprise Software License", "amount": 25000, "dealstage": "appointmentscheduled", "pipeline": "default"}`;
+        dealPrompt += `\n\nDO NOT modify or append anything to these exact values.`;
       }
       return dealPrompt;
       
@@ -1231,9 +1267,11 @@ function createLLMPrompt(actionType: string, theme: string, industry: string, te
       let updateDealPrompt = `${basePrompt} Create data to update a deal that fits the ${theme} theme.`;
       if (crmMetadata) {
         updateDealPrompt += `\n\nIMPORTANT - Use ONLY these exact stage IDs from the target CRM:\n${getDealPipelineOptions(crmMetadata)}`;
+        updateDealPrompt += `\n\nDO NOT append any suffixes, seeds, or random values to the stage IDs.`;
         updateDealPrompt += `\n\nReturn JSON with stage update: {"dealstage": "[USE_EXACT_STAGE_ID]"}`;
       } else {
         updateDealPrompt += ` Return JSON with stage update: {"dealstage": "closedwon"}`;
+        updateDealPrompt += `\n\nDO NOT modify or append anything to these exact values.`;
       }
       return updateDealPrompt;
       
@@ -1619,6 +1657,9 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
     properties: hubspotData
   }, token);
   
+  // Store the deal ID in job context for future template resolution
+  await storeRecordIdInContext(step.jobId, step.recordIdTpl, response.id);
+  
   // Handle associations if specified
   if (step.associationsTpl && Object.keys(step.associationsTpl).length > 0) {
     await createAssociations(response.id, 'deals', step.associationsTpl, token);
@@ -1655,6 +1696,9 @@ async function executeCreateNote(data: any, token: string, step: any): Promise<a
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/notes', {
     properties: hubspotData
   }, token);
+  
+  // Store the note ID in job context for future template resolution
+  await storeRecordIdInContext(step.jobId, step.recordIdTpl, response.id);
   
   // Handle associations if specified
   if (step.associationsTpl && Object.keys(step.associationsTpl).length > 0) {
@@ -1701,6 +1745,9 @@ async function executeCreateTicket(data: any, token: string, step: any): Promise
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/tickets', {
     properties: hubspotData
   }, token);
+  
+  // Store the ticket ID in job context for future template resolution
+  await storeRecordIdInContext(step.jobId, step.recordIdTpl, response.id);
   
   // Handle associations if specified
   if (step.associationsTpl && Object.keys(step.associationsTpl).length > 0) {

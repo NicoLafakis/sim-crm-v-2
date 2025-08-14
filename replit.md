@@ -93,3 +93,11 @@ The platform features a Game Boy aesthetic, implemented through:
 - **Validation System Fix**: Removed problematic strict validation (validateDataOrThrow) that expected wrong schema structure.
 - **Downloadable Package**: Created complete project zip file (simcrm-download.zip) for local development with setup instructions.
 - **Confirmed Working**: Successfully creating contacts (ID: 146981817209) and companies with complete realistic data including names, emails, phone numbers, job titles, etc.
+
+### Template Resolution & Invalid API Calls Fix (August 2025)
+- **Invalid API Calls Eliminated**: Fixed critical issue where system was making invalid HubSpot API calls to URLs like `/crm/v3/objects/deals/deal_47_{{contactSeq}}` with unresolved template variables.
+- **Root Cause**: Template references were not being resolved to actual HubSpot record IDs before making update API calls.
+- **Template Resolution Fix**: Added proper template reference resolution in executeJobStepAction for all update operations (update_deal, update_ticket, close_ticket).
+- **Context Storage Fix**: Enhanced all creation functions (executeCreateDeal, executeCreateNote, executeCreateTicket) to properly store record IDs in job context via storeRecordIdInContext.
+- **LLM Prompt Improvements**: Added explicit instructions to prevent LLM from appending seeds or random values to pipeline/stage IDs.
+- **Validated Solution**: Confirmed elimination of invalid API calls and successful template resolution from create operations to update operations.
