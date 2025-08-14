@@ -1297,7 +1297,7 @@ async function executeCreateContact(data: any, token: string, step?: any): Promi
   } else {
     // For direct creation, assign owner if not provided
     if (!resolvedData.hubspot_owner_id) {
-      const owners = await storage.getHubspotOwners();
+      const owners = await storage.getHubspotOwners(0); // Use default userId for direct creation
       const nextOwnerId = getNextOwner(owners);
       if (nextOwnerId) {
         resolvedData.hubspot_owner_id = nextOwnerId;
@@ -1386,7 +1386,7 @@ async function executeCreateCompany(data: any, token: string, step?: any): Promi
   } else {
     // For direct creation, assign owner if not provided
     if (!resolvedData.hubspot_owner_id) {
-      const owners = await storage.getHubspotOwners();
+      const owners = await storage.getHubspotOwners(0); // Use default userId for direct creation
       const nextOwnerId = getNextOwner(owners);
       if (nextOwnerId) {
         resolvedData.hubspot_owner_id = nextOwnerId;
@@ -2763,5 +2763,3 @@ export async function validateDealStage(userId: number, dealData: any, token: st
   }
 }
 
-// Export functions for use in routes
-export { fetchAndCacheOwners };
