@@ -718,6 +718,34 @@ async function executeJobStepAction(step: any): Promise<any> {
       case 'close_ticket':
         return await executeCloseTicket(generatedData, hubspotToken, step);
         
+      case 'Update':
+      case 'update':
+        // Handle generic update actions - determine record type and route appropriately
+        console.log(`📝 Processing generic update action for record type: ${recordType}`);
+        if (recordType === 'Opportunity' || recordType === 'Deal') {
+          return await executeUpdateDeal(generatedData, hubspotToken, step);
+        } else if (recordType === 'Ticket') {
+          return await executeUpdateTicket(generatedData, hubspotToken, step);
+        } else if (recordType === 'Contact') {
+          // For now, log and skip contact updates (could implement later)
+          console.log(`⏭️ Skipping contact update - not implemented yet`);
+          return {
+            success: true,
+            recordId: 'skipped',
+            action: 'update_contact_skipped',
+            message: 'Contact updates not implemented',
+            timestamp: new Date().toISOString()
+          };
+        } else {
+          console.warn(`⚠️ Unknown record type for update: ${recordType}`);
+          return {
+            success: false,
+            error: `Unknown record type for update: ${recordType}`,
+            action: 'update_unknown',
+            timestamp: new Date().toISOString()
+          };
+        }
+        
       default:
         throw new Error(`Unknown action type: ${typeOfAction}`);
     }
