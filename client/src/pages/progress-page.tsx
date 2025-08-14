@@ -278,7 +278,7 @@ export default function ProgressPage() {
                             </Badge>
                             {progressData && (
                               <div className="text-sm font-mono text-gray-700">
-                                {progressData.completedSteps}/{progressData.totalSteps} steps
+                                {Math.round((progressData.completedSteps / progressData.totalSteps) * 100)}% Complete
                               </div>
                             )}
                             {(simulation.status === 'processing' || simulation.status === 'paused') && (
@@ -433,7 +433,7 @@ export default function ProgressPage() {
                                       <span className="font-mono text-green-700 font-bold">{progressData?.completedSteps || 0}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                      <span>Processing:</span>
+                                      <span>In Progress:</span>
                                       <span className="font-mono text-yellow-700 font-bold">{progressData?.processingSteps || 0}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
@@ -456,7 +456,7 @@ export default function ProgressPage() {
                                       </span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                      <span>Total Operations:</span>
+                                      <span>Total Actions:</span>
                                       <span className="font-mono text-blue-700 font-bold">{progressData?.totalSteps || 0}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
