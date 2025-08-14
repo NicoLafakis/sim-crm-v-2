@@ -374,16 +374,30 @@ async function resolveTemplateReferences(
   recordIdTpl: string, 
   associationsTpl: any,
   stepData?: any,
-  token?: string
+  token?: string,
+  correlationId?: string
 ): Promise<{ resolvedRecordId: string; resolvedAssociations: any }> {
   // Get job context (mapping of template IDs to actual CRM IDs)
   const context = await storage.getJobContext(jobId);
+  const strictTemplateRefs = process.env.STRICT_TEMPLATE_REFS === 'true';
   
   // Resolve recordIdTpl
   let resolvedRecordId = recordIdTpl;
   if (recordIdTpl && context[recordIdTpl]) {
     resolvedRecordId = context[recordIdTpl];
     console.log(`✓ Resolved recordIdTpl "${recordIdTpl}" -> "${resolvedRecordId}"`);
+  } else if (recordIdTpl && strictTemplateRefs) {
+    // In strict mode, throw error for unresolved template references
+    logEvent('error', correlationId || 'unknown', 'template.resolve.error', {
+      ref: recordIdTpl,
+      reason: 'Missing template reference',
+      SCHEMA_VERSION
+    });
+    
+    throw new TemplateReferenceError('TEMPLATE_REF_MISSING', 'Missing template reference', {
+      correlationId: correlationId || 'unknown',
+      ref: recordIdTpl
+    });
   }
   
   // Resolve associationsTpl - replace template references with actual IDs
@@ -396,15 +410,35 @@ async function resolveTemplateReferences(
       if (typeof obj === 'string' && context[obj]) {
         console.log(`✓ Resolved association "${obj}" -> "${context[obj]}"`);
         return context[obj];
-      } else if (typeof obj === 'string' && ENABLE_SEARCH_FALLBACK && token && stepData) {
-        // Try search fallback for missing template references
-        const searchResult = await searchFallbackForTemplate(obj, stepData, token);
-        if (searchResult.found && searchResult.recordId) {
-          // Cache the found ID in context for future use
-          await storeRecordIdInContext(jobId, obj, searchResult.recordId);
-          console.log(`✓ Search fallback resolved "${obj}" -> "${searchResult.recordId}"`);
-          return searchResult.recordId;
+      } else if (typeof obj === 'string' && obj.startsWith('{{') && obj.endsWith('}}')) {
+        // This is a template reference that couldn't be resolved
+        if (ENABLE_SEARCH_FALLBACK && token && stepData) {
+          // Try search fallback for missing template references
+          const searchResult = await searchFallbackForTemplate(obj, stepData, token);
+          if (searchResult.found && searchResult.recordId) {
+            // Cache the found ID in context for future use
+            await storeRecordIdInContext(jobId, obj, searchResult.recordId);
+            console.log(`✓ Search fallback resolved "${obj}" -> "${searchResult.recordId}"`);
+            return searchResult.recordId;
+          }
         }
+        
+        // If search fallback is disabled or failed, and strict mode is enabled
+        if (strictTemplateRefs) {
+          logEvent('error', correlationId || 'unknown', 'template.resolve.error', {
+            ref: obj,
+            reason: 'Missing template reference (search fallback disabled or failed)',
+            SCHEMA_VERSION
+          });
+          
+          throw new TemplateReferenceError('TEMPLATE_REF_MISSING', 'Missing template reference', {
+            correlationId: correlationId || 'unknown',
+            ref: obj
+          });
+        }
+        
+        // In non-strict mode, keep current behavior (return unresolved)
+        return obj;
       } else if (typeof obj === 'object' && obj !== null) {
         for (const key in obj) {
           obj[key] = await resolveInObject(obj[key]);
@@ -475,6 +509,9 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
         // Get HubSpot token for search operations
         const job = await getJobById(step.jobId);
         const hubspotToken = await getHubSpotToken(job.simulationId);
+        
+        // Create correlation ID for template resolution
+        const correlationId = `${step.jobId}-${step.stepIndex}`;
 
         // Resolve template references before execution (with search fallback)
         const { resolvedRecordId, resolvedAssociations } = await resolveTemplateReferences(
@@ -482,7 +519,8 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
           step.recordIdTpl || '', 
           step.associationsTpl || {},
           step.actionTpl || undefined,
-          hubspotToken || undefined
+          hubspotToken || undefined,
+          correlationId
         );
         
         // Create enhanced step with resolved references
@@ -657,7 +695,64 @@ async function executeJobStepAction(step: any): Promise<any> {
     }
     
   } catch (error: any) {
+    // Create correlation ID for error logging
+    const correlationId = step.seed || `${step.jobId}-${step.stepIndex}`;
+    
     console.error(`Error executing job step ${step.id}:`, error.message);
+    
+    // Handle specific error types as non-retryable
+    if (error instanceof GenerateDataError) {
+      logEvent('error', correlationId, 'generate.llm.error', {
+        code: error.code,
+        context: error.context,
+        SCHEMA_VERSION
+      });
+      return {
+        success: false,
+        nonRetryable: true,
+        error: error.message,
+        code: error.code,
+        action: typeOfAction,
+        correlationId,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    if (error instanceof TemplateReferenceError) {
+      logEvent('error', correlationId, 'template.resolve.error', {
+        code: error.code,
+        context: error.context,
+        SCHEMA_VERSION
+      });
+      return {
+        success: false,
+        nonRetryable: true,
+        error: error.message,
+        code: error.code,
+        action: typeOfAction,
+        correlationId,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    if (error instanceof ValidationError) {
+      logEvent('error', correlationId, 'generate.validate.error', {
+        code: error.code,
+        context: error.context,
+        SCHEMA_VERSION
+      });
+      return {
+        success: false,
+        nonRetryable: true,
+        error: error.message,
+        code: error.code,
+        action: typeOfAction,
+        correlationId,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    // Default retryable error
     return {
       success: false,
       error: error.message,
@@ -1161,20 +1256,32 @@ async function executeCreateContact(data: any, token: string, step: any): Promis
   delete resolvedData.generatedAt;
   delete resolvedData.generated_at; // Also remove snake_case version from record data
 
-  // Validate and coerce data types
-  const { validData: validatedData, errors } = validateAndCoerceRecordData(resolvedData, 'contacts');
+  // Pre-persistence validation (if enabled)
+  let validatedData = resolvedData;
+  if (process.env.STRICT_VALIDATION_BEFORE_PERSISTENCE !== 'false') {
+    validatedData = trimStringsDeep(validatedData);
+    validatedData = validateDataOrThrow(validatedData, 'create_contact');
+    
+    // Remove internal fields
+    delete validatedData.generatedAt;
+    delete validatedData.generated_at;
+    delete (validatedData as any).metadata;
+  }
+
+  // Legacy validation and coercion
+  const { validData: legacyValidatedData, errors } = validateAndCoerceRecordData(validatedData, 'contacts');
   if (errors.length > 0) {
     console.warn(`⚠️ Data validation warnings for contact:`, errors);
   }
 
-  console.log(`📝 Creating contact with data:`, JSON.stringify(validatedData, null, 2));
+  console.log(`📝 Creating contact with data:`, JSON.stringify(legacyValidatedData, null, 2));
 
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('contacts', Object.keys(validatedData), token, validatedData);
+  await ensureHubSpotProperties('contacts', Object.keys(legacyValidatedData), token, legacyValidatedData);
   
   // Create contact via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/contacts', {
-    properties: validatedData
+    properties: legacyValidatedData
   }, token);
   
   return {
@@ -1225,20 +1332,32 @@ async function executeCreateCompany(data: any, token: string, step: any): Promis
   delete resolvedData.generatedAt;
   delete resolvedData.generated_at; // Also remove snake_case version from record data
 
-  // Validate and coerce data types
-  const { validData: validatedData, errors } = validateAndCoerceRecordData(resolvedData, 'companies');
+  // Pre-persistence validation (if enabled)
+  let validatedData = resolvedData;
+  if (process.env.STRICT_VALIDATION_BEFORE_PERSISTENCE !== 'false') {
+    validatedData = trimStringsDeep(validatedData);
+    validatedData = validateDataOrThrow(validatedData, 'create_company');
+    
+    // Remove internal fields
+    delete validatedData.generatedAt;
+    delete validatedData.generated_at;
+    delete (validatedData as any).metadata;
+  }
+
+  // Legacy validation and coercion
+  const { validData: legacyValidatedData, errors } = validateAndCoerceRecordData(validatedData, 'companies');
   if (errors.length > 0) {
     console.warn(`⚠️ Data validation warnings for company:`, errors);
   }
 
-  console.log(`📝 Creating company with data:`, JSON.stringify(validatedData, null, 2));
+  console.log(`📝 Creating company with data:`, JSON.stringify(legacyValidatedData, null, 2));
 
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('companies', Object.keys(validatedData), token, validatedData);
+  await ensureHubSpotProperties('companies', Object.keys(legacyValidatedData), token, legacyValidatedData);
   
   // Create company via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/companies', {
-    properties: validatedData
+    properties: legacyValidatedData
   }, token);
   
   return {
@@ -1299,20 +1418,35 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
   
   console.log(`✅ Deal stage validation passed. Pipeline: ${validatedData.pipeline}, Stage: ${validatedData.dealstage}`);
 
+  // Resolve owner email to HubSpot owner ID if provided
+  const resolvedData = await resolveOwnerEmail(simulation.userId, validatedData, token);
+  
+  // Pre-persistence validation (if enabled)
+  let finalData = resolvedData;
+  if (process.env.STRICT_VALIDATION_BEFORE_PERSISTENCE !== 'false') {
+    finalData = trimStringsDeep(finalData);
+    finalData = validateDataOrThrow(finalData, 'create_deal');
+    
+    // Remove internal fields
+    delete finalData.generatedAt;
+    delete finalData.generated_at;
+    delete (finalData as any).metadata;
+  }
+
   // Check for existing deal if search fallback is enabled and dealname exists
-  if (ENABLE_SEARCH_FALLBACK && validatedData.dealname) {
-    const searchResult = await searchDeal(validatedData.dealname, token);
+  if (ENABLE_SEARCH_FALLBACK && finalData.dealname) {
+    const searchResult = await searchDeal(finalData.dealname, token);
     
     if (searchResult.found) {
       if (searchResult.ambiguous) {
         return {
           success: false,
-          error: `Ambiguous deal match for name: ${validatedData.dealname}`,
+          error: `Ambiguous deal match for name: ${finalData.dealname}`,
           action: 'create_deal',
           timestamp: new Date().toISOString()
         };
       } else if (searchResult.recordId) {
-        console.log(`🔍 Deduplication: Using existing deal ${searchResult.recordId} for ${validatedData.dealname}`);
+        console.log(`🔍 Deduplication: Using existing deal ${searchResult.recordId} for ${finalData.dealname}`);
         
         // Still handle associations for existing deal
         if (step.associationsTpl && Object.keys(step.associationsTpl).length > 0) {
@@ -1323,18 +1457,15 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
           success: true,
           recordId: searchResult.recordId,
           action: 'create_deal',
-          data: validatedData,
+          data: finalData,
           deduplicated: true,
           timestamp: new Date().toISOString()
         };
       }
     }
   }
-
-  // Resolve owner email to HubSpot owner ID if provided
-  const finalData = await resolveOwnerEmail(simulation.userId, validatedData, token);
   
-  // Validate and coerce data types
+  // Legacy validation and coercion
   const { validData: coercedData, errors } = validateAndCoerceRecordData(finalData, 'deals');
   if (errors.length > 0) {
     console.warn(`⚠️ Data validation warnings for deal:`, errors);
@@ -1402,12 +1533,24 @@ async function executeCreateTicket(data: any, token: string, step: any): Promise
   delete data.generatedAt;
   delete data.generated_at; // Also remove snake_case version from record data
 
+  // Pre-persistence validation (if enabled)
+  let validatedData = data;
+  if (process.env.STRICT_VALIDATION_BEFORE_PERSISTENCE !== 'false') {
+    validatedData = trimStringsDeep(validatedData);
+    validatedData = validateDataOrThrow(validatedData, 'create_ticket');
+    
+    // Remove internal fields
+    delete validatedData.generatedAt;
+    delete validatedData.generated_at;
+    delete (validatedData as any).metadata;
+  }
+
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('tickets', Object.keys(data), token);
+  await ensureHubSpotProperties('tickets', Object.keys(validatedData), token);
   
   // Create ticket via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/tickets', {
-    properties: data
+    properties: validatedData
   }, token);
   
   // Handle associations if specified

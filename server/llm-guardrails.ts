@@ -451,8 +451,7 @@ export {
   CompanySchema,
   DealSchema,
   TicketSchema,
-  GeneratedDataSchema,
-  SCHEMA_VERSION
+  GeneratedDataSchema
 };
 
 export type {
