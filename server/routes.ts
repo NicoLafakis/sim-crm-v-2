@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, or, inArray } from 'drizzle-orm';
 import { db } from "./db";
 import { users, sessions, simulations, jobs, jobSteps, apiTokens, insertUserSchema, insertSessionSchema } from "../shared/schema";
 import type { User, Session, Simulation, InsertSimulation, InsertUser, InsertSession } from "../shared/schema";
@@ -283,6 +283,93 @@ export function registerRoutes(app: Express) {
       const simulationId = parseInt(req.params.simulationId);
       await storage.deleteSimulation(simulationId);
       res.json({ message: "Simulation deleted" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/simulation/:simulationId/pause", async (req, res) => {
+    try {
+      const simulationId = parseInt(req.params.simulationId);
+      
+      // Update simulation status to paused
+      await storage.updateSimulation(simulationId, { status: 'paused' });
+      
+      // Update all pending job steps to paused status
+      await storage.db.update(jobSteps)
+        .set({ status: 'paused' })
+        .where(and(
+          eq(jobSteps.status, 'pending'),
+          inArray(jobSteps.jobId, 
+            storage.db.select({ id: jobs.id })
+              .from(jobs)
+              .where(eq(jobs.simulationId, simulationId))
+          )
+        ));
+      
+      res.json({ 
+        status: "paused",
+        message: "Simulation paused successfully"
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/simulation/:simulationId/resume", async (req, res) => {
+    try {
+      const simulationId = parseInt(req.params.simulationId);
+      
+      // Update simulation status to processing
+      await storage.updateSimulation(simulationId, { status: 'processing' });
+      
+      // Update all paused job steps back to pending status
+      await storage.db.update(jobSteps)
+        .set({ status: 'pending' })
+        .where(and(
+          eq(jobSteps.status, 'paused'),
+          inArray(jobSteps.jobId, 
+            storage.db.select({ id: jobs.id })
+              .from(jobs)
+              .where(eq(jobs.simulationId, simulationId))
+          )
+        ));
+      
+      res.json({ 
+        status: "processing",
+        message: "Simulation resumed successfully"
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/simulation/:simulationId/stop", async (req, res) => {
+    try {
+      const simulationId = parseInt(req.params.simulationId);
+      
+      // Update simulation status to stopped
+      await storage.updateSimulation(simulationId, { 
+        status: 'stopped',
+        completedAt: new Date()
+      });
+      
+      // Cancel all pending/paused job steps
+      await storage.db.update(jobSteps)
+        .set({ status: 'cancelled' })
+        .where(and(
+          or(eq(jobSteps.status, 'pending'), eq(jobSteps.status, 'paused')),
+          inArray(jobSteps.jobId, 
+            storage.db.select({ id: jobs.id })
+              .from(jobs)
+              .where(eq(jobs.simulationId, simulationId))
+          )
+        ));
+      
+      res.json({ 
+        status: "stopped",
+        message: "Simulation stopped successfully"
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Trash2, Info, Clock, Timer, Target } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Info, Clock, Timer, Target, Pause, Play, Square } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -126,6 +126,66 @@ export default function ProgressPage() {
     },
   });
 
+  const pauseMutation = useMutation({
+    mutationFn: async (simulationId: number) => {
+      return apiRequest('POST', `/api/simulation/${simulationId}/pause`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/user/${user?.id}/simulations`] });
+      toast({
+        title: "Simulation paused",
+        description: "The simulation has been paused.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to pause simulation.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: async (simulationId: number) => {
+      return apiRequest('POST', `/api/simulation/${simulationId}/resume`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/user/${user?.id}/simulations`] });
+      toast({
+        title: "Simulation resumed",
+        description: "The simulation has been resumed.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to resume simulation.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const stopMutation = useMutation({
+    mutationFn: async (simulationId: number) => {
+      return apiRequest('POST', `/api/simulation/${simulationId}/stop`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/user/${user?.id}/simulations`] });
+      toast({
+        title: "Simulation stopped",
+        description: "The simulation has been stopped.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to stop simulation.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const toggleExpanded = (runId: number) => {
     const newExpanded = new Set(expandedRuns);
     if (newExpanded.has(runId)) {
@@ -203,10 +263,14 @@ export default function ProgressPage() {
                             <Badge variant="secondary" className={`font-mono border-2 ${
                               simulation.status === 'completed' ? 'bg-green-100 text-green-800 border-green-300' : 
                               simulation.status === 'processing' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                              simulation.status === 'paused' ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                              simulation.status === 'stopped' ? 'bg-gray-100 text-gray-800 border-gray-300' :
                               simulation.status === 'failed' ? 'bg-red-100 text-red-800 border-red-300' : 'bg-gray-100 text-gray-800 border-gray-300'
                             }`}>
                               {simulation.status === 'completed' ? 'COMPLETE' :
                                simulation.status === 'processing' ? 'PROCESSING' :
+                               simulation.status === 'paused' ? 'PAUSED' :
+                               simulation.status === 'stopped' ? 'STOPPED' :
                                simulation.status === 'failed' ? 'FAILED' : 'CONFIGURED'}
                             </Badge>
                             {progressData && (
@@ -214,21 +278,55 @@ export default function ProgressPage() {
                                 {progressData.completedSteps}/{progressData.totalSteps} steps
                               </div>
                             )}
-                            {simulation.status === 'processing' && (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteMutation.mutate(simulation.id);
-                                }}
-                                disabled={deleteMutation.isPending}
-                                className="bg-red-600 hover:bg-red-700 text-white font-mono text-xs px-2 py-1 h-6"
-                                data-testid={`button-delete-${simulation.id}`}
-                              >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                DELETE
-                              </Button>
+                            {(simulation.status === 'processing' || simulation.status === 'paused') && (
+                              <div className="flex gap-1">
+                                {simulation.status === 'processing' && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      pauseMutation.mutate(simulation.id);
+                                    }}
+                                    disabled={pauseMutation.isPending}
+                                    className="bg-orange-100 hover:bg-orange-200 text-orange-700 border-orange-300 font-mono text-xs px-2 py-1 h-6"
+                                    data-testid={`button-pause-${simulation.id}`}
+                                  >
+                                    <Pause className="w-3 h-3 mr-1" />
+                                    PAUSE
+                                  </Button>
+                                )}
+                                {simulation.status === 'paused' && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      resumeMutation.mutate(simulation.id);
+                                    }}
+                                    disabled={resumeMutation.isPending}
+                                    className="bg-green-100 hover:bg-green-200 text-green-700 border-green-300 font-mono text-xs px-2 py-1 h-6"
+                                    data-testid={`button-resume-${simulation.id}`}
+                                  >
+                                    <Play className="w-3 h-3 mr-1" />
+                                    RESUME
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    stopMutation.mutate(simulation.id);
+                                  }}
+                                  disabled={stopMutation.isPending}
+                                  className="bg-red-600 hover:bg-red-700 text-white font-mono text-xs px-2 py-1 h-6"
+                                  data-testid={`button-stop-${simulation.id}`}
+                                >
+                                  <Square className="w-3 h-3 mr-1" />
+                                  STOP
+                                </Button>
+                              </div>
                             )}
                             <span className="text-gray-600">{isExpanded ? <ChevronUp /> : <ChevronDown />}</span>
                           </div>
@@ -239,8 +337,8 @@ export default function ProgressPage() {
                     <CollapsibleContent>
                       <CardContent className="pt-0">
                         <div className="space-y-4">
-                          {/* Live Timers - Only show for processing simulations */}
-                          {simulation.status === 'processing' && (
+                          {/* Live Timers - Only show for active simulations */}
+                          {(simulation.status === 'processing' || simulation.status === 'paused') && (
                             <div className="grid grid-cols-3 gap-4 p-4 bg-blue-50 border-2 border-blue-200 rounded">
                               <LiveTimer 
                                 startTime={simulation.startedAt} 
@@ -317,15 +415,15 @@ export default function ProgressPage() {
                             </div>
                           </div>
 
-                          {/* Live Progress - Only show for processing simulations */}
-                          {simulation.status === 'processing' && progressData && (
+                          {/* Live Progress - Show for active simulations */}
+                          {(simulation.status === 'processing' || simulation.status === 'paused') && progressData && (
                             <div className="p-4 bg-green-50 border-2 border-green-200 rounded">
                               <div className="text-sm mb-3 font-gameboy text-green-800 font-bold">
-                                🟢 LIVE SIMULATION IN PROGRESS
+                                {simulation.status === 'processing' ? '🟢 LIVE SIMULATION IN PROGRESS' : '⏸️ SIMULATION PAUSED'}
                               </div>
                               <div className="grid grid-cols-2 gap-4 text-xs text-gray-800">
                                 <div>
-                                  <div className="mb-2 font-bold text-green-800">STEP PROGRESS:</div>
+                                  <div className="mb-2 font-bold text-green-800">CRM OPERATIONS:</div>
                                   <div className="space-y-2">
                                     <div className="flex justify-between items-center">
                                       <span>Completed:</span>
@@ -340,13 +438,13 @@ export default function ProgressPage() {
                                       <span className="font-mono text-red-700 font-bold">{progressData?.failedSteps || 0}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                      <span>Pending:</span>
+                                      <span>Remaining:</span>
                                       <span className="font-mono text-gray-700 font-bold">{(progressData?.totalSteps || 0) - (progressData?.completedSteps || 0) - (progressData?.processingSteps || 0) - (progressData?.failedSteps || 0)}</span>
                                     </div>
                                   </div>
                                 </div>
                                 <div>
-                                  <div className="mb-2 font-bold text-green-800">ESTIMATED TIME:</div>
+                                  <div className="mb-2 font-bold text-green-800">SIMULATION STATUS:</div>
                                   <div className="space-y-2">
                                     <div className="flex justify-between items-center">
                                       <span>Progress:</span>
@@ -355,15 +453,23 @@ export default function ProgressPage() {
                                       </span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                      <span>Total Steps:</span>
+                                      <span>Total Operations:</span>
                                       <span className="font-mono text-blue-700 font-bold">{progressData?.totalSteps || 0}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                      <span>Next Update:</span>
-                                      <span className="font-mono text-orange-700 font-bold">30s</span>
+                                      <span>Next Action:</span>
+                                      <span className="font-mono text-orange-700 font-bold">
+                                        {progressData?.nextStepTime ? 
+                                          new Date(progressData.nextStepTime).toLocaleTimeString() : 
+                                          simulation.status === 'paused' ? 'Paused' : 'Soon'
+                                        }
+                                      </span>
                                     </div>
                                   </div>
                                 </div>
+                              </div>
+                              <div className="mt-3 text-xs text-gray-600 bg-blue-50 p-2 rounded">
+                                <strong>What are "Operations"?</strong> These are actual CRM actions (create contacts, companies, deals, tickets, updates, notes) being executed in your HubSpot account.
                               </div>
                             </div>
                           )}
