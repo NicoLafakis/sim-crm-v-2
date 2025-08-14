@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import OpenAI from 'openai';
 import { rateLimiter } from './rate-limiter';
-import { personaCache as personaCacheGuardrails, SeededGenerator, LLMValidator } from './llm-guardrails';
+import { personaCache as personaCacheGuardrails, SeededGenerator, LLMValidator, SCHEMA_VERSION } from './llm-guardrails';
 import { 
   fetchCrmMetadata, 
   getDealPipelineOptions, 
@@ -15,6 +15,9 @@ import {
   validateDealPipelineStage,
   validateTicketPipelineStage 
 } from './hubspot-metadata';
+import { GenerateDataError, TemplateReferenceError, ValidationError } from './errors';
+import { logEvent } from './logging';
+import { trimStringsDeep, validateDataOrThrow } from './validation';
 
 // Initialize OpenAI client
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -371,16 +374,30 @@ async function resolveTemplateReferences(
   recordIdTpl: string, 
   associationsTpl: any,
   stepData?: any,
-  token?: string
+  token?: string,
+  correlationId?: string
 ): Promise<{ resolvedRecordId: string; resolvedAssociations: any }> {
   // Get job context (mapping of template IDs to actual CRM IDs)
   const context = await storage.getJobContext(jobId);
+  const strictTemplateRefs = process.env.STRICT_TEMPLATE_REFS === 'true';
   
   // Resolve recordIdTpl
   let resolvedRecordId = recordIdTpl;
   if (recordIdTpl && context[recordIdTpl]) {
     resolvedRecordId = context[recordIdTpl];
     console.log(`✓ Resolved recordIdTpl "${recordIdTpl}" -> "${resolvedRecordId}"`);
+  } else if (recordIdTpl && strictTemplateRefs) {
+    // In strict mode, throw error for unresolved template references
+    logEvent('error', correlationId || 'unknown', 'template.resolve.error', {
+      ref: recordIdTpl,
+      reason: 'Missing template reference',
+      SCHEMA_VERSION
+    });
+    
+    throw new TemplateReferenceError('TEMPLATE_REF_MISSING', 'Missing template reference', {
+      correlationId: correlationId || 'unknown',
+      ref: recordIdTpl
+    });
   }
   
   // Resolve associationsTpl - replace template references with actual IDs
@@ -393,15 +410,35 @@ async function resolveTemplateReferences(
       if (typeof obj === 'string' && context[obj]) {
         console.log(`✓ Resolved association "${obj}" -> "${context[obj]}"`);
         return context[obj];
-      } else if (typeof obj === 'string' && ENABLE_SEARCH_FALLBACK && token && stepData) {
-        // Try search fallback for missing template references
-        const searchResult = await searchFallbackForTemplate(obj, stepData, token);
-        if (searchResult.found && searchResult.recordId) {
-          // Cache the found ID in context for future use
-          await storeRecordIdInContext(jobId, obj, searchResult.recordId);
-          console.log(`✓ Search fallback resolved "${obj}" -> "${searchResult.recordId}"`);
-          return searchResult.recordId;
+      } else if (typeof obj === 'string' && obj.startsWith('{{') && obj.endsWith('}}')) {
+        // This is a template reference that couldn't be resolved
+        if (ENABLE_SEARCH_FALLBACK && token && stepData) {
+          // Try search fallback for missing template references
+          const searchResult = await searchFallbackForTemplate(obj, stepData, token);
+          if (searchResult.found && searchResult.recordId) {
+            // Cache the found ID in context for future use
+            await storeRecordIdInContext(jobId, obj, searchResult.recordId);
+            console.log(`✓ Search fallback resolved "${obj}" -> "${searchResult.recordId}"`);
+            return searchResult.recordId;
+          }
         }
+        
+        // If search fallback is disabled or failed, and strict mode is enabled
+        if (strictTemplateRefs) {
+          logEvent('error', correlationId || 'unknown', 'template.resolve.error', {
+            ref: obj,
+            reason: 'Missing template reference (search fallback disabled or failed)',
+            SCHEMA_VERSION
+          });
+          
+          throw new TemplateReferenceError('TEMPLATE_REF_MISSING', 'Missing template reference', {
+            correlationId: correlationId || 'unknown',
+            ref: obj
+          });
+        }
+        
+        // In non-strict mode, keep current behavior (return unresolved)
+        return obj;
       } else if (typeof obj === 'object' && obj !== null) {
         for (const key in obj) {
           obj[key] = await resolveInObject(obj[key]);
@@ -472,6 +509,9 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
         // Get HubSpot token for search operations
         const job = await getJobById(step.jobId);
         const hubspotToken = await getHubSpotToken(job.simulationId);
+        
+        // Create correlation ID for template resolution
+        const correlationId = `${step.jobId}-${step.stepIndex}`;
 
         // Resolve template references before execution (with search fallback)
         const { resolvedRecordId, resolvedAssociations } = await resolveTemplateReferences(
@@ -479,7 +519,8 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
           step.recordIdTpl || '', 
           step.associationsTpl || {},
           step.actionTpl || undefined,
-          hubspotToken || undefined
+          hubspotToken || undefined,
+          correlationId
         );
         
         // Create enhanced step with resolved references
@@ -654,7 +695,64 @@ async function executeJobStepAction(step: any): Promise<any> {
     }
     
   } catch (error: any) {
+    // Create correlation ID for error logging
+    const correlationId = step.seed || `${step.jobId}-${step.stepIndex}`;
+    
     console.error(`Error executing job step ${step.id}:`, error.message);
+    
+    // Handle specific error types as non-retryable
+    if (error instanceof GenerateDataError) {
+      logEvent('error', correlationId, 'generate.llm.error', {
+        code: error.code,
+        context: error.context,
+        SCHEMA_VERSION
+      });
+      return {
+        success: false,
+        nonRetryable: true,
+        error: error.message,
+        code: error.code,
+        action: typeOfAction,
+        correlationId,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    if (error instanceof TemplateReferenceError) {
+      logEvent('error', correlationId, 'template.resolve.error', {
+        code: error.code,
+        context: error.context,
+        SCHEMA_VERSION
+      });
+      return {
+        success: false,
+        nonRetryable: true,
+        error: error.message,
+        code: error.code,
+        action: typeOfAction,
+        correlationId,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    if (error instanceof ValidationError) {
+      logEvent('error', correlationId, 'generate.validate.error', {
+        code: error.code,
+        context: error.context,
+        SCHEMA_VERSION
+      });
+      return {
+        success: false,
+        nonRetryable: true,
+        error: error.message,
+        code: error.code,
+        action: typeOfAction,
+        correlationId,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    // Default retryable error
     return {
       success: false,
       error: error.message,
@@ -693,31 +791,71 @@ async function generateRealisticData(
   useSeed = true,
   crmMetadata?: any
 ): Promise<any> {
-  // Generate deterministic seed if requested
+  // Environment flags
+  const strictGeneration = process.env.STRICT_GENERATION !== 'false'; // default true
+  const actionScopedCache = process.env.ACTION_SCOPED_CACHE !== 'false'; // default true
+  
+  // Generate deterministic seed and correlation ID
   const seed = useSeed && jobId ? SeededGenerator.generateSeed(jobId, theme, industry, stepIndex) : undefined;
+  const correlationId = seed || SeededGenerator.generateSeed(jobId!, theme, industry, stepIndex);
   
-  // Check new persona cache with guardrails (with seed if applicable)
-  const cachedData = personaCacheGuardrails.get(theme, industry, seed);
+  // Build action-scoped cache key if enabled
+  const cacheSeed = actionScopedCache && seed ? `${seed}:${actionType}` : actionType;
+  
+  // Log generation start
+  logEvent('info', correlationId, 'generate.start', {
+    actionType,
+    theme,
+    industry,
+    inputHash: hashInputs({ actionType, theme, industry, template: actionTemplate }),
+    SCHEMA_VERSION
+  });
+  
+  // Check cache with action-scoped key
+  const cachedData = personaCacheGuardrails.get(theme, industry, cacheSeed);
   if (cachedData) {
-    console.log(`📋 Guardrails cache hit for ${theme} + ${industry}${seed ? ` (seed: ${seed})` : ''}`);
-    const variedData = addVariationToPersonaData(cachedData, actionType);
-    // Remove generated_at property before returning
-    delete variedData.generated_at;
-    delete variedData.generatedAt;
-    return variedData;
+    // Calculate TTL remaining
+    const cacheStats = personaCacheGuardrails.getStats();
+    const cacheEntry = cacheStats.entries.find(entry => 
+      entry.key === `${theme.toLowerCase()}:${industry.toLowerCase()}:${cacheSeed}`
+    );
+    const ttlRemaining = cacheEntry ? Math.max(0, cacheEntry.expiresAt - Date.now()) : undefined;
+    
+    logEvent('info', correlationId, 'generate.cacheCheck', {
+      result: 'hit',
+      ttlRemaining,
+      SCHEMA_VERSION
+    });
+    
+    try {
+      // Deep clone result to avoid mutation
+      const clone = JSON.parse(JSON.stringify(cachedData));
+      
+      // Re-validate cached data
+      validateDataOrThrow(clone, actionType);
+      
+      // Remove internal fields before returning
+      delete clone.generated_at;
+      delete clone.generatedAt;
+      delete (clone as any).metadata;
+      
+      return clone;
+    } catch (validationError) {
+      // Invalid cached data - evict and treat as miss
+      personaCacheGuardrails.delete(theme, industry, cacheSeed);
+      logEvent('warn', correlationId, 'cache.error', {
+        action: 'evictInvalid',
+        reason: validationError instanceof Error ? validationError.message : 'Validation failed',
+        SCHEMA_VERSION
+      });
+    }
   }
   
-  // Also check old cache system for backward compatibility
-  const cacheKey = `${theme}_${industry}_${actionType}`;
-  if (personaCache.has(cacheKey)) {
-    const oldCachedData = personaCache.get(cacheKey);
-    console.log(`📋 Legacy cache hit for ${cacheKey}`);
-    const variedData = addVariationToPersonaData(oldCachedData, actionType);
-    // Remove generated_at property before returning
-    delete variedData.generated_at;
-    delete variedData.generatedAt;
-    return variedData;
-  }
+  // Log cache miss
+  logEvent('info', correlationId, 'generate.cacheCheck', {
+    result: 'miss',
+    SCHEMA_VERSION
+  });
   
   try {
     let basePrompt = createLLMPrompt(actionType, theme, industry, actionTemplate, crmMetadata);
@@ -727,6 +865,13 @@ async function generateRealisticData(
       basePrompt = SeededGenerator.createSeededPrompt(basePrompt, seed);
       console.log(`🎲 Generating with seed: ${seed}`);
     }
+    
+    // Log LLM request
+    logEvent('info', correlationId, 'generate.llm.request', {
+      model: 'gpt-5-nano', // primary model
+      promptLength: basePrompt.length,
+      SCHEMA_VERSION
+    });
     
     // Try primary model first with rate limiting
     let response;
@@ -745,7 +890,6 @@ async function generateRealisticData(
             }
           ],
           response_format: { type: "json_object" }
-          // temperature: seed ? 0.3 : 0.7 // gpt-5-nano doesn't support custom temperature
         });
       }, {
         onRetry: (attempt, error) => {
@@ -757,6 +901,14 @@ async function generateRealisticData(
       });
     } catch (primaryError: any) {
       console.warn(`Primary model gpt-5-nano failed: ${primaryError.message}. Trying fallback model.`);
+      
+      // Log fallback attempt
+      logEvent('warn', correlationId, 'generate.llm.error', {
+        model: 'gpt-5-nano',
+        error: primaryError.message,
+        fallbackAttempt: true,
+        SCHEMA_VERSION
+      });
       
       // Fallback to secondary model with rate limiting
       response = await rateLimiter.executeWithRateLimit('openai', async () => {
@@ -773,7 +925,6 @@ async function generateRealisticData(
             }
           ],
           response_format: { type: "json_object" }
-          // temperature: seed ? 0.3 : 0.7 // gpt-4.1-nano uses default temperature
         });
       }, {
         onRetry: (attempt, error) => {
@@ -785,12 +936,48 @@ async function generateRealisticData(
       });
     }
 
-    const rawData = JSON.parse(response.choices[0].message.content || '{}');
+    // Log LLM response
+    const responseContent = response.choices[0].message.content || '{}';
+    logEvent('info', correlationId, 'generate.llm.response', {
+      textLength: responseContent.length,
+      finishReason: response.choices[0].finish_reason,
+      SCHEMA_VERSION
+    });
+
+    let rawData;
+    try {
+      rawData = JSON.parse(responseContent);
+      logEvent('info', correlationId, 'generate.parse.success', { SCHEMA_VERSION });
+    } catch (parseError) {
+      logEvent('error', correlationId, 'generate.parse.error', {
+        error: parseError instanceof Error ? parseError.message : 'Parse failed',
+        rawSample: responseContent.slice(0, 200),
+        SCHEMA_VERSION
+      });
+      
+      if (strictGeneration) {
+        throw new GenerateDataError('LLM_PARSE_FAILED', 'Failed to parse LLM response as JSON', {
+          correlationId,
+          theme,
+          industry,
+          actionType,
+          templateId: actionTemplate?.recordIdTpl,
+          rawSample: responseContent.slice(0, 200)
+        });
+      }
+      // Non-strict fallback - use template
+      return actionTemplate || {};
+    }
     
     // Validate generated data with guardrails
     const validation = LLMValidator.validateGeneratedData(rawData, theme, industry);
     
     if (!validation.isValid) {
+      logEvent('error', correlationId, 'generate.validate.error', {
+        errors: validation.errors,
+        SCHEMA_VERSION
+      });
+      
       console.error(`❌ LLM validation failed for ${theme} + ${industry}:`, validation.errors);
       
       // Attempt auto-fix for common issues
@@ -803,52 +990,98 @@ async function generateRealisticData(
         const revalidation = LLMValidator.validateGeneratedData(autoFix.data, theme, industry);
         
         if (revalidation.isValid) {
-          // Remove generated_at before caching and returning
+          // Remove internal fields before caching and returning
           const cleanData = { ...revalidation.validatedData };
           delete cleanData.generated_at;
           delete cleanData.generatedAt;
+          delete (cleanData as any).metadata;
           
           // Cache the validated and fixed data
-          personaCacheGuardrails.set(theme, industry, cleanData, seed);
-          personaCache.set(cacheKey, cleanData); // Legacy cache
+          personaCacheGuardrails.set(theme, industry, cleanData, cacheSeed);
+          
+          logEvent('info', correlationId, 'generate.validate.success', {
+            afterAutoFix: true,
+            SCHEMA_VERSION
+          });
           
           console.log(`✅ LLM output validated and cached after auto-fix`);
           return cleanData;
         }
       }
       
-      // If validation still fails, throw error with details
-      const errorMessage = `LLM output validation failed: ${validation.errors.join(', ')}`;
-      console.error(`❌ ${errorMessage}`);
+      // If validation still fails and strict mode is enabled, throw error
+      if (strictGeneration) {
+        throw new GenerateDataError('LLM_GENERATION_FAILED', 'LLM call/parse/validation failed', {
+          correlationId,
+          theme,
+          industry,
+          actionType,
+          templateId: actionTemplate?.recordIdTpl,
+          rawSample: responseContent.slice(0, 200)
+        });
+      }
       
-      // Mark as failed_non_retryable for this step
-      throw new Error(`failed_non_retryable: ${errorMessage}`);
+      // Non-strict fallback
+      return actionTemplate || {};
     }
+    
+    // Log validation success
+    logEvent('info', correlationId, 'generate.validate.success', { SCHEMA_VERSION });
     
     // Log warnings but continue
     if (validation.warnings.length > 0) {
       console.warn(`⚠️ LLM validation warnings:`, validation.warnings);
     }
     
-    // Remove generated_at before caching and returning
+    // Remove internal fields before caching and returning
     const cleanData = { ...validation.validatedData };
     delete cleanData.generated_at;
     delete cleanData.generatedAt;
+    delete (cleanData as any).metadata;
     
     console.log(`🤖 Generated LLM data for ${actionType}:`, JSON.stringify(cleanData, null, 2));
     
-    // Cache the validated data with guardrails
-    personaCacheGuardrails.set(theme, industry, cleanData, seed);
-    personaCache.set(cacheKey, cleanData); // Legacy cache for backward compatibility
+    // Cache the validated data
+    personaCacheGuardrails.set(theme, industry, cleanData, cacheSeed);
     
     console.log(`✅ LLM output validated and cached successfully`);
     return cleanData;
     
   } catch (error: any) {
+    // Log LLM error
+    logEvent('error', correlationId, 'generate.llm.error', {
+      error: error.message,
+      SCHEMA_VERSION
+    });
+    
     console.error('Error generating realistic data with LLM (both models failed):', error.message);
-    // Fallback to template data if both LLM models fail
+    
+    // Re-throw specific errors in strict mode
+    if (strictGeneration && (error instanceof GenerateDataError || error instanceof ValidationError)) {
+      throw error;
+    }
+    
+    // Fallback to template data if not in strict mode
+    if (strictGeneration) {
+      throw new GenerateDataError('LLM_GENERATION_FAILED', 'LLM call/parse/validation failed', {
+        correlationId,
+        theme,
+        industry,
+        actionType,
+        templateId: actionTemplate?.recordIdTpl,
+        rawSample: error.message?.slice(0, 200)
+      });
+    }
+    
     return actionTemplate || {};
   }
+}
+
+/**
+ * Helper function to hash inputs for logging
+ */
+function hashInputs(inputs: any): string {
+  return require('crypto').createHash('md5').update(JSON.stringify(inputs)).digest('hex').slice(0, 8);
 }
 
 /**
@@ -1023,20 +1256,32 @@ async function executeCreateContact(data: any, token: string, step: any): Promis
   delete resolvedData.generatedAt;
   delete resolvedData.generated_at; // Also remove snake_case version from record data
 
-  // Validate and coerce data types
-  const { validData: validatedData, errors } = validateAndCoerceRecordData(resolvedData, 'contacts');
+  // Pre-persistence validation (if enabled)
+  let validatedData = resolvedData;
+  if (process.env.STRICT_VALIDATION_BEFORE_PERSISTENCE !== 'false') {
+    validatedData = trimStringsDeep(validatedData);
+    validatedData = validateDataOrThrow(validatedData, 'create_contact');
+    
+    // Remove internal fields
+    delete validatedData.generatedAt;
+    delete validatedData.generated_at;
+    delete (validatedData as any).metadata;
+  }
+
+  // Legacy validation and coercion
+  const { validData: legacyValidatedData, errors } = validateAndCoerceRecordData(validatedData, 'contacts');
   if (errors.length > 0) {
     console.warn(`⚠️ Data validation warnings for contact:`, errors);
   }
 
-  console.log(`📝 Creating contact with data:`, JSON.stringify(validatedData, null, 2));
+  console.log(`📝 Creating contact with data:`, JSON.stringify(legacyValidatedData, null, 2));
 
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('contacts', Object.keys(validatedData), token, validatedData);
+  await ensureHubSpotProperties('contacts', Object.keys(legacyValidatedData), token, legacyValidatedData);
   
   // Create contact via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/contacts', {
-    properties: validatedData
+    properties: legacyValidatedData
   }, token);
   
   return {
@@ -1087,20 +1332,32 @@ async function executeCreateCompany(data: any, token: string, step: any): Promis
   delete resolvedData.generatedAt;
   delete resolvedData.generated_at; // Also remove snake_case version from record data
 
-  // Validate and coerce data types
-  const { validData: validatedData, errors } = validateAndCoerceRecordData(resolvedData, 'companies');
+  // Pre-persistence validation (if enabled)
+  let validatedData = resolvedData;
+  if (process.env.STRICT_VALIDATION_BEFORE_PERSISTENCE !== 'false') {
+    validatedData = trimStringsDeep(validatedData);
+    validatedData = validateDataOrThrow(validatedData, 'create_company');
+    
+    // Remove internal fields
+    delete validatedData.generatedAt;
+    delete validatedData.generated_at;
+    delete (validatedData as any).metadata;
+  }
+
+  // Legacy validation and coercion
+  const { validData: legacyValidatedData, errors } = validateAndCoerceRecordData(validatedData, 'companies');
   if (errors.length > 0) {
     console.warn(`⚠️ Data validation warnings for company:`, errors);
   }
 
-  console.log(`📝 Creating company with data:`, JSON.stringify(validatedData, null, 2));
+  console.log(`📝 Creating company with data:`, JSON.stringify(legacyValidatedData, null, 2));
 
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('companies', Object.keys(validatedData), token, validatedData);
+  await ensureHubSpotProperties('companies', Object.keys(legacyValidatedData), token, legacyValidatedData);
   
   // Create company via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/companies', {
-    properties: validatedData
+    properties: legacyValidatedData
   }, token);
   
   return {
@@ -1161,20 +1418,35 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
   
   console.log(`✅ Deal stage validation passed. Pipeline: ${validatedData.pipeline}, Stage: ${validatedData.dealstage}`);
 
+  // Resolve owner email to HubSpot owner ID if provided
+  const resolvedData = await resolveOwnerEmail(simulation.userId, validatedData, token);
+  
+  // Pre-persistence validation (if enabled)
+  let finalData = resolvedData;
+  if (process.env.STRICT_VALIDATION_BEFORE_PERSISTENCE !== 'false') {
+    finalData = trimStringsDeep(finalData);
+    finalData = validateDataOrThrow(finalData, 'create_deal');
+    
+    // Remove internal fields
+    delete finalData.generatedAt;
+    delete finalData.generated_at;
+    delete (finalData as any).metadata;
+  }
+
   // Check for existing deal if search fallback is enabled and dealname exists
-  if (ENABLE_SEARCH_FALLBACK && validatedData.dealname) {
-    const searchResult = await searchDeal(validatedData.dealname, token);
+  if (ENABLE_SEARCH_FALLBACK && finalData.dealname) {
+    const searchResult = await searchDeal(finalData.dealname, token);
     
     if (searchResult.found) {
       if (searchResult.ambiguous) {
         return {
           success: false,
-          error: `Ambiguous deal match for name: ${validatedData.dealname}`,
+          error: `Ambiguous deal match for name: ${finalData.dealname}`,
           action: 'create_deal',
           timestamp: new Date().toISOString()
         };
       } else if (searchResult.recordId) {
-        console.log(`🔍 Deduplication: Using existing deal ${searchResult.recordId} for ${validatedData.dealname}`);
+        console.log(`🔍 Deduplication: Using existing deal ${searchResult.recordId} for ${finalData.dealname}`);
         
         // Still handle associations for existing deal
         if (step.associationsTpl && Object.keys(step.associationsTpl).length > 0) {
@@ -1185,18 +1457,15 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
           success: true,
           recordId: searchResult.recordId,
           action: 'create_deal',
-          data: validatedData,
+          data: finalData,
           deduplicated: true,
           timestamp: new Date().toISOString()
         };
       }
     }
   }
-
-  // Resolve owner email to HubSpot owner ID if provided
-  const finalData = await resolveOwnerEmail(simulation.userId, validatedData, token);
   
-  // Validate and coerce data types
+  // Legacy validation and coercion
   const { validData: coercedData, errors } = validateAndCoerceRecordData(finalData, 'deals');
   if (errors.length > 0) {
     console.warn(`⚠️ Data validation warnings for deal:`, errors);
@@ -1264,12 +1533,24 @@ async function executeCreateTicket(data: any, token: string, step: any): Promise
   delete data.generatedAt;
   delete data.generated_at; // Also remove snake_case version from record data
 
+  // Pre-persistence validation (if enabled)
+  let validatedData = data;
+  if (process.env.STRICT_VALIDATION_BEFORE_PERSISTENCE !== 'false') {
+    validatedData = trimStringsDeep(validatedData);
+    validatedData = validateDataOrThrow(validatedData, 'create_ticket');
+    
+    // Remove internal fields
+    delete validatedData.generatedAt;
+    delete validatedData.generated_at;
+    delete (validatedData as any).metadata;
+  }
+
   // Validate and ensure properties exist
-  await ensureHubSpotProperties('tickets', Object.keys(data), token);
+  await ensureHubSpotProperties('tickets', Object.keys(validatedData), token);
   
   // Create ticket via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/tickets', {
-    properties: data
+    properties: validatedData
   }, token);
   
   // Handle associations if specified
