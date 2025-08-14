@@ -1115,8 +1115,9 @@ async function generateRealisticData(
       console.warn(`⚠️ LLM validation warnings:`, validation.warnings);
     }
     
-    // Remove internal fields before caching and returning
-    const cleanData = { ...validation.validatedData };
+    // Use the raw validated data directly, not validation.validatedData
+    // The validation.validatedData might be modifying the structure incorrectly
+    const cleanData = { ...rawData };
     delete cleanData.generated_at;
     delete cleanData.generatedAt;
     delete (cleanData as any).metadata;
@@ -1174,18 +1175,42 @@ function createLLMPrompt(actionType: string, theme: string, industry: string, te
   
   switch (actionType) {
     case 'create_contact':
-      return `${basePrompt} Create a contact with firstName, lastName, email, phone, and jobTitle that fits the ${theme} theme. The data should be consistent with the theme but structured appropriately for CRM fields. Return JSON with these fields: {"firstName": "", "lastName": "", "email": "", "phone": "", "jobTitle": "", "company": ""}`;
+      return `${basePrompt} You MUST return complete contact data in valid JSON format. Include ALL required fields with realistic values:
+      
+      Example expected output:
+      {
+        "firstName": "John",
+        "lastName": "Smith", 
+        "email": "john.smith@techcorp.com",
+        "phone": "+1-555-123-4567",
+        "jobTitle": "Software Engineer",
+        "company": "TechCorp Inc"
+      }
+      
+      Generate a complete contact that fits the ${theme} theme with ALL these fields populated.`;
       
     case 'create_company':
-      return `${basePrompt} Create a company with name, domain, city, state, industry, and employee count that fits the ${theme} theme. Ensure all values are appropriately formatted for their respective fields. Return JSON with: {"name": "", "domain": "", "city": "", "state": "", "industry": "", "numberofemployees": ""}`;
+      return `${basePrompt} You MUST return complete company data in valid JSON format. Include ALL required fields with realistic values:
+      
+      Example expected output:
+      {
+        "name": "TechCorp Inc",
+        "domain": "techcorp.com", 
+        "city": "San Francisco",
+        "state": "California",
+        "industry": "Software",
+        "numberofemployees": 150
+      }
+      
+      Generate a complete company that fits the ${theme} theme with ALL these fields populated.`;
       
     case 'create_deal':
-      let dealPrompt = `${basePrompt} Create a deal with name and amount that fits the ${theme} theme. Ensure the amount is a valid numeric value.`;
+      let dealPrompt = `${basePrompt} You MUST return complete deal data in valid JSON format. Include ALL required fields with realistic values.`;
       if (crmMetadata) {
         dealPrompt += `\n\nIMPORTANT - Use ONLY these exact pipeline and stage IDs from the target CRM:\n${getDealPipelineOptions(crmMetadata)}`;
-        dealPrompt += `\n\nReturn JSON with: {"dealname": "", "amount": "", "dealstage": "[USE_EXACT_STAGE_ID]", "pipeline": "[USE_EXACT_PIPELINE_ID]"}`;
+        dealPrompt += `\n\nExample expected output:\n{"dealname": "Enterprise Software License", "amount": 25000, "dealstage": "[USE_EXACT_STAGE_ID]", "pipeline": "[USE_EXACT_PIPELINE_ID]"}`;
       } else {
-        dealPrompt += ` Return JSON with: {"dealname": "", "amount": "", "dealstage": "appointmentscheduled", "pipeline": "default"}`;
+        dealPrompt += `\n\nExample expected output:\n{"dealname": "Enterprise Software License", "amount": 25000, "dealstage": "appointmentscheduled", "pipeline": "default"}`;
       }
       return dealPrompt;
       
