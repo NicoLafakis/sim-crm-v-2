@@ -869,10 +869,17 @@ async function generateRealisticData(
       console.log(`🎲 Generating with seed: ${seed}`);
     }
     
-    // Log LLM request
+    // Log LLM request with enhanced details
+    console.log(`🚀 LLM REQUEST: ${actionType} for ${theme}/${industry}`);
+    console.log(`📝 System Prompt: ${SYSTEM_PROMPT.slice(0, 100)}...`);
+    console.log(`📝 User Prompt: ${basePrompt.slice(0, 200)}...`);
+    
     logEvent('info', correlationId, 'generate.llm.request', {
       model: 'gpt-5-nano', // primary model
       promptLength: basePrompt.length,
+      actionType,
+      theme,
+      industry,
       SCHEMA_VERSION
     });
     
@@ -939,11 +946,14 @@ async function generateRealisticData(
       });
     }
 
-    // Log LLM response
+    // Log LLM response with enhanced details
     const responseContent = response.choices[0].message.content || '{}';
+    console.log(`🤖 LLM RESPONSE: ${responseContent}`);
+    
     logEvent('info', correlationId, 'generate.llm.response', {
       textLength: responseContent.length,
       finishReason: response.choices[0].finish_reason,
+      responseContent: responseContent.slice(0, 500),
       SCHEMA_VERSION
     });
 
@@ -1134,7 +1144,7 @@ function createLLMPrompt(actionType: string, theme: string, industry: string, te
       return updateDealPrompt;
       
     case 'update_ticket':
-      let updateTicketPrompt = `${basePrompt} Generate data to update a support ticket that fits the ${theme} theme.`;
+      let updateTicketPrompt = `${basePrompt} Create data to update a support ticket that fits the ${theme} theme.`;
       if (crmMetadata) {
         updateTicketPrompt += `\n\nIMPORTANT - Use ONLY these exact stage IDs from the target CRM:\n${getTicketPipelineOptions(crmMetadata)}`;
         updateTicketPrompt += `\n\nReturn JSON with: {"hs_pipeline_stage": "[USE_EXACT_STAGE_ID]"}`;
@@ -1144,7 +1154,7 @@ function createLLMPrompt(actionType: string, theme: string, industry: string, te
       return updateTicketPrompt;
       
     case 'close_ticket':
-      let closeTicketPrompt = `${basePrompt} Generate data to close a support ticket.`;
+      let closeTicketPrompt = `${basePrompt} Create data to close a support ticket.`;
       if (crmMetadata) {
         closeTicketPrompt += `\n\nIMPORTANT - Use ONLY these exact stage IDs that represent "closed" status from the target CRM:\n${getTicketPipelineOptions(crmMetadata)}`;
         closeTicketPrompt += `\n\nReturn JSON with: {"hs_pipeline_stage": "[USE_EXACT_CLOSED_STAGE_ID]"}`;
@@ -2369,6 +2379,12 @@ async function makeHubSpotRequest(method: string, endpoint: string, data: any, t
   return rateLimiter.executeWithRateLimit('hubspot', async () => {
     const url = `https://api.hubapi.com${endpoint}`;
     
+    // Enhanced logging for HubSpot requests
+    console.log(`📤 HUBSPOT API ${method} ${endpoint}`);
+    if (data && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
+      console.log(`📦 Request Body: ${JSON.stringify(data, null, 2)}`);
+    }
+    
     const options: RequestInit = {
       method,
       headers: {
@@ -2385,6 +2401,7 @@ async function makeHubSpotRequest(method: string, endpoint: string, data: any, t
     
     if (!response.ok) {
       const errorData = await response.text();
+      console.error(`❌ HUBSPOT ERROR ${response.status}: ${errorData}`);
       
       // Create error with proper status and headers for rate limiter
       const error = new Error(`HubSpot API error (${response.status}): ${errorData}`);
@@ -2394,7 +2411,9 @@ async function makeHubSpotRequest(method: string, endpoint: string, data: any, t
       throw error;
     }
     
-    return await response.json();
+    const responseData = await response.json();
+    console.log(`✅ HUBSPOT SUCCESS: ${JSON.stringify(responseData, null, 2)}`);
+    return responseData;
   }, {
     onRetry: (attempt, error) => {
       console.log(`🔄 HubSpot API retry ${attempt + 1} for ${method} ${endpoint}: ${error.message}`);
