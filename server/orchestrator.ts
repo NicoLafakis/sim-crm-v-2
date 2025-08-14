@@ -2,6 +2,7 @@ import { storage } from './storage';
 import { Simulation, InsertJob, InsertJobStep } from '../shared/schema';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { createHash } from 'crypto';
 import OpenAI from 'openai';
 import { rateLimiter } from './rate-limiter';
 import { personaCache as personaCacheGuardrails, SeededGenerator, LLMValidator, SCHEMA_VERSION } from './llm-guardrails';
@@ -1109,7 +1110,7 @@ async function generateRealisticData(
  * Helper function to hash inputs for logging
  */
 function hashInputs(inputs: any): string {
-  return require('crypto').createHash('md5').update(JSON.stringify(inputs)).digest('hex').slice(0, 8);
+  return createHash('md5').update(JSON.stringify(inputs)).digest('hex').slice(0, 8);
 }
 
 /**
