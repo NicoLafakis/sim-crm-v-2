@@ -916,7 +916,7 @@ async function generateRealisticData(
     try {
       response = await rateLimiter.executeWithRateLimit('openai', async () => {
         return await openai.chat.completions.create({
-          model: "gpt-4o-mini",
+          model: "gpt-5-nano",
           messages: [
             {
               role: "system",
@@ -951,7 +951,7 @@ async function generateRealisticData(
       // Fallback to secondary model with rate limiting
       response = await rateLimiter.executeWithRateLimit('openai', async () => {
         return await openai.chat.completions.create({
-          model: "gpt-4o-mini",
+          model: "gpt-5-nano",
           messages: [
             {
               role: "system",
@@ -2641,6 +2641,8 @@ export {
   resolveOwnerEmail, 
   getOwnerIdByEmail, 
   fetchAndCacheOwners,
+  fetchAndCachePipelinesAndStages,
+  makeHubSpotRequest,
   determinePropertyType,
   determineFieldType,
   validateAndCoerceRecordData,

@@ -336,6 +336,22 @@ export default function ProgressPage() {
                                 </Button>
                               </div>
                             )}
+                            {/* Log Button for Active Simulations */}
+                            {(simulation.status === 'processing' || simulation.status === 'paused' || simulation.status === 'completed' || simulation.status === 'failed') && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Toggle log view for this simulation
+                                  window.open(`/api/simulation/${simulation.id}/logs`, '_blank');
+                                }}
+                                className="bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-300 font-mono text-xs px-2 py-1 h-6"
+                                data-testid={`button-log-${simulation.id}`}
+                              >
+                                📋 LOGS
+                              </Button>
+                            )}
                             <span className="text-gray-600">{isExpanded ? <ChevronUp /> : <ChevronDown />}</span>
                           </div>
                         </div>

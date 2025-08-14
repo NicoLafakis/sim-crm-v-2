@@ -30,9 +30,26 @@ export default function HubSpotSetup() {
     }
   }, [session]);
 
+  const [validationSteps, setValidationSteps] = useState<any[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
+
   const validateTokenMutation = useMutation({
     mutationFn: async (token: string) => {
-      return apiRequest('POST', '/api/validate-hubspot-token', { token });
+      setIsValidating(true);
+      setValidationSteps([]);
+      
+      const response = await apiRequest('POST', '/api/validate-hubspot-comprehensive', { 
+        token, 
+        userId: user?.id 
+      }) as any;
+      
+      setValidationSteps(response.validations || []);
+      
+      if (!response.valid) {
+        throw new Error(response.message);
+      }
+      
+      return response;
     },
     onSuccess: async () => {
       // Update session with valid token
@@ -48,23 +65,31 @@ export default function HubSpotSetup() {
           setSession(updatedSession);
         }
 
-        // Proceed based on redirect context
-        if (redirectFrom === 'simulation' && selectedTheme) {
-          // User was redirected from theme selection, go back to theme selection
-          setLocation('/theme-selection');
-        } else {
-          // Normal flow, proceed to theme selection
-          setLocation('/theme-selection');
-        }
+        toast({
+          title: "HubSpot Connected Successfully", 
+          description: "All validations passed. Ready to start simulations!",
+        });
+
+        // Wait a moment for user to see success, then proceed
+        setTimeout(() => {
+          if (redirectFrom === 'simulation' && selectedTheme) {
+            setLocation('/theme-selection');
+          } else {
+            setLocation('/theme-selection');
+          }
+        }, 2000);
       }
     },
     onError: (error) => {
       toast({
-        title: "Invalid Token",
-        description: error.message || "Please check your HubSpot API token",
+        title: "HubSpot Validation Failed",
+        description: error.message || "Please check your HubSpot API token and try again",
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      setIsValidating(false);
+    }
   });
 
   const handleSaveToken = () => {
@@ -148,20 +173,52 @@ export default function HubSpotSetup() {
                 <li>Click "Connect" to enable simulation features</li>
               </ol>
             </div>
+
+            {/* Validation Progress */}
+            {(isValidating || validationSteps.length > 0) && (
+              <div className="mt-4 p-4 bg-white rounded border-2 border-green-700">
+                <h3 className="font-bold text-sm mb-3" style={{ color: '#1e3a5f' }}>
+                  HubSpot Validation Progress
+                </h3>
+                <div className="space-y-2">
+                  {validationSteps.map((step, index) => (
+                    <div key={index} className="flex items-center justify-between text-xs">
+                      <span className="font-medium">{step.step}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          step.status === 'success' ? 'bg-green-200 text-green-800' :
+                          step.status === 'warning' ? 'bg-yellow-200 text-yellow-800' :
+                          'bg-red-200 text-red-800'
+                        }`}>
+                          {step.status === 'success' ? '✓' : step.status === 'warning' ? '⚠' : '✗'}
+                        </span>
+                        <span className="text-gray-600 max-w-xs truncate">{step.message}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {isValidating && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <div className="animate-spin h-4 w-4 border-2 border-green-600 border-t-transparent rounded-full"></div>
+                      <span>Running comprehensive validation...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
           <div className="flex justify-center space-x-4 mt-8">
             <button
               onClick={handleSaveToken}
-              disabled={validateTokenMutation.isPending}
+              disabled={validateTokenMutation.isPending || isValidating}
               className="text-white py-2 px-6 rounded text-sm font-bold transition-colors disabled:opacity-50"
-              style={{ backgroundColor: validateTokenMutation.isPending ? '#6c7b7f' : '#8b0000' }}
-              onMouseEnter={(e) => !validateTokenMutation.isPending && (e.currentTarget.style.backgroundColor = '#a00000')}
-              onMouseLeave={(e) => !validateTokenMutation.isPending && (e.currentTarget.style.backgroundColor = '#8b0000')}
+              style={{ backgroundColor: (validateTokenMutation.isPending || isValidating) ? '#6c7b7f' : '#8b0000' }}
+              onMouseEnter={(e) => !(validateTokenMutation.isPending || isValidating) && (e.currentTarget.style.backgroundColor = '#a00000')}
+              onMouseLeave={(e) => !(validateTokenMutation.isPending || isValidating) && (e.currentTarget.style.backgroundColor = '#8b0000')}
               data-testid="button-connect"
             >
-              {validateTokenMutation.isPending ? 'CONNECTING...' : 'CONNECT'}
+              {(validateTokenMutation.isPending || isValidating) ? 'VALIDATING...' : 'CONNECT & VALIDATE'}
             </button>
 
             <button

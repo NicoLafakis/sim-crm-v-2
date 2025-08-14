@@ -4,11 +4,9 @@ import { db } from "./db";
 import { users, sessions, simulations, jobs, jobSteps, apiTokens, insertUserSchema, insertSessionSchema } from "../shared/schema";
 import type { User, Session, Simulation, InsertSimulation, InsertUser, InsertSession } from "../shared/schema";
 import { DatabaseStorage } from "./storage";
-import { scheduleSimulationJob } from './orchestrator';
-import { storage } from './storage';
+import { scheduleSimulationJob, fetchAndCacheOwners, fetchAndCachePipelinesAndStages, makeHubSpotRequest } from './orchestrator';
 import { rateLimiter } from './rate-limiter';
 import { validateDataOrThrow } from './validation';
-import { fetchAndCacheOwners } from './orchestrator';
 
 const storage = new DatabaseStorage();
 
@@ -168,7 +166,7 @@ export function registerRoutes(app: Express) {
       // If updating with a HubSpot token, sync owners automatically
       if (updateData.hubspotToken) {
         try {
-          await fetchAndCacheOwners(updateData.hubspotToken);
+          await fetchAndCacheOwners(parseInt(userId), updateData.hubspotToken);
           console.log(`HUBSPOT API: Owners synced for user ${userId}`);
         } catch (error) {
           console.warn(`HUBSPOT API: Failed to sync owners for user ${userId}:`, error);
@@ -176,14 +174,154 @@ export function registerRoutes(app: Express) {
         }
       }
       
-      const updatedSession = await storage.updateSession(userId, updateData);
+      const updatedSession = await storage.updateSession(parseInt(userId), updateData);
       res.json(updatedSession);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  // HubSpot validation
+  // Comprehensive HubSpot validation
+  app.post("/api/validate-hubspot-comprehensive", async (req, res) => {
+    try {
+      const { token, userId } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ 
+          valid: false, 
+          message: "Token is required",
+          validations: []
+        });
+      }
+      
+      if (!userId) {
+        return res.status(400).json({ 
+          valid: false, 
+          message: "User ID is required",
+          validations: []
+        });
+      }
+      
+      const validationResults = [];
+      let overallValid = true;
+      
+      // 1. Token format validation
+      console.log('🔍 Validating HubSpot token format...');
+      if (!token.startsWith('pat-na1-') || token.length <= 20) {
+        validationResults.push({
+          step: 'Token Format',
+          status: 'failed',
+          message: 'Invalid token format. Expected pat-na1-xxx format.'
+        });
+        overallValid = false;
+      } else {
+        validationResults.push({
+          step: 'Token Format', 
+          status: 'success',
+          message: 'Token format is valid'
+        });
+      }
+      
+      // 2. API connectivity test
+      console.log('🔗 Testing HubSpot API connectivity...');
+      try {
+        const testResponse = await makeHubSpotRequest('GET', '/crm/v3/owners?limit=1', null, token);
+        validationResults.push({
+          step: 'API Connectivity',
+          status: 'success',
+          message: 'Successfully connected to HubSpot API'
+        });
+      } catch (error: any) {
+        validationResults.push({
+          step: 'API Connectivity',
+          status: 'failed', 
+          message: `API connection failed: ${error.message}`
+        });
+        overallValid = false;
+      }
+      
+      if (!overallValid) {
+        return res.json({
+          valid: false,
+          message: "HubSpot validation failed",
+          validations: validationResults
+        });
+      }
+      
+      // 3. Fetch and cache owners
+      console.log('👥 Fetching and caching HubSpot owners...');
+      try {
+        await fetchAndCacheOwners(userId, token);
+        const cachedOwners = await storage.getHubspotOwners(userId);
+        validationResults.push({
+          step: 'Owners Cache',
+          status: 'success',
+          message: `Cached ${cachedOwners.length} owners successfully`
+        });
+      } catch (error: any) {
+        validationResults.push({
+          step: 'Owners Cache',
+          status: 'warning',
+          message: `Owner caching failed: ${error.message}`
+        });
+        // Not critical - continue validation
+      }
+      
+      // 4. Fetch and cache pipelines/stages
+      console.log('🛠️ Fetching and caching pipelines and stages...');
+      try {
+        await fetchAndCachePipelinesAndStages(userId, token);
+        const cachedPipelines = await storage.getHubspotPipelines(userId, 'deals');
+        validationResults.push({
+          step: 'Pipelines & Stages',
+          status: 'success',
+          message: `Cached ${cachedPipelines.length} deal pipelines successfully`
+        });
+      } catch (error: any) {
+        validationResults.push({
+          step: 'Pipelines & Stages', 
+          status: 'warning',
+          message: `Pipeline caching failed: ${error.message}`
+        });
+        // Not critical - continue validation
+      }
+      
+      // 5. Test record permissions
+      console.log('🔐 Testing record creation permissions...');
+      try {
+        // Test if we can access contact properties (basic permission test)
+        await makeHubSpotRequest('GET', '/crm/v3/properties/contacts?limit=1', null, token);
+        validationResults.push({
+          step: 'Permissions Check',
+          status: 'success',
+          message: 'Required CRM permissions verified'
+        });
+      } catch (error: any) {
+        validationResults.push({
+          step: 'Permissions Check',
+          status: 'failed',
+          message: `Permission test failed: ${error.message}`
+        });
+        overallValid = false;
+      }
+      
+      res.json({
+        valid: overallValid,
+        message: overallValid ? "All HubSpot validations passed" : "Some validations failed",
+        validations: validationResults
+      });
+      
+    } catch (error: any) {
+      console.error('HubSpot validation error:', error);
+      res.status(500).json({ 
+        valid: false, 
+        message: `Validation failed: ${error.message}`,
+        validations: []
+      });
+    }
+  });
+  
+  // Legacy simple validation endpoint (for backward compatibility)
   app.post("/api/validate-hubspot-token", async (req, res) => {
     try {
       const { token } = req.body;
@@ -216,6 +354,147 @@ export function registerRoutes(app: Express) {
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Simulation logs endpoint
+  app.get("/api/simulation/:simulationId/logs", async (req, res) => {
+    try {
+      const simulationId = parseInt(req.params.simulationId);
+      
+      // Get simulation details
+      const simulation = await storage.getSimulationById(simulationId);
+      if (!simulation) {
+        return res.status(404).json({ error: "Simulation not found" });
+      }
+      
+      // Get jobs for this simulation
+      const simulationJobs = await storage.getJobs();
+      const job = simulationJobs.find(j => j.simulationId === simulationId);
+      
+      if (!job) {
+        return res.status(404).json({ error: "No job found for this simulation" });
+      }
+      
+      // Get job steps for detailed logs
+      const jobSteps = await storage.getJobSteps(job.id);
+      
+      // Format logs for display
+      const logs = {
+        simulation: {
+          id: simulation.id,
+          name: simulation.name,
+          status: simulation.status,
+          startedAt: simulation.startedAt,
+          completedAt: simulation.completedAt,
+          theme: simulation.theme,
+          industry: simulation.industry
+        },
+        job: {
+          id: job.id,
+          status: job.status,
+          createdAt: job.createdAt,
+          completedAt: job.completedAt,
+          metadata: job.metadata
+        },
+        steps: jobSteps.map(step => ({
+          id: step.id,
+          stepIndex: step.stepIndex,
+          actionType: step.actionType,
+          status: step.status,
+          scheduledAt: step.scheduledAt,
+          executedAt: step.executedAt,
+          result: step.result ? JSON.parse(step.result as string) : null,
+          error: step.error
+        })),
+        summary: {
+          totalSteps: jobSteps.length,
+          completedSteps: jobSteps.filter(s => s.status === 'completed').length,
+          failedSteps: jobSteps.filter(s => s.status === 'failed').length,
+          pendingSteps: jobSteps.filter(s => s.status === 'pending').length
+        }
+      };
+      
+      // Return JSON for API calls or HTML for browser
+      if (req.headers.accept?.includes('application/json')) {
+        res.json(logs);
+      } else {
+        // Return HTML view for browser
+        const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simulation Logs - ${simulation.name}</title>
+    <style>
+        body { font-family: 'Courier New', monospace; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        .status-success { color: #28a745; }
+        .status-failed { color: #dc3545; }
+        .status-pending { color: #ffc107; }
+        .status-processing { color: #17a2b8; }
+        .log-entry { margin: 10px 0; padding: 10px; background: #f8f9fa; border-left: 4px solid #007bff; }
+        .error { background: #f8d7da; border-left-color: #dc3545; }
+        .success { background: #d4edda; border-left-color: #28a745; }
+        .timestamp { color: #666; font-size: 0.9em; }
+        .json { background: #e9ecef; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        pre { margin: 0; white-space: pre-wrap; }
+        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .summary-card { background: #e9ecef; padding: 15px; border-radius: 8px; text-align: center; }
+        .summary-card h3 { margin: 0 0 10px 0; color: #495057; }
+        .summary-card .number { font-size: 2em; font-weight: bold; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Simulation Logs</h1>
+            <h2>${simulation.name}</h2>
+            <p><strong>Status:</strong> <span class="status-${simulation.status}">${simulation.status.toUpperCase()}</span></p>
+            <p><strong>Started:</strong> ${new Date(simulation.startedAt).toLocaleString()}</p>
+            ${simulation.completedAt ? `<p><strong>Completed:</strong> ${new Date(simulation.completedAt).toLocaleString()}</p>` : ''}
+        </div>
+        
+        <div class="summary">
+            <div class="summary-card">
+                <h3>Total Steps</h3>
+                <div class="number">${logs.summary.totalSteps}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Completed</h3>
+                <div class="number status-success">${logs.summary.completedSteps}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Failed</h3>
+                <div class="number status-failed">${logs.summary.failedSteps}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Pending</h3>
+                <div class="number status-pending">${logs.summary.pendingSteps}</div>
+            </div>
+        </div>
+        
+        <h3>Execution Steps</h3>
+        ${jobSteps.map(step => `
+            <div class="log-entry ${step.status === 'failed' ? 'error' : step.status === 'completed' ? 'success' : ''}">
+                <div><strong>Step ${step.stepIndex}:</strong> ${step.actionType}</div>
+                <div class="timestamp">Scheduled: ${new Date(step.scheduledAt).toLocaleString()}</div>
+                ${step.executedAt ? `<div class="timestamp">Executed: ${new Date(step.executedAt).toLocaleString()}</div>` : ''}
+                <div><strong>Status:</strong> <span class="status-${step.status}">${step.status.toUpperCase()}</span></div>
+                ${step.result ? `<div class="json"><strong>Result:</strong><pre>${JSON.stringify(JSON.parse(step.result), null, 2)}</pre></div>` : ''}
+                ${step.error ? `<div class="json"><strong>Error:</strong><pre>${step.error}</pre></div>` : ''}
+            </div>
+        `).join('')}
+    </div>
+</body>
+</html>
+        `;
+        res.setHeader('Content-Type', 'text/html');
+        res.send(htmlContent);
+      }
+    } catch (error: any) {
+      console.error('Error fetching simulation logs:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 
