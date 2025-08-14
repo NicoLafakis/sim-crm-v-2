@@ -1572,6 +1572,9 @@ async function executeCreateNote(data: any, token: string, step: any): Promise<a
   // Add ISO timestamp for HubSpot
   data.hs_timestamp = new Date().toISOString();
   
+  // Validate and ensure properties exist
+  await ensureHubSpotProperties('notes', Object.keys(data), token, data);
+  
   // Create note via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/notes', {
     properties: data
@@ -1682,6 +1685,9 @@ async function executeUpdateDeal(data: any, token: string, step: any): Promise<a
     console.log(`✅ Deal update stage validation passed. Pipeline: ${data.pipeline}, Stage: ${data.dealstage}`);
   }
   
+  // Validate and ensure properties exist
+  await ensureHubSpotProperties('deals', Object.keys(data), token, data);
+  
   // Update deal via HubSpot API
   const response = await makeHubSpotRequest('PATCH', `/crm/v3/objects/deals/${dealId}`, {
     properties: data
@@ -1703,6 +1709,9 @@ async function executeUpdateDeal(data: any, token: string, step: any): Promise<a
 async function executeUpdateTicket(data: any, token: string, step: any): Promise<any> {
   const ticketId = extractRecordId(step.recordIdTpl);
   
+  // Validate and ensure properties exist
+  await ensureHubSpotProperties('tickets', Object.keys(data), token, data);
+  
   // Update ticket via HubSpot API
   const response = await makeHubSpotRequest('PATCH', `/crm/v3/objects/tickets/${ticketId}`, {
     properties: data
@@ -1723,6 +1732,9 @@ async function executeUpdateTicket(data: any, token: string, step: any): Promise
  */
 async function executeCloseTicket(data: any, token: string, step: any): Promise<any> {
   const ticketId = extractRecordId(step.recordIdTpl);
+  
+  // Validate and ensure properties exist
+  await ensureHubSpotProperties('tickets', Object.keys(data), token, data);
   
   // Close ticket via HubSpot API
   const response = await makeHubSpotRequest('PATCH', `/crm/v3/objects/tickets/${ticketId}`, {
