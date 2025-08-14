@@ -77,9 +77,14 @@ export async function scheduleSimulationJob(
     let csvFileName = 'universal_30day_timing_key.csv'; // Default fallback
     let usingIndustrySpecificTemplate = false;
     
-    // Industry-specific CSV mapping
+    // Industry-specific CSV mapping (ONLY E-commerce has industry-specific templates)
     const industryTemplates: Record<string, { won: string; lost: string }> = {
       'ecommerce': {
+        won: 'Ecommerce_Cycle-ClosedWon_1755104746839.csv',
+        lost: 'Ecommerce_Cycle-ClosedLost_1755104746839.csv'
+      },
+      // Handle legacy/fallback mapping - if "business" is somehow being set, treat it as ecommerce
+      'business': {
         won: 'Ecommerce_Cycle-ClosedWon_1755104746839.csv',
         lost: 'Ecommerce_Cycle-ClosedLost_1755104746839.csv'
       }
@@ -90,21 +95,31 @@ export async function scheduleSimulationJob(
     };
     
     const industryKey = simulation.industry?.toLowerCase();
+    console.log(`🔍 Template Selection Debug: industryKey='${industryKey}', available templates: ${Object.keys(industryTemplates).join(', ')}`);
+    
     if (industryKey && industryTemplates[industryKey]) {
       const templates = industryTemplates[industryKey];
       csvFileName = outcome?.toLowerCase() === 'won' ? templates.won : templates.lost;
       usingIndustrySpecificTemplate = true;
+      console.log(`✅ Found industry-specific template: ${csvFileName}`);
+    } else {
+      console.log(`⚠️  No match found for industry '${industryKey}'`);
     }
     
     // Load industry-specific CSV template
     const csvPath = join(process.cwd(), 'attached_assets', csvFileName);
     let csvContent: string;
     
-    console.log(`Loading CSV template: ${csvFileName} for industry: ${simulation.industry}, outcome: ${outcome}`);
+    console.log(`📋 Template Info: Loading ${csvFileName} for industry: ${simulation.industry}, outcome: ${outcome}`);
     if (!usingIndustrySpecificTemplate) {
-      console.warn(`⚠️  No industry-specific template found for '${simulation.industry}'. Using universal template. This means timing patterns may not reflect realistic ${simulation.industry} sales cycles.`);
+      // Only E-commerce should have industry-specific templates
+      if (simulation.industry?.toLowerCase() === 'ecommerce' || simulation.industry?.toLowerCase() === 'business') {
+        console.error(`🚨 ERROR: E-commerce simulation should use industry-specific template, but using universal! Check template selection logic.`);
+      } else {
+        console.log(`📊 Template Info: Using universal timing template - industry-specific patterns not yet available for ${simulation.industry}.`);
+      }
     } else {
-      console.log(`✅ Using industry-specific template for ${simulation.industry} - ${outcome} outcome`);
+      console.log(`✅ Template Info: Using E-commerce specific template for ${simulation.industry} - ${outcome} outcome`);
     }
     
     try {
