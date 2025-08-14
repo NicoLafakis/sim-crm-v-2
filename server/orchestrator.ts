@@ -1333,9 +1333,12 @@ async function executeCreateContact(data: any, token: string, step?: any): Promi
   // Validate and ensure properties exist
   await ensureHubSpotProperties('contacts', Object.keys(legacyValidatedData), token, legacyValidatedData);
   
+  // Convert property names to lowercase for HubSpot compatibility
+  const hubspotData = convertPropertiesToLowercase(legacyValidatedData);
+  
   // Create contact via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/contacts', {
-    properties: legacyValidatedData
+    properties: hubspotData
   }, token);
   
   return {
@@ -1422,9 +1425,12 @@ async function executeCreateCompany(data: any, token: string, step?: any): Promi
   // Validate and ensure properties exist
   await ensureHubSpotProperties('companies', Object.keys(legacyValidatedData), token, legacyValidatedData);
   
+  // Convert property names to lowercase for HubSpot compatibility
+  const hubspotData = convertPropertiesToLowercase(legacyValidatedData);
+  
   // Create company via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/companies', {
-    properties: legacyValidatedData
+    properties: hubspotData
   }, token);
   
   return {
@@ -1541,9 +1547,12 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
   // Validate and ensure properties exist
   await ensureHubSpotProperties('deals', Object.keys(coercedData), token, coercedData);
   
+  // Convert property names to lowercase for HubSpot compatibility
+  const hubspotData = convertPropertiesToLowercase(coercedData);
+  
   // Create deal via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/deals', {
-    properties: coercedData
+    properties: hubspotData
   }, token);
   
   // Handle associations if specified
@@ -1575,9 +1584,12 @@ async function executeCreateNote(data: any, token: string, step: any): Promise<a
   // Validate and ensure properties exist
   await ensureHubSpotProperties('notes', Object.keys(data), token, data);
   
+  // Convert property names to lowercase for HubSpot compatibility
+  const hubspotData = convertPropertiesToLowercase(data);
+  
   // Create note via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/notes', {
-    properties: data
+    properties: hubspotData
   }, token);
   
   // Handle associations if specified
@@ -1618,9 +1630,12 @@ async function executeCreateTicket(data: any, token: string, step: any): Promise
   // Validate and ensure properties exist
   await ensureHubSpotProperties('tickets', Object.keys(validatedData), token);
   
+  // Convert property names to lowercase for HubSpot compatibility
+  const hubspotData = convertPropertiesToLowercase(validatedData);
+  
   // Create ticket via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/tickets', {
-    properties: validatedData
+    properties: hubspotData
   }, token);
   
   // Handle associations if specified
@@ -1688,9 +1703,12 @@ async function executeUpdateDeal(data: any, token: string, step: any): Promise<a
   // Validate and ensure properties exist
   await ensureHubSpotProperties('deals', Object.keys(data), token, data);
   
+  // Convert property names to lowercase for HubSpot compatibility
+  const hubspotData = convertPropertiesToLowercase(data);
+  
   // Update deal via HubSpot API
   const response = await makeHubSpotRequest('PATCH', `/crm/v3/objects/deals/${dealId}`, {
-    properties: data
+    properties: hubspotData
   }, token);
   
   return {
@@ -1752,6 +1770,17 @@ async function executeCloseTicket(data: any, token: string, step: any): Promise<
 }
 
 /**
+ * Convert camelCase property names to lowercase for HubSpot compatibility
+ */
+function convertPropertiesToLowercase(data: any): any {
+  const converted: any = {};
+  for (const [key, value] of Object.entries(data)) {
+    converted[key.toLowerCase()] = value;
+  }
+  return converted;
+}
+
+/**
  * Ensure HubSpot properties exist for the given object type
  * Handles all property types and automatically creates missing select options
  */
@@ -1796,7 +1825,7 @@ async function createComprehensivePropertyConfig(propertyName: string, objectTyp
   const fieldType = determineFieldType(propertyName, propertyType);
   
   const config: any = {
-    name: propertyName,
+    name: propertyName.toLowerCase(),
     label: formatPropertyLabel(propertyName),
     type: propertyType.type,
     fieldType: fieldType,
