@@ -54,5 +54,18 @@ The platform features a Game Boy aesthetic, implemented through:
 ### External Services
 - **HubSpot API**: Primary CRM integration for data simulation and management.
 - **PostgreSQL**: Configured database backend.
-- **OpenAI API**: Used for AI strategy and scenario generation.
+- **OpenAI API**: Used for AI strategy and scenario generation (gpt-5-nano model only).
 - **Express sessions**: For server-side session management.
+
+## Recent Updates
+
+### HubSpot Validation System Implementation (January 2025)
+- **Comprehensive Validation Process**: Implemented multi-step HubSpot validation including token format verification, API connectivity testing, owner caching, pipeline/stage caching, and permissions verification.
+- **Real-time Progress Display**: Enhanced hubspot-setup.tsx with live validation progress showing detailed step-by-step results with success/warning/error indicators.
+- **Fixed Response Parsing**: Resolved frontend JSON response parsing issue that was causing valid tokens to show as invalid.
+- **Owner & Pipeline Caching**: Automated caching of HubSpot owners and deal pipelines during validation for later use in simulation execution.
+- **Enhanced Error Handling**: Improved error messaging and logging for better debugging and user feedback.
+
+### OpenAI Model Update (January 2025)
+- **Model Standardization**: Updated all OpenAI API calls to use only gpt-5-nano model as requested, removing gpt-4o-mini references.
+- **LLM Integration**: Confirmed proper integration with AI-powered CRM simulation strategy generation.
