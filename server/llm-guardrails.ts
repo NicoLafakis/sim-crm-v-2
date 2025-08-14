@@ -64,7 +64,7 @@ const GeneratedDataSchema = z.object({
   tickets: z.array(TicketSchema).optional(),
   theme: z.string().min(1),
   industry: z.string().min(1),
-  generatedAt: z.string() // ISO date string
+  generated_at: z.string() // ISO date string
 });
 
 // Persona Cache with TTL
@@ -220,7 +220,7 @@ class LLMValidator {
         ...data,
         theme,
         industry,
-        generatedAt: new Date().toISOString()
+        generated_at: new Date().toISOString()
       });
 
       if (!result.success) {
