@@ -393,6 +393,16 @@ export default function ProgressPage() {
                                   <span>Status:</span>
                                   <span className="font-mono">{simulation.status.toUpperCase()}</span>
                                 </div>
+                                <div className="flex justify-between">
+                                  <span>Template:</span>
+                                  <span className="font-mono text-xs">
+                                    {simulation.config?.usingIndustrySpecificTemplate ? (
+                                      <span className="text-green-700">Industry-Specific</span>
+                                    ) : (
+                                      <span className="text-orange-700">Universal (Generic)</span>
+                                    )}
+                                  </span>
+                                </div>
                                 {simulation.status === 'processing' && (
                                   <div className="flex justify-between">
                                     <span>Running:</span>
@@ -478,6 +488,15 @@ export default function ProgressPage() {
                               </div>
                               <div className="mt-3 text-xs text-gray-600 bg-blue-50 p-2 rounded">
                                 <strong>What are "Operations"?</strong> These are actual CRM actions (create contacts, companies, deals, tickets, updates, notes) being executed in your HubSpot account.
+                              </div>
+                              
+                              {/* Template Type Information */}
+                              <div className="mt-2 text-xs text-gray-600 bg-yellow-50 p-2 rounded border border-yellow-200">
+                                <strong>Template Info:</strong> {simulation.config?.usingIndustrySpecificTemplate ? (
+                                  <span className="text-green-700">Using industry-specific timing patterns for {simulation.industry} - realistic sales cycle simulation.</span>
+                                ) : (
+                                  <span className="text-orange-700">Using universal timing template - industry-specific patterns not yet available for {simulation.industry}.</span>
+                                )}
                               </div>
                             </div>
                           )}

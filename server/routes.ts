@@ -247,11 +247,24 @@ export function registerRoutes(app: Express) {
         1, // contactSeq
         new Date() // setStartAt
       );
-        
-      // Update simulation with job info
+
+      // Get job metadata to extract CSV template information
+      const job = await storage.getJobById(jobId);
+      const jobMetadata = job?.metadata as any;
+      
+      // Update simulation with job info and CSV template details
       await storage.updateSimulation(simulation.id, {
         status: 'processing',
-        config: { ...settings, outcome, acceleratorDays, jobId, stepsCount }
+        config: { 
+          ...settings, 
+          outcome, 
+          acceleratorDays, 
+          jobId, 
+          stepsCount,
+          csvTemplate: jobMetadata?.csvSource || 'unknown',
+          usingIndustrySpecificTemplate: jobMetadata?.usingIndustrySpecificTemplate || false,
+          templateType: jobMetadata?.templateType || 'universal'
+        }
       });
 
       console.log('Simulation job scheduled:', {
@@ -296,12 +309,12 @@ export function registerRoutes(app: Express) {
       await storage.updateSimulation(simulationId, { status: 'paused' });
       
       // Update all pending job steps to paused status
-      await storage.db.update(jobSteps)
+      await db.update(jobSteps)
         .set({ status: 'paused' })
         .where(and(
           eq(jobSteps.status, 'pending'),
           inArray(jobSteps.jobId, 
-            storage.db.select({ id: jobs.id })
+            db.select({ id: jobs.id })
               .from(jobs)
               .where(eq(jobs.simulationId, simulationId))
           )
@@ -324,12 +337,12 @@ export function registerRoutes(app: Express) {
       await storage.updateSimulation(simulationId, { status: 'processing' });
       
       // Update all paused job steps back to pending status
-      await storage.db.update(jobSteps)
+      await db.update(jobSteps)
         .set({ status: 'pending' })
         .where(and(
           eq(jobSteps.status, 'paused'),
           inArray(jobSteps.jobId, 
-            storage.db.select({ id: jobs.id })
+            db.select({ id: jobs.id })
               .from(jobs)
               .where(eq(jobs.simulationId, simulationId))
           )
@@ -355,12 +368,12 @@ export function registerRoutes(app: Express) {
       });
       
       // Cancel all pending/paused job steps
-      await storage.db.update(jobSteps)
+      await db.update(jobSteps)
         .set({ status: 'cancelled' })
         .where(and(
           or(eq(jobSteps.status, 'pending'), eq(jobSteps.status, 'paused')),
           inArray(jobSteps.jobId, 
-            storage.db.select({ id: jobs.id })
+            db.select({ id: jobs.id })
               .from(jobs)
               .where(eq(jobs.simulationId, simulationId))
           )

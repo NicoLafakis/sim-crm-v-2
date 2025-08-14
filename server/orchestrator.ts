@@ -71,14 +71,26 @@ export async function scheduleSimulationJob(
 ): Promise<{ jobId: number; stepsCount: number }> {
   try {
     // Determine which CSV template to use based on industry and outcome
-    let csvFileName = 'universal_30day_timing_key.csv'; // Default
+    let csvFileName = 'universal_30day_timing_key.csv'; // Default fallback
+    let usingIndustrySpecificTemplate = false;
     
-    if (simulation.industry?.toLowerCase() === 'ecommerce') {
-      if (outcome?.toLowerCase() === 'won') {
-        csvFileName = 'Ecommerce_Cycle-ClosedWon_1755104746839.csv';
-      } else if (outcome?.toLowerCase() === 'lost') {
-        csvFileName = 'Ecommerce_Cycle-ClosedLost_1755104746839.csv';
+    // Industry-specific CSV mapping
+    const industryTemplates: Record<string, { won: string; lost: string }> = {
+      'ecommerce': {
+        won: 'Ecommerce_Cycle-ClosedWon_1755104746839.csv',
+        lost: 'Ecommerce_Cycle-ClosedLost_1755104746839.csv'
       }
+      // TODO: Add more industry-specific templates as they become available
+      // 'saas': { won: 'SaaS_Cycle-ClosedWon.csv', lost: 'SaaS_Cycle-ClosedLost.csv' },
+      // 'healthcare': { won: 'Healthcare_Cycle-ClosedWon.csv', lost: 'Healthcare_Cycle-ClosedLost.csv' },
+      // etc.
+    };
+    
+    const industryKey = simulation.industry?.toLowerCase();
+    if (industryKey && industryTemplates[industryKey]) {
+      const templates = industryTemplates[industryKey];
+      csvFileName = outcome?.toLowerCase() === 'won' ? templates.won : templates.lost;
+      usingIndustrySpecificTemplate = true;
     }
     
     // Load industry-specific CSV template
@@ -86,6 +98,11 @@ export async function scheduleSimulationJob(
     let csvContent: string;
     
     console.log(`Loading CSV template: ${csvFileName} for industry: ${simulation.industry}, outcome: ${outcome}`);
+    if (!usingIndustrySpecificTemplate) {
+      console.warn(`⚠️  No industry-specific template found for '${simulation.industry}'. Using universal template. This means timing patterns may not reflect realistic ${simulation.industry} sales cycles.`);
+    } else {
+      console.log(`✅ Using industry-specific template for ${simulation.industry} - ${outcome} outcome`);
+    }
     
     try {
       csvContent = readFileSync(csvPath, 'utf-8');
@@ -190,7 +207,9 @@ export async function scheduleSimulationJob(
       metadata: {
         scalingFactor,
         originalRowCount: filteredRows.length,
-        csvSource: csvFileName
+        csvSource: csvFileName,
+        usingIndustrySpecificTemplate,
+        templateType: usingIndustrySpecificTemplate ? `${simulation.industry}-${outcome}` : 'universal'
       }
     };
 

@@ -29,6 +29,7 @@ The platform features a Game Boy aesthetic, implemented through:
 - **Data Validation & Error Handling**: Comprehensive validation is implemented for HubSpot object types, including email format, phone number, required fields, and numeric values. HubSpot-specific error handling provides detailed messages for validation, authentication, authorization, and rate limit errors.
 - **Association Type Coverage**: Implemented centralized association mapping for all supported HubSpot object relationships with complete coverage across major CRM objects, pre-validation, enhanced error handling, and bidirectional support.
 - **Staggered Simulation Scheduling**: Implemented a comprehensive staggered scheduling system based on Contacts count with precise timing control, multi-set scheduling, and fractional hour precision, optimized for rate limits.
+- **Industry-Specific CSV Templates**: Enhanced CSV template selection logic with clear logging and UI indicators. Currently supports E-commerce specific templates (won/lost cycles), with universal fallback for other industries. User interface displays template type (Industry-Specific vs Universal) to communicate which timing patterns are being used.
 
 ## External Dependencies
 
