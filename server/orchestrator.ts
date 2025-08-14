@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import OpenAI from 'openai';
 import { rateLimiter } from './rate-limiter';
-import { personaCache as personaCacheGuardrails, SeededGenerator, LLMValidator } from './llm-guardrails';
+import { personaCache as personaCacheGuardrails, SeededGenerator, LLMValidator, SCHEMA_VERSION } from './llm-guardrails';
 import { 
   fetchCrmMetadata, 
   getDealPipelineOptions, 
@@ -15,6 +15,9 @@ import {
   validateDealPipelineStage,
   validateTicketPipelineStage 
 } from './hubspot-metadata';
+import { GenerateDataError, TemplateReferenceError, ValidationError } from './errors';
+import { logEvent } from './logging';
+import { trimStringsDeep, validateDataOrThrow } from './validation';
 
 // Initialize OpenAI client
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -693,31 +696,71 @@ async function generateRealisticData(
   useSeed = true,
   crmMetadata?: any
 ): Promise<any> {
-  // Generate deterministic seed if requested
+  // Environment flags
+  const strictGeneration = process.env.STRICT_GENERATION !== 'false'; // default true
+  const actionScopedCache = process.env.ACTION_SCOPED_CACHE !== 'false'; // default true
+  
+  // Generate deterministic seed and correlation ID
   const seed = useSeed && jobId ? SeededGenerator.generateSeed(jobId, theme, industry, stepIndex) : undefined;
+  const correlationId = seed || SeededGenerator.generateSeed(jobId!, theme, industry, stepIndex);
   
-  // Check new persona cache with guardrails (with seed if applicable)
-  const cachedData = personaCacheGuardrails.get(theme, industry, seed);
+  // Build action-scoped cache key if enabled
+  const cacheSeed = actionScopedCache && seed ? `${seed}:${actionType}` : actionType;
+  
+  // Log generation start
+  logEvent('info', correlationId, 'generate.start', {
+    actionType,
+    theme,
+    industry,
+    inputHash: hashInputs({ actionType, theme, industry, template: actionTemplate }),
+    SCHEMA_VERSION
+  });
+  
+  // Check cache with action-scoped key
+  const cachedData = personaCacheGuardrails.get(theme, industry, cacheSeed);
   if (cachedData) {
-    console.log(`📋 Guardrails cache hit for ${theme} + ${industry}${seed ? ` (seed: ${seed})` : ''}`);
-    const variedData = addVariationToPersonaData(cachedData, actionType);
-    // Remove generated_at property before returning
-    delete variedData.generated_at;
-    delete variedData.generatedAt;
-    return variedData;
+    // Calculate TTL remaining
+    const cacheStats = personaCacheGuardrails.getStats();
+    const cacheEntry = cacheStats.entries.find(entry => 
+      entry.key === `${theme.toLowerCase()}:${industry.toLowerCase()}:${cacheSeed}`
+    );
+    const ttlRemaining = cacheEntry ? Math.max(0, cacheEntry.expiresAt - Date.now()) : undefined;
+    
+    logEvent('info', correlationId, 'generate.cacheCheck', {
+      result: 'hit',
+      ttlRemaining,
+      SCHEMA_VERSION
+    });
+    
+    try {
+      // Deep clone result to avoid mutation
+      const clone = JSON.parse(JSON.stringify(cachedData));
+      
+      // Re-validate cached data
+      validateDataOrThrow(clone, actionType);
+      
+      // Remove internal fields before returning
+      delete clone.generated_at;
+      delete clone.generatedAt;
+      delete (clone as any).metadata;
+      
+      return clone;
+    } catch (validationError) {
+      // Invalid cached data - evict and treat as miss
+      personaCacheGuardrails.delete(theme, industry, cacheSeed);
+      logEvent('warn', correlationId, 'cache.error', {
+        action: 'evictInvalid',
+        reason: validationError instanceof Error ? validationError.message : 'Validation failed',
+        SCHEMA_VERSION
+      });
+    }
   }
   
-  // Also check old cache system for backward compatibility
-  const cacheKey = `${theme}_${industry}_${actionType}`;
-  if (personaCache.has(cacheKey)) {
-    const oldCachedData = personaCache.get(cacheKey);
-    console.log(`📋 Legacy cache hit for ${cacheKey}`);
-    const variedData = addVariationToPersonaData(oldCachedData, actionType);
-    // Remove generated_at property before returning
-    delete variedData.generated_at;
-    delete variedData.generatedAt;
-    return variedData;
-  }
+  // Log cache miss
+  logEvent('info', correlationId, 'generate.cacheCheck', {
+    result: 'miss',
+    SCHEMA_VERSION
+  });
   
   try {
     let basePrompt = createLLMPrompt(actionType, theme, industry, actionTemplate, crmMetadata);
@@ -727,6 +770,13 @@ async function generateRealisticData(
       basePrompt = SeededGenerator.createSeededPrompt(basePrompt, seed);
       console.log(`🎲 Generating with seed: ${seed}`);
     }
+    
+    // Log LLM request
+    logEvent('info', correlationId, 'generate.llm.request', {
+      model: 'gpt-5-nano', // primary model
+      promptLength: basePrompt.length,
+      SCHEMA_VERSION
+    });
     
     // Try primary model first with rate limiting
     let response;
@@ -745,7 +795,6 @@ async function generateRealisticData(
             }
           ],
           response_format: { type: "json_object" }
-          // temperature: seed ? 0.3 : 0.7 // gpt-5-nano doesn't support custom temperature
         });
       }, {
         onRetry: (attempt, error) => {
@@ -757,6 +806,14 @@ async function generateRealisticData(
       });
     } catch (primaryError: any) {
       console.warn(`Primary model gpt-5-nano failed: ${primaryError.message}. Trying fallback model.`);
+      
+      // Log fallback attempt
+      logEvent('warn', correlationId, 'generate.llm.error', {
+        model: 'gpt-5-nano',
+        error: primaryError.message,
+        fallbackAttempt: true,
+        SCHEMA_VERSION
+      });
       
       // Fallback to secondary model with rate limiting
       response = await rateLimiter.executeWithRateLimit('openai', async () => {
@@ -773,7 +830,6 @@ async function generateRealisticData(
             }
           ],
           response_format: { type: "json_object" }
-          // temperature: seed ? 0.3 : 0.7 // gpt-4.1-nano uses default temperature
         });
       }, {
         onRetry: (attempt, error) => {
@@ -785,12 +841,48 @@ async function generateRealisticData(
       });
     }
 
-    const rawData = JSON.parse(response.choices[0].message.content || '{}');
+    // Log LLM response
+    const responseContent = response.choices[0].message.content || '{}';
+    logEvent('info', correlationId, 'generate.llm.response', {
+      textLength: responseContent.length,
+      finishReason: response.choices[0].finish_reason,
+      SCHEMA_VERSION
+    });
+
+    let rawData;
+    try {
+      rawData = JSON.parse(responseContent);
+      logEvent('info', correlationId, 'generate.parse.success', { SCHEMA_VERSION });
+    } catch (parseError) {
+      logEvent('error', correlationId, 'generate.parse.error', {
+        error: parseError instanceof Error ? parseError.message : 'Parse failed',
+        rawSample: responseContent.slice(0, 200),
+        SCHEMA_VERSION
+      });
+      
+      if (strictGeneration) {
+        throw new GenerateDataError('LLM_PARSE_FAILED', 'Failed to parse LLM response as JSON', {
+          correlationId,
+          theme,
+          industry,
+          actionType,
+          templateId: actionTemplate?.recordIdTpl,
+          rawSample: responseContent.slice(0, 200)
+        });
+      }
+      // Non-strict fallback - use template
+      return actionTemplate || {};
+    }
     
     // Validate generated data with guardrails
     const validation = LLMValidator.validateGeneratedData(rawData, theme, industry);
     
     if (!validation.isValid) {
+      logEvent('error', correlationId, 'generate.validate.error', {
+        errors: validation.errors,
+        SCHEMA_VERSION
+      });
+      
       console.error(`❌ LLM validation failed for ${theme} + ${industry}:`, validation.errors);
       
       // Attempt auto-fix for common issues
@@ -803,52 +895,98 @@ async function generateRealisticData(
         const revalidation = LLMValidator.validateGeneratedData(autoFix.data, theme, industry);
         
         if (revalidation.isValid) {
-          // Remove generated_at before caching and returning
+          // Remove internal fields before caching and returning
           const cleanData = { ...revalidation.validatedData };
           delete cleanData.generated_at;
           delete cleanData.generatedAt;
+          delete (cleanData as any).metadata;
           
           // Cache the validated and fixed data
-          personaCacheGuardrails.set(theme, industry, cleanData, seed);
-          personaCache.set(cacheKey, cleanData); // Legacy cache
+          personaCacheGuardrails.set(theme, industry, cleanData, cacheSeed);
+          
+          logEvent('info', correlationId, 'generate.validate.success', {
+            afterAutoFix: true,
+            SCHEMA_VERSION
+          });
           
           console.log(`✅ LLM output validated and cached after auto-fix`);
           return cleanData;
         }
       }
       
-      // If validation still fails, throw error with details
-      const errorMessage = `LLM output validation failed: ${validation.errors.join(', ')}`;
-      console.error(`❌ ${errorMessage}`);
+      // If validation still fails and strict mode is enabled, throw error
+      if (strictGeneration) {
+        throw new GenerateDataError('LLM_GENERATION_FAILED', 'LLM call/parse/validation failed', {
+          correlationId,
+          theme,
+          industry,
+          actionType,
+          templateId: actionTemplate?.recordIdTpl,
+          rawSample: responseContent.slice(0, 200)
+        });
+      }
       
-      // Mark as failed_non_retryable for this step
-      throw new Error(`failed_non_retryable: ${errorMessage}`);
+      // Non-strict fallback
+      return actionTemplate || {};
     }
+    
+    // Log validation success
+    logEvent('info', correlationId, 'generate.validate.success', { SCHEMA_VERSION });
     
     // Log warnings but continue
     if (validation.warnings.length > 0) {
       console.warn(`⚠️ LLM validation warnings:`, validation.warnings);
     }
     
-    // Remove generated_at before caching and returning
+    // Remove internal fields before caching and returning
     const cleanData = { ...validation.validatedData };
     delete cleanData.generated_at;
     delete cleanData.generatedAt;
+    delete (cleanData as any).metadata;
     
     console.log(`🤖 Generated LLM data for ${actionType}:`, JSON.stringify(cleanData, null, 2));
     
-    // Cache the validated data with guardrails
-    personaCacheGuardrails.set(theme, industry, cleanData, seed);
-    personaCache.set(cacheKey, cleanData); // Legacy cache for backward compatibility
+    // Cache the validated data
+    personaCacheGuardrails.set(theme, industry, cleanData, cacheSeed);
     
     console.log(`✅ LLM output validated and cached successfully`);
     return cleanData;
     
   } catch (error: any) {
+    // Log LLM error
+    logEvent('error', correlationId, 'generate.llm.error', {
+      error: error.message,
+      SCHEMA_VERSION
+    });
+    
     console.error('Error generating realistic data with LLM (both models failed):', error.message);
-    // Fallback to template data if both LLM models fail
+    
+    // Re-throw specific errors in strict mode
+    if (strictGeneration && (error instanceof GenerateDataError || error instanceof ValidationError)) {
+      throw error;
+    }
+    
+    // Fallback to template data if not in strict mode
+    if (strictGeneration) {
+      throw new GenerateDataError('LLM_GENERATION_FAILED', 'LLM call/parse/validation failed', {
+        correlationId,
+        theme,
+        industry,
+        actionType,
+        templateId: actionTemplate?.recordIdTpl,
+        rawSample: error.message?.slice(0, 200)
+      });
+    }
+    
     return actionTemplate || {};
   }
+}
+
+/**
+ * Helper function to hash inputs for logging
+ */
+function hashInputs(inputs: any): string {
+  return require('crypto').createHash('md5').update(JSON.stringify(inputs)).digest('hex').slice(0, 8);
 }
 
 /**

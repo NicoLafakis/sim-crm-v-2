@@ -8,6 +8,9 @@
 import { z } from 'zod';
 import crypto from 'crypto';
 
+// Schema version for validation tracking
+export const SCHEMA_VERSION = "1.0.0";
+
 // JSON Schema Definitions for LLM-generated content
 const PersonaSchema = z.object({
   firstName: z.string().min(1).max(50),
@@ -77,6 +80,12 @@ interface CacheEntry {
 class PersonaCache {
   private cache: Map<string, CacheEntry> = new Map();
   private defaultTTL = parseInt(process.env.PERSONA_CACHE_TTL || '3600000'); // 1 hour default
+  
+  // Counters for cache metrics
+  private hits = 0;
+  private misses = 0;
+  private evictedInvalid = 0;
+  private writes = 0;
 
   /**
    * Generate cache key from theme and industry
@@ -93,13 +102,18 @@ class PersonaCache {
     const key = this.getCacheKey(theme, industry, seed);
     const entry = this.cache.get(key);
     
-    if (!entry) return null;
-    
-    if (Date.now() > entry.expiresAt) {
-      this.cache.delete(key);
+    if (!entry) {
+      this.misses++;
       return null;
     }
     
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      this.misses++;
+      return null;
+    }
+    
+    this.hits++;
     console.log(`📋 Cache hit for personas: ${theme} + ${industry}${seed ? ` (seed: ${seed})` : ''}`);
     return entry.data;
   }
@@ -117,7 +131,20 @@ class PersonaCache {
       seed
     });
     
+    this.writes++;
     console.log(`💾 Cached personas: ${theme} + ${industry}${seed ? ` (seed: ${seed})` : ''} [TTL: ${ttl}ms]`);
+  }
+
+  /**
+   * Delete a single cache entry
+   */
+  delete(theme: string, industry: string, seed?: string): void {
+    const key = this.getCacheKey(theme, industry, seed);
+    const deleted = this.cache.delete(key);
+    if (deleted) {
+      this.evictedInvalid++;
+      console.log(`🗑️ Evicted invalid cache entry: ${theme} + ${industry}${seed ? ` (seed: ${seed})` : ''}`);
+    }
   }
 
   /**
@@ -143,7 +170,14 @@ class PersonaCache {
   /**
    * Get cache statistics
    */
-  getStats(): { size: number; entries: Array<{ key: string; expiresAt: number; hasData: boolean }> } {
+  getStats(): { 
+    size: number; 
+    entries: Array<{ key: string; expiresAt: number; hasData: boolean }>;
+    hits: number;
+    misses: number;
+    evictedInvalid: number;
+    writes: number;
+  } {
     const entries = [];
     for (const [key, entry] of Array.from(this.cache.entries())) {
       entries.push({
@@ -154,7 +188,11 @@ class PersonaCache {
     }
     return {
       size: this.cache.size,
-      entries
+      entries,
+      hits: this.hits,
+      misses: this.misses,
+      evictedInvalid: this.evictedInvalid,
+      writes: this.writes
     };
   }
 
@@ -413,7 +451,8 @@ export {
   CompanySchema,
   DealSchema,
   TicketSchema,
-  GeneratedDataSchema
+  GeneratedDataSchema,
+  SCHEMA_VERSION
 };
 
 export type {
