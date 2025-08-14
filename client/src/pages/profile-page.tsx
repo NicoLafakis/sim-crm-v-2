@@ -244,12 +244,7 @@ export default function ProfilePage() {
               <div
                 key={token.id}
                 className="flex items-center justify-between p-4 rounded" style={{ 
-                  backgroundColor: '#e8e8e8',
-                  backgroundImage: `
-                    linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
-                  `,
-                  backgroundSize: '16px 16px'
+                  backgroundColor: '#e8e8e8'
                 }}
                 data-testid={`token-item-${token.id}`}
               >
