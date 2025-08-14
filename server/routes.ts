@@ -778,7 +778,7 @@ export function registerRoutes(app: Express) {
       }
 
       // Import orchestrator functions dynamically
-      const { executeCreateContact } = require('./orchestrator');
+      const { executeCreateContact } = await import('./orchestrator');
       // Execute without a job context; executeCreateContact handles optional step
       const result = await executeCreateContact(data, session.hubspotToken);
       
@@ -798,7 +798,7 @@ export function registerRoutes(app: Express) {
       }
 
       // Import orchestrator functions dynamically
-      const { executeCreateCompany } = require('./orchestrator');
+      const { executeCreateCompany } = await import('./orchestrator');
       // Execute without a job context; executeCreateCompany handles optional step
       const result = await executeCreateCompany(data, session.hubspotToken);
       
@@ -825,7 +825,7 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'HubSpot token not found' });
       }
 
-      const { executeCreateNote } = require('./orchestrator');
+      const { executeCreateNote } = await import('./orchestrator');
       const result = await executeCreateNote(data, session.hubspotToken, { jobId: 0 });
       
       res.json(result);
@@ -844,7 +844,7 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'HubSpot token not found' });
       }
 
-      const { executeUpdateDeal } = require('./orchestrator');
+      const { executeUpdateDeal } = await import('./orchestrator');
       const result = await executeUpdateDeal(data, session.hubspotToken, { 
         jobId: 0, 
         recordIdTpl: dealId 
@@ -866,7 +866,7 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'HubSpot token not found' });
       }
 
-      const { executeUpdateTicket } = require('./orchestrator');
+      const { executeUpdateTicket } = await import('./orchestrator');
       const result = await executeUpdateTicket(data, session.hubspotToken, { 
         jobId: 0, 
         recordIdTpl: ticketId 
