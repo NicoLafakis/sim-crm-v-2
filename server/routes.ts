@@ -208,15 +208,78 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Helper function to format theme and industry names for simulation titles
+  const formatSimulationName = (theme: string, industry: string): string => {
+    // Theme name mappings - these match what's used in theme-selection.tsx
+    const themeNames: Record<string, string> = {
+      // Music themes
+      'Beatles': 'Beatles',
+      'Madonna': 'Madonna', 
+      'Drake': 'Drake',
+      'Daft Punk': 'Daft Punk',
+      // Movie themes
+      'Star Wars': 'Star Wars',
+      'Marvel': 'Marvel',
+      'Harry Potter': 'Harry Potter',
+      'Fast & Furious': 'Fast & Furious',
+      // Video Game themes
+      'Zelda': 'Zelda',
+      'Red Dead Redemption': 'Red Dead Redemption',
+      'Megaman': 'Megaman',
+      'Final Fantasy': 'Final Fantasy',
+      // TV Show themes
+      'Friends': 'Friends',
+      'Game of Thrones': 'Game of Thrones',
+      'The Office': 'The Office',
+      'Breaking Bad': 'Breaking Bad',
+      // Other themes
+      'Lord of the Rings': 'Lord of the Rings',
+      'Game Boy': 'Game Boy',
+      'Pokemon': 'Pokemon',
+      'generic': 'Generic'
+    };
+
+    // Industry name mappings - these match what's used in industry-selection.tsx
+    const industryNames: Record<string, string> = {
+      'saas': 'SaaS',
+      'ecommerce': 'E-commerce',
+      'healthcare': 'Healthcare',
+      'finance': 'Finance',
+      'education': 'Education',
+      'realestate': 'Real Estate',
+      'consulting': 'Consulting',
+      'manufacturing': 'Manufacturing',
+      'retail': 'Retail',
+      'nonprofit': 'Non-Profit',
+      'salon': 'Salon/Spa',
+      'lawfirm': 'Law Firm',
+      'business': 'Business'
+    };
+
+    const formattedTheme = themeNames[theme] || theme;
+    const formattedIndustry = industryNames[industry] || industry;
+    
+    return `${formattedIndustry} ${formattedTheme} Simulation`;
+  };
+
   // Simulation routes
   app.post("/api/simulation/start", async (req, res) => {
     try {
       const { userId, settings } = req.body;
       
-      // Create simulation record
+      console.log('Starting simulation with settings:', {
+        theme: settings.theme,
+        industry: settings.industry,
+        frequency: settings.frequency
+      });
+      
+      // Create simulation record with properly formatted name
+      const formattedName = formatSimulationName(settings.theme, settings.industry);
+      console.log('Generated simulation name:', formattedName);
+      
       const simulationData: InsertSimulation = {
         userId: userId,
-        name: `${settings.theme} - ${settings.industry} Simulation`,
+        name: formattedName,
         theme: settings.theme,
         industry: settings.industry,
         frequency: settings.frequency || 'medium',
