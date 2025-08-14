@@ -1333,8 +1333,8 @@ async function executeCreateContact(data: any, token: string, step?: any): Promi
   // Validate and ensure properties exist
   await ensureHubSpotProperties('contacts', Object.keys(legacyValidatedData), token, legacyValidatedData);
   
-  // Convert property names to lowercase for HubSpot compatibility
-  const hubspotData = convertPropertiesToLowercase(legacyValidatedData);
+  // Convert property names to HubSpot-compatible format
+  const hubspotData = convertPropertiesToHubSpotFormat(legacyValidatedData);
   
   // Create contact via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/contacts', {
@@ -1425,8 +1425,8 @@ async function executeCreateCompany(data: any, token: string, step?: any): Promi
   // Validate and ensure properties exist
   await ensureHubSpotProperties('companies', Object.keys(legacyValidatedData), token, legacyValidatedData);
   
-  // Convert property names to lowercase for HubSpot compatibility
-  const hubspotData = convertPropertiesToLowercase(legacyValidatedData);
+  // Convert property names to HubSpot-compatible format
+  const hubspotData = convertPropertiesToHubSpotFormat(legacyValidatedData);
   
   // Create company via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/companies', {
@@ -1547,8 +1547,8 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
   // Validate and ensure properties exist
   await ensureHubSpotProperties('deals', Object.keys(coercedData), token, coercedData);
   
-  // Convert property names to lowercase for HubSpot compatibility
-  const hubspotData = convertPropertiesToLowercase(coercedData);
+  // Convert property names to HubSpot-compatible format
+  const hubspotData = convertPropertiesToHubSpotFormat(coercedData);
   
   // Create deal via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/deals', {
@@ -1584,8 +1584,8 @@ async function executeCreateNote(data: any, token: string, step: any): Promise<a
   // Validate and ensure properties exist
   await ensureHubSpotProperties('notes', Object.keys(data), token, data);
   
-  // Convert property names to lowercase for HubSpot compatibility
-  const hubspotData = convertPropertiesToLowercase(data);
+  // Convert property names to HubSpot-compatible format
+  const hubspotData = convertPropertiesToHubSpotFormat(data);
   
   // Create note via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/notes', {
@@ -1630,8 +1630,8 @@ async function executeCreateTicket(data: any, token: string, step: any): Promise
   // Validate and ensure properties exist
   await ensureHubSpotProperties('tickets', Object.keys(validatedData), token);
   
-  // Convert property names to lowercase for HubSpot compatibility
-  const hubspotData = convertPropertiesToLowercase(validatedData);
+  // Convert property names to HubSpot-compatible format
+  const hubspotData = convertPropertiesToHubSpotFormat(validatedData);
   
   // Create ticket via HubSpot API
   const response = await makeHubSpotRequest('POST', '/crm/v3/objects/tickets', {
@@ -1703,8 +1703,8 @@ async function executeUpdateDeal(data: any, token: string, step: any): Promise<a
   // Validate and ensure properties exist
   await ensureHubSpotProperties('deals', Object.keys(data), token, data);
   
-  // Convert property names to lowercase for HubSpot compatibility
-  const hubspotData = convertPropertiesToLowercase(data);
+  // Convert property names to HubSpot-compatible format
+  const hubspotData = convertPropertiesToHubSpotFormat(data);
   
   // Update deal via HubSpot API
   const response = await makeHubSpotRequest('PATCH', `/crm/v3/objects/deals/${dealId}`, {
@@ -1730,9 +1730,12 @@ async function executeUpdateTicket(data: any, token: string, step: any): Promise
   // Validate and ensure properties exist
   await ensureHubSpotProperties('tickets', Object.keys(data), token, data);
   
+  // Convert property names to HubSpot-compatible format
+  const hubspotData = convertPropertiesToHubSpotFormat(data);
+  
   // Update ticket via HubSpot API
   const response = await makeHubSpotRequest('PATCH', `/crm/v3/objects/tickets/${ticketId}`, {
-    properties: data
+    properties: hubspotData
   }, token);
   
   return {
@@ -1754,9 +1757,12 @@ async function executeCloseTicket(data: any, token: string, step: any): Promise<
   // Validate and ensure properties exist
   await ensureHubSpotProperties('tickets', Object.keys(data), token, data);
   
+  // Convert property names to HubSpot-compatible format
+  const hubspotData = convertPropertiesToHubSpotFormat(data);
+  
   // Close ticket via HubSpot API
   const response = await makeHubSpotRequest('PATCH', `/crm/v3/objects/tickets/${ticketId}`, {
-    properties: data
+    properties: hubspotData
   }, token);
   
   return {
@@ -1770,13 +1776,80 @@ async function executeCloseTicket(data: any, token: string, step: any): Promise<
 }
 
 /**
- * Convert camelCase property names to lowercase for HubSpot compatibility
+ * HubSpot standard property name mappings to avoid creating unnecessary custom properties
  */
-function convertPropertiesToLowercase(data: any): any {
+const HUBSPOT_STANDARD_PROPERTIES: Record<string, string> = {
+  // Contact properties
+  'firstname': 'firstname',
+  'lastname': 'lastname', 
+  'email': 'email',
+  'phone': 'phone',
+  'jobtitle': 'jobtitle',
+  'company': 'company',
+  'website': 'website',
+  'lifecyclestage': 'lifecyclestage',
+  'address': 'address',
+  'city': 'city',
+  'state': 'state',
+  'zip': 'zip',
+  'country': 'country',
+  
+  // Company properties
+  'name': 'name',
+  'domain': 'domain',
+  'industry': 'industry',
+  'numberofemployees': 'numberofemployees',
+  'annualrevenue': 'annualrevenue',
+  'type': 'type',
+  
+  // Deal properties
+  'dealname': 'dealname',
+  'amount': 'amount',
+  'dealstage': 'dealstage',
+  'pipeline': 'pipeline',
+  'closedate': 'closedate',
+  'hubspot_owner_id': 'hubspot_owner_id',
+  
+  // Common camelCase to standard mappings
+  'firstName': 'firstname',
+  'lastName': 'lastname',
+  'jobTitle': 'jobtitle',
+  'lifecycleStage': 'lifecyclestage',
+  'dealName': 'dealname',
+  'dealStage': 'dealstage',
+  'closeDate': 'closedate',
+  'numberOfEmployees': 'numberofemployees',
+  'annualRevenue': 'annualrevenue'
+};
+
+/**
+ * Convert property names to HubSpot-compatible format
+ * 1. Map to standard HubSpot properties when available
+ * 2. Convert custom properties to lowercase with underscores
+ * 3. Ensure compliance with HubSpot naming rules
+ */
+function convertPropertiesToHubSpotFormat(data: any): any {
   const converted: any = {};
+  
   for (const [key, value] of Object.entries(data)) {
-    converted[key.toLowerCase()] = value;
+    let hubspotKey: string;
+    
+    // Check if it's a standard HubSpot property
+    if (HUBSPOT_STANDARD_PROPERTIES[key] || HUBSPOT_STANDARD_PROPERTIES[key.toLowerCase()]) {
+      hubspotKey = HUBSPOT_STANDARD_PROPERTIES[key] || HUBSPOT_STANDARD_PROPERTIES[key.toLowerCase()];
+    } else {
+      // Convert custom property to HubSpot format
+      hubspotKey = key
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, '_') // Replace invalid chars with underscores
+        .replace(/^[^a-z]/, 'prop_') // Ensure starts with letter
+        .replace(/_+/g, '_') // Remove duplicate underscores
+        .substring(0, 100); // Limit to 100 chars
+    }
+    
+    converted[hubspotKey] = value;
   }
+  
   return converted;
 }
 
@@ -1791,19 +1864,46 @@ async function ensureHubSpotProperties(objectType: string, propertyNames: string
     const existingNames = new Set(existingProperties.results.map((prop: any) => prop.name));
     const existingPropertiesMap = new Map(existingProperties.results.map((prop: any) => [prop.name, prop]));
     
-    // Check which properties are missing
-    const missingProperties = propertyNames.filter(name => !existingNames.has(name));
+    console.log(`📋 Found ${existingNames.size} existing properties for ${objectType}`);
     
-    // Create missing properties
-    for (const propertyName of missingProperties) {
-      const propertyConfig = await createComprehensivePropertyConfig(propertyName, objectType, recordData);
+    // Convert property names to HubSpot format
+    const hubspotPropertyNames = propertyNames.map(name => {
+      if (HUBSPOT_STANDARD_PROPERTIES[name] || HUBSPOT_STANDARD_PROPERTIES[name.toLowerCase()]) {
+        return HUBSPOT_STANDARD_PROPERTIES[name] || HUBSPOT_STANDARD_PROPERTIES[name.toLowerCase()];
+      } else {
+        return name.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/^[^a-z]/, 'prop_').replace(/_+/g, '_').substring(0, 100);
+      }
+    });
+    
+    // Only try to create properties that don't exist AND aren't standard HubSpot properties
+    const missingProperties = hubspotPropertyNames.filter(name => {
+      const exists = existingNames.has(name);
+      const isStandard = Object.values(HUBSPOT_STANDARD_PROPERTIES).includes(name);
+      
+      if (exists || isStandard) {
+        console.log(`⏭️ Skipping property ${name}: ${exists ? 'exists' : ''} ${isStandard ? 'standard' : ''}`);
+        return false;
+      }
+      return true;
+    });
+    
+    console.log(`🔧 Need to create ${missingProperties.length} custom properties for ${objectType}`);
+    
+    // Create only truly missing custom properties
+    for (const hubspotPropertyName of missingProperties) {
+      const originalPropertyName = propertyNames[hubspotPropertyNames.indexOf(hubspotPropertyName)];
+      
+      const propertyConfig = await createComprehensivePropertyConfig(hubspotPropertyName, objectType, recordData);
       try {
         const createdProperty = await makeHubSpotRequest('POST', `/crm/v3/properties/${objectType}`, propertyConfig, token);
-        console.log(`✅ Created missing property: ${propertyName} (${propertyConfig.type}/${propertyConfig.fieldType}) for ${objectType}`);
-        existingPropertiesMap.set(propertyName, createdProperty);
+        console.log(`✅ Created missing property: ${originalPropertyName} → ${hubspotPropertyName} (${propertyConfig.type}/${propertyConfig.fieldType}) for ${objectType}`);
+        existingPropertiesMap.set(hubspotPropertyName, createdProperty);
       } catch (error: any) {
-        console.warn(`❌ Failed to create property ${propertyName}:`, error.message);
-        // Continue with other properties
+        if (error.message?.includes('already exists')) {
+          console.log(`ℹ️ Property ${hubspotPropertyName} already exists, skipping creation`);
+        } else {
+          console.warn(`❌ Failed to create property ${originalPropertyName} → ${hubspotPropertyName}:`, error.message);
+        }
       }
     }
 
