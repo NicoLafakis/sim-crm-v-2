@@ -1,0 +1,48 @@
+Plan: Update and improve the LLM prompts used in the SimCRM data generation system
+Current Issues in the Prompts
+Terminology Mismatch: The prompts currently use "realistic" when referring to fictional themes like Star Wars, which is contradictory and potentially confusing for the language model.
+
+Potential for Ambiguity: Some prompts could be clearer about expected format and data types, particularly for numeric fields like deal amounts.
+
+Scalability Concerns: Current prompts may not handle new themes/industries optimally as the system scales.
+
+Required Changes
+Update the system prompt in server/orchestrator.ts to the following:
+TypeScript
+const SYSTEM_PROMPT = "You are an expert CRM data generator for the SimCRM application. Generate consistent and appropriate data that fits the specified theme and industry. The theme may be fictional (like TV shows, movies, music) or real-world. Respond with valid JSON only. Follow the exact schema requirements and ensure all required fields are present with the correct data types.";
+Modify the createLLMPrompt function in server/orchestrator.ts to use the revised prompts:
+Change all base prompts from:
+Code
+`Generate realistic ${actionType.replace('_', ' ')} data for a ${theme}-themed ${industry} business simulation.`
+to:
+Code
+`Generate appropriate ${actionType.replace('_', ' ')} data for a ${theme}-themed ${industry} simulation that maintains internal consistency.`
+Update each record-specific prompt as follows:
+
+For Contacts
+TypeScript
+`${basePrompt} Create a contact with firstName, lastName, email, phone, and jobTitle that fits the ${theme} theme. The data should be consistent with the theme but structured appropriately for CRM fields. Return JSON with these fields: {"firstName": "", "lastName": "", "email": "", "phone": "", "jobTitle": "", "company": ""}`
+For Companies
+TypeScript
+`${basePrompt} Create a company with name, domain, city, state, industry, and employee count that fits the ${theme} theme. Ensure all values are appropriately formatted for their respective fields. Return JSON with: {"name": "", "domain": "", "city": "", "state": "", "industry": "", "numberofemployees": ""}`
+For Deals
+TypeScript
+let dealPrompt = `${basePrompt} Create a deal with name and amount that fits the ${theme} theme. Ensure the amount is a valid numeric value.`;
+For Notes
+TypeScript
+`${basePrompt} Create a professional note body that fits the ${theme}. Keep it under 200 characters. Return JSON with: {"hs_note_body": ""}`
+For Tickets
+TypeScript
+let ticketPrompt = `${basePrompt} Create a support ticket with subject and content that fits the ${theme}.`;
+For Update Deal
+TypeScript
+let updateDealPrompt = `${basePrompt} Create data to update a deal that fits the ${theme} theme.`;
+Update the system message in both the primary and fallback model API calls to use the new SYSTEM_PROMPT constant.
+
+Expected Outcomes
+Improved Consistency: The updated prompts will generate more consistent data across fictional themes.
+Better Field Formatting: Clearer instructions about data types should reduce formatting errors.
+Reduced Ambiguity: The language model will better understand what's expected for each field.
+Enhanced Scalability: The prompts will work better with a wide variety of themes as we add them.
+Implementation Note
+No changes to the overall functionality are required - this is strictly a prompt engineering improvement. The data generation flow, caching mechanisms, and validation processes remain unchanged.

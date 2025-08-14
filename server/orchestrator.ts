@@ -778,6 +778,9 @@ function substituteTemplatePlaceholders(template: string, simulation: Simulation
     .replace(/\{\{timestamp\}\}/g, new Date().toISOString());
 }
 
+// Updated system prompt for better handling of fictional themes
+const SYSTEM_PROMPT = "You are an expert CRM data generator for the SimCRM application. Generate consistent and appropriate data that fits the specified theme and industry. The theme may be fictional (like TV shows, movies, music) or real-world. Respond with valid JSON only. Follow the exact schema requirements and ensure all required fields are present with the correct data types.";
+
 /**
  * Generate realistic data using LLM based on theme, industry, and action template
  */
@@ -882,7 +885,7 @@ async function generateRealisticData(
           messages: [
             {
               role: "system",
-              content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only. Follow the exact schema requirements and ensure all required fields are present."
+              content: SYSTEM_PROMPT
             },
             {
               role: "user",
@@ -917,7 +920,7 @@ async function generateRealisticData(
           messages: [
             {
               role: "system",
-              content: "You are an expert CRM data generator. Generate realistic business data that fits the specified theme and industry. Respond with valid JSON only. Follow the exact schema requirements and ensure all required fields are present."
+              content: SYSTEM_PROMPT
             },
             {
               role: "user",
@@ -1088,17 +1091,17 @@ function hashInputs(inputs: any): string {
  * Create LLM prompt based on action type, theme, and industry
  */
 function createLLMPrompt(actionType: string, theme: string, industry: string, template: any, crmMetadata?: any): string {
-  const basePrompt = `Generate realistic ${actionType.replace('_', ' ')} data for a ${theme}-themed ${industry} business simulation.`;
+  const basePrompt = `Generate appropriate ${actionType.replace('_', ' ')} data for a ${theme}-themed ${industry} simulation that maintains internal consistency.`;
   
   switch (actionType) {
     case 'create_contact':
-      return `${basePrompt} Generate a contact with firstName, lastName, email, phone, and jobTitle that fits the ${theme} theme in the ${industry} industry. Make it creative but professional. Return JSON with these fields: {"firstName": "", "lastName": "", "email": "", "phone": "", "jobTitle": "", "company": ""}`;
+      return `${basePrompt} Create a contact with firstName, lastName, email, phone, and jobTitle that fits the ${theme} theme. The data should be consistent with the theme but structured appropriately for CRM fields. Return JSON with these fields: {"firstName": "", "lastName": "", "email": "", "phone": "", "jobTitle": "", "company": ""}`;
       
     case 'create_company':
-      return `${basePrompt} Generate a company with name, domain, city, state, industry, and employee count that fits the ${theme} theme. Be creative but realistic. Return JSON with: {"name": "", "domain": "", "city": "", "state": "", "industry": "", "numberofemployees": ""}`;
+      return `${basePrompt} Create a company with name, domain, city, state, industry, and employee count that fits the ${theme} theme. Ensure all values are appropriately formatted for their respective fields. Return JSON with: {"name": "", "domain": "", "city": "", "state": "", "industry": "", "numberofemployees": ""}`;
       
     case 'create_deal':
-      let dealPrompt = `${basePrompt} Generate a deal with name and amount that fits the ${theme} theme in ${industry}.`;
+      let dealPrompt = `${basePrompt} Create a deal with name and amount that fits the ${theme} theme. Ensure the amount is a valid numeric value.`;
       if (crmMetadata) {
         dealPrompt += `\n\nIMPORTANT - Use ONLY these exact pipeline and stage IDs from the target CRM:\n${getDealPipelineOptions(crmMetadata)}`;
         dealPrompt += `\n\nReturn JSON with: {"dealname": "", "amount": "", "dealstage": "[USE_EXACT_STAGE_ID]", "pipeline": "[USE_EXACT_PIPELINE_ID]"}`;
@@ -1108,10 +1111,10 @@ function createLLMPrompt(actionType: string, theme: string, industry: string, te
       return dealPrompt;
       
     case 'create_note':
-      return `${basePrompt} Generate a professional note body for a ${theme}-themed ${industry} business interaction. Keep it under 200 characters. Return JSON with: {"hs_note_body": ""}`;
+      return `${basePrompt} Create a professional note body that fits the ${theme}. Keep it under 200 characters. Return JSON with: {"hs_note_body": ""}`;
       
     case 'create_ticket':
-      let ticketPrompt = `${basePrompt} Generate a support ticket with subject and content for ${theme}-themed ${industry} business.`;
+      let ticketPrompt = `${basePrompt} Create a support ticket with subject and content that fits the ${theme}.`;
       if (crmMetadata) {
         ticketPrompt += `\n\nIMPORTANT - Use ONLY these exact pipeline and stage IDs from the target CRM:\n${getTicketPipelineOptions(crmMetadata)}`;
         ticketPrompt += `\n\nReturn JSON with: {"subject": "", "content": "", "hs_pipeline_stage": "[USE_EXACT_STAGE_ID]", "hs_pipeline": "[USE_EXACT_PIPELINE_ID]"}`;
@@ -1121,7 +1124,7 @@ function createLLMPrompt(actionType: string, theme: string, industry: string, te
       return ticketPrompt;
       
     case 'update_deal':
-      let updateDealPrompt = `${basePrompt} Generate data to update a deal that fits the ${theme} theme in ${industry}.`;
+      let updateDealPrompt = `${basePrompt} Create data to update a deal that fits the ${theme} theme.`;
       if (crmMetadata) {
         updateDealPrompt += `\n\nIMPORTANT - Use ONLY these exact stage IDs from the target CRM:\n${getDealPipelineOptions(crmMetadata)}`;
         updateDealPrompt += `\n\nReturn JSON with stage update: {"dealstage": "[USE_EXACT_STAGE_ID]"}`;
