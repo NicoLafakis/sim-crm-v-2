@@ -40,7 +40,13 @@ export default function HubSpotSetup() {
         await apiRequest('PUT', `/api/session/${user.id}`, {
           hubspotToken: hubspotToken
         });
-        queryClient.invalidateQueries({ queryKey: ['/api/session', user.id] });
+        
+        // CRITICAL: Update client session state immediately after server update
+        if (session) {
+          const updatedSession = { ...session, hubspotToken: hubspotToken };
+          const { setSession } = useSession.getState();
+          setSession(updatedSession);
+        }
 
         // Proceed based on redirect context
         if (redirectFrom === 'simulation' && selectedTheme) {
