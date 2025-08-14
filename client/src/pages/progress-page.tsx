@@ -205,10 +205,14 @@ export default function ProgressPage() {
   }
 
   return (
-    <div className="min-h-screen font-gameboy p-6 bg-gameboy-screen relative">
-      <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div className="grid-pattern"></div>
-      </div>
+    <div className="min-h-screen font-gameboy p-6 relative" style={{ backgroundColor: '#e8e8e8' }}>
+      <div className="absolute inset-0 pointer-events-none" style={{ 
+        backgroundImage: `
+          linear-gradient(rgba(108, 123, 127, 0.5) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(108, 123, 127, 0.5) 1px, transparent 1px)
+        `,
+        backgroundSize: '20px 20px'
+      }}></div>
       <div className="max-w-4xl mx-auto relative z-10">
         {/* Header */}
         <div className="mb-8">
