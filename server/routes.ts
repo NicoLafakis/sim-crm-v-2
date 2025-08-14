@@ -314,5 +314,141 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // CRM CRUD endpoints for direct record creation/updates  
+  app.post('/api/crm/contacts', async (req, res) => {
+    try {
+      const { userId, data } = req.body;
+      const session = await storage.getSession(userId);
+      
+      if (!session?.hubspotToken) {
+        return res.status(400).json({ error: 'HubSpot token not found' });
+      }
+
+      // Import orchestrator functions dynamically
+      const { executeCreateContact } = require('./orchestrator');
+      const result = await executeCreateContact(data, session.hubspotToken, { jobId: 0 });
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/crm/companies', async (req, res) => {
+    try {
+      const { userId, data } = req.body;
+      const session = await storage.getSession(userId);
+      
+      if (!session?.hubspotToken) {
+        return res.status(400).json({ error: 'HubSpot token not found' });
+      }
+
+      const { executeCreateCompany } = require('./orchestrator');
+      const result = await executeCreateCompany(data, session.hubspotToken, { jobId: 0 });
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/crm/deals', async (req, res) => {
+    try {
+      const { userId, data } = req.body;
+      const session = await storage.getSession(userId);
+      
+      if (!session?.hubspotToken) {
+        return res.status(400).json({ error: 'HubSpot token not found' });
+      }
+
+      const { executeCreateDeal } = require('./orchestrator');
+      const result = await executeCreateDeal(data, session.hubspotToken, { jobId: 0 });
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/crm/tickets', async (req, res) => {
+    try {
+      const { userId, data } = req.body;
+      const session = await storage.getSession(userId);
+      
+      if (!session?.hubspotToken) {
+        return res.status(400).json({ error: 'HubSpot token not found' });
+      }
+
+      const { executeCreateTicket } = require('./orchestrator');
+      const result = await executeCreateTicket(data, session.hubspotToken, { jobId: 0 });
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/crm/notes', async (req, res) => {
+    try {
+      const { userId, data } = req.body;
+      const session = await storage.getSession(userId);
+      
+      if (!session?.hubspotToken) {
+        return res.status(400).json({ error: 'HubSpot token not found' });
+      }
+
+      const { executeCreateNote } = require('./orchestrator');
+      const result = await executeCreateNote(data, session.hubspotToken, { jobId: 0 });
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put('/api/crm/deals/:dealId', async (req, res) => {
+    try {
+      const { userId, data } = req.body;
+      const { dealId } = req.params;
+      const session = await storage.getSession(userId);
+      
+      if (!session?.hubspotToken) {
+        return res.status(400).json({ error: 'HubSpot token not found' });
+      }
+
+      const { executeUpdateDeal } = require('./orchestrator');
+      const result = await executeUpdateDeal(data, session.hubspotToken, { 
+        jobId: 0, 
+        recordIdTpl: dealId 
+      });
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put('/api/crm/tickets/:ticketId', async (req, res) => {
+    try {
+      const { userId, data } = req.body;
+      const { ticketId } = req.params;
+      const session = await storage.getSession(userId);
+      
+      if (!session?.hubspotToken) {
+        return res.status(400).json({ error: 'HubSpot token not found' });
+      }
+
+      const { executeUpdateTicket } = require('./orchestrator');
+      const result = await executeUpdateTicket(data, session.hubspotToken, { 
+        jobId: 0, 
+        recordIdTpl: ticketId 
+      });
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return app;
 }

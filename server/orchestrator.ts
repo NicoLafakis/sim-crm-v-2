@@ -679,8 +679,8 @@ async function generateRealisticData(
               content: basePrompt
             }
           ],
-          response_format: { type: "json_object" },
-          temperature: seed ? 0.3 : 0.7 // Lower temperature for seeded generation
+          response_format: { type: "json_object" }
+          // temperature: seed ? 0.3 : 0.7 // gpt-5-nano doesn't support custom temperature
         });
       }, {
         onRetry: (attempt, error) => {
@@ -707,8 +707,8 @@ async function generateRealisticData(
               content: basePrompt
             }
           ],
-          response_format: { type: "json_object" },
-          temperature: seed ? 0.3 : 0.7 // Lower temperature for seeded generation
+          response_format: { type: "json_object" }
+          // temperature: seed ? 0.3 : 0.7 // gpt-4.1-nano uses default temperature
         });
       }, {
         onRetry: (attempt, error) => {
@@ -898,6 +898,10 @@ async function executeCreateContact(data: any, token: string, step: any): Promis
   const job = await getJobById(step.jobId);
   const resolvedData = await resolveOwnerEmail(job.simulationId, data, token);
   
+  // Remove generatedAt property if present (HubSpot doesn't allow camelCase)
+  delete resolvedData.generatedAt;
+  delete resolvedData.generated_at; // Also remove snake_case version from record data
+
   // Validate and coerce data types
   const { validData: validatedData, errors } = validateAndCoerceRecordData(resolvedData, 'contacts');
   if (errors.length > 0) {
@@ -956,6 +960,10 @@ async function executeCreateCompany(data: any, token: string, step: any): Promis
   const job = await getJobById(step.jobId);
   const resolvedData = await resolveOwnerEmail(job.simulationId, data, token);
   
+  // Remove generatedAt property if present (HubSpot doesn't allow camelCase)
+  delete resolvedData.generatedAt;
+  delete resolvedData.generated_at; // Also remove snake_case version from record data
+
   // Validate and coerce data types
   const { validData: validatedData, errors } = validateAndCoerceRecordData(resolvedData, 'companies');
   if (errors.length > 0) {
@@ -1021,6 +1029,11 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
 
   // Use validated data with resolved pipeline and stage IDs
   const validatedData = validation.resolvedData;
+  
+  // Remove generatedAt property if present (HubSpot doesn't allow camelCase)
+  delete validatedData.generatedAt;
+  delete validatedData.generated_at; // Also remove snake_case version from record data
+  
   console.log(`✅ Deal stage validation passed. Pipeline: ${validatedData.pipeline}, Stage: ${validatedData.dealstage}`);
 
   // Check for existing deal if search fallback is enabled and dealname exists
@@ -1091,6 +1104,10 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
  * Execute note creation with associations
  */
 async function executeCreateNote(data: any, token: string, step: any): Promise<any> {
+  // Remove generatedAt property if present (HubSpot doesn't allow camelCase)
+  delete data.generatedAt;
+  delete data.generated_at; // Also remove snake_case version from record data
+  
   // Add ISO timestamp for HubSpot
   data.hs_timestamp = new Date().toISOString();
   
@@ -1118,6 +1135,10 @@ async function executeCreateNote(data: any, token: string, step: any): Promise<a
  * Execute ticket creation with associations
  */
 async function executeCreateTicket(data: any, token: string, step: any): Promise<any> {
+  // Remove generatedAt property if present (HubSpot doesn't allow camelCase)
+  delete data.generatedAt;
+  delete data.generated_at; // Also remove snake_case version from record data
+
   // Validate and ensure properties exist
   await ensureHubSpotProperties('tickets', Object.keys(data), token);
   
@@ -2143,7 +2164,15 @@ export {
   validateAndCoerceRecordData,
   validateAssociation,
   getSupportedAssociations,
-  createAssociations
+  createAssociations,
+  executeCreateContact,
+  executeCreateCompany,
+  executeCreateDeal,
+  executeCreateTicket,
+  executeCreateNote,
+  executeUpdateDeal,
+  executeUpdateTicket,
+  executeCloseTicket
 };
 
 /**
