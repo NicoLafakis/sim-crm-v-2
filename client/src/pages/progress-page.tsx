@@ -205,14 +205,17 @@ export default function ProgressPage() {
   }
 
   return (
-    <div className="min-h-screen font-gameboy p-6 bg-gray-100">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen font-gameboy p-6 bg-gameboy-screen relative">
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="grid-pattern"></div>
+      </div>
+      <div className="max-w-4xl mx-auto relative z-10">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4 text-blue-900 font-gameboy">
+          <h1 className="text-4xl font-bold mb-4 text-gameboy-dark font-gameboy">
             SIMULATION RESULTS
           </h1>
-          <div className="text-gray-800 font-gameboy mb-4">
+          <div className="text-gameboy-text font-gameboy mb-4">
             Total Simulations: {simulations?.length || 0}
           </div>
           <div className="mt-4 p-4 bg-blue-50 border-2 border-blue-200 rounded flex items-center gap-3">
@@ -480,7 +483,7 @@ export default function ProgressPage() {
                               <div className="text-sm mb-3 font-gameboy text-blue-900 font-bold">
                                 🤖 SIMULATION RESULTS
                               </div>
-                              <div className="bg-white border border-gray-300 p-3 rounded text-xs font-mono text-gray-800 max-h-64 overflow-y-auto">
+                              <div className="bg-white border border-gray-300 p-3 rounded text-xs font-mono text-gray-800">
                                 <pre className="whitespace-pre-wrap">
                                   {JSON.stringify(simulation.config.aiStrategy, null, 2)}
                                 </pre>
