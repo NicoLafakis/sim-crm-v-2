@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Trash2, Info } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown, ChevronUp, Trash2, Info, Clock, Timer, Target } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Simulation {
@@ -22,6 +22,72 @@ interface Simulation {
   config: any;
 }
 
+// Live Timer Component
+function LiveTimer({ startTime, label, icon }: { startTime: string; label: string; icon: React.ReactNode }) {
+  const [elapsed, setElapsed] = useState('00:00:00');
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const start = new Date(startTime);
+      const now = new Date();
+      const diff = Math.max(0, now.getTime() - start.getTime());
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      setElapsed(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  return (
+    <div className="flex items-center gap-2">
+      {icon}
+      <div>
+        <div className="text-xs font-mono text-gray-600">{label}</div>
+        <div className="text-sm font-mono font-bold text-green-600">{elapsed}</div>
+      </div>
+    </div>
+  );
+}
+
+// Countdown Timer Component
+function CountdownTimer({ targetTime, label, icon }: { targetTime: string; label: string; icon: React.ReactNode }) {
+  const [remaining, setRemaining] = useState('00:00:00');
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const target = new Date(targetTime);
+      const now = new Date();
+      const diff = Math.max(0, target.getTime() - now.getTime());
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      setRemaining(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [targetTime]);
+
+  return (
+    <div className="flex items-center gap-2">
+      {icon}
+      <div>
+        <div className="text-xs font-mono text-gray-600">{label}</div>
+        <div className="text-sm font-mono font-bold text-orange-600">{remaining}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProgressPage() {
   const { user } = useSession();
   const { toast } = useToast();
@@ -30,6 +96,14 @@ export default function ProgressPage() {
   const { data: simulations, isLoading } = useQuery<Simulation[]>({
     queryKey: [`/api/user/${user?.id}/simulations`],
     enabled: !!user?.id,
+    refetchInterval: 5000, // Refetch every 5 seconds for live updates
+  });
+
+  // Get live progress data for processing simulations
+  const { data: simulationProgress } = useQuery({
+    queryKey: [`/api/simulation/progress`],
+    enabled: simulations?.some(s => s.status === 'processing'),
+    refetchInterval: 2000, // Update progress every 2 seconds
   });
 
   const deleteMutation = useMutation({
@@ -171,15 +245,29 @@ export default function ProgressPage() {
                     <CollapsibleContent>
                       <CardContent className="pt-0">
                         <div className="space-y-4">
+                          {/* Live Timers - Only show for processing simulations */}
+                          {simulation.status === 'processing' && (
+                            <div className="grid grid-cols-3 gap-4 p-4 rounded" style={{ backgroundColor: '#2d3748' }}>
+                              <LiveTimer 
+                                startTime={simulation.startedAt} 
+                                label="ELAPSED TIME"
+                                icon={<Clock className="w-4 h-4 text-green-400" />}
+                              />
+                              <CountdownTimer 
+                                targetTime={new Date(Date.now() + 30000).toISOString()} 
+                                label="NEXT RECORD"
+                                icon={<Timer className="w-4 h-4 text-orange-400" />}
+                              />
+                              <CountdownTimer 
+                                targetTime={new Date(new Date(simulation.startedAt).getTime() + (simulation.config?.acceleratorDays * 24 * 60 * 60 * 1000 || 43200000)).toISOString()} 
+                                label="COMPLETION"
+                                icon={<Target className="w-4 h-4 text-blue-400" />}
+                              />
+                            </div>
+                          )}
+
                           {/* Configuration Details */}
-                          <div className="grid grid-cols-2 gap-4 p-4 rounded" style={{ 
-                            backgroundColor: '#e8e8e8',
-                            backgroundImage: `
-                              linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
-                            `,
-                            backgroundSize: '16px 16px'
-                          }}>
+                          <div className="grid grid-cols-2 gap-4 p-4 rounded" style={{ backgroundColor: '#d4d4d8' }}>
                             <div>
                               <div className="text-sm mb-2" style={{ fontFamily: 'var(--font-gameboy)', color: '#1e3a5f' }}>
                                 CONFIGURATION
@@ -235,16 +323,54 @@ export default function ProgressPage() {
                             </div>
                           </div>
 
+                          {/* Live Progress - Only show for processing simulations */}
+                          {simulation.status === 'processing' && (
+                            <div className="p-4 rounded" style={{ backgroundColor: '#1a202c' }}>
+                              <div className="text-sm mb-3" style={{ fontFamily: 'var(--font-gameboy)', color: '#48bb78' }}>
+                                🔴 LIVE SIMULATION IN PROGRESS
+                              </div>
+                              <div className="grid grid-cols-2 gap-4 text-xs" style={{ color: '#e2e8f0' }}>
+                                <div>
+                                  <div className="mb-2 font-bold">RECORDS CREATED:</div>
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between">
+                                      <span>Contacts:</span>
+                                      <span className="font-mono text-green-400">0 / {simulation.config?.record_distribution?.contacts || 0}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Companies:</span>
+                                      <span className="font-mono text-green-400">0 / {simulation.config?.record_distribution?.companies || 0}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Deals:</span>
+                                      <span className="font-mono text-green-400">0 / {simulation.config?.record_distribution?.deals || 0}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="mb-2 font-bold">JOB PROGRESS:</div>
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between">
+                                      <span>Completed:</span>
+                                      <span className="font-mono text-green-400">0 steps</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Processing:</span>
+                                      <span className="font-mono text-yellow-400">2 steps</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Pending:</span>
+                                      <span className="font-mono text-gray-400">37 steps</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {/* AI Strategy Results - Only show for completed simulations */}
                           {simulation.status === 'completed' && simulation.config?.aiStrategy && (
-                            <div className="p-4 rounded" style={{ 
-                              backgroundColor: '#e8e8e8',
-                              backgroundImage: `
-                                linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
-                                linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
-                              `,
-                              backgroundSize: '16px 16px'
-                            }}>
+                            <div className="p-4 rounded" style={{ backgroundColor: '#d4d4d8' }}>
                               <div className="text-sm mb-3" style={{ fontFamily: 'var(--font-gameboy)', color: '#1e3a5f' }}>
                                 🤖 SIMULATION RESULTS
                               </div>
