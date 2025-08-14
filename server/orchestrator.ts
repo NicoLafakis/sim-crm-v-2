@@ -816,6 +816,8 @@ async function generateRealisticData(
     delete cleanData.generated_at;
     delete cleanData.generatedAt;
     
+    console.log(`🤖 Generated LLM data for ${actionType}:`, JSON.stringify(cleanData, null, 2));
+    
     // Cache the validated data with guardrails
     personaCacheGuardrails.set(theme, industry, cleanData, seed);
     personaCache.set(cacheKey, cleanData); // Legacy cache for backward compatibility
@@ -1008,6 +1010,8 @@ async function executeCreateContact(data: any, token: string, step: any): Promis
     console.warn(`⚠️ Data validation warnings for contact:`, errors);
   }
 
+  console.log(`📝 Creating contact with data:`, JSON.stringify(validatedData, null, 2));
+
   // Validate and ensure properties exist
   await ensureHubSpotProperties('contacts', Object.keys(validatedData), token, validatedData);
   
@@ -1069,6 +1073,8 @@ async function executeCreateCompany(data: any, token: string, step: any): Promis
   if (errors.length > 0) {
     console.warn(`⚠️ Data validation warnings for company:`, errors);
   }
+
+  console.log(`📝 Creating company with data:`, JSON.stringify(validatedData, null, 2));
 
   // Validate and ensure properties exist
   await ensureHubSpotProperties('companies', Object.keys(validatedData), token, validatedData);
