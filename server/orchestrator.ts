@@ -173,7 +173,7 @@ export async function scheduleSimulationJob(
       industry: simulation.industry,
       contactSeq: contactSeq,
       originalSource: `orchestrator_${outcome}`,
-      acceleratorDays,
+      acceleratorDays: acceleratorDays.toString(),
       baseCycleDays,
       jobStartAt: setStartAt,
       status: 'pending',

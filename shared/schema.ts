@@ -84,7 +84,7 @@ export const jobs = pgTable('jobs', {
   industry: varchar('industry', { length: 255 }),
   contactSeq: integer('contact_seq'),
   originalSource: text('original_source'),
-  acceleratorDays: integer('accelerator_days'),
+  acceleratorDays: numeric('accelerator_days', { precision: 10, scale: 2 }),
   baseCycleDays: integer('base_cycle_days'),
   jobStartAt: timestamp('job_start_at'),
   createdAt: timestamp('created_at').defaultNow(),
