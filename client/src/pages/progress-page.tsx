@@ -205,15 +205,16 @@ export default function ProgressPage() {
   }
 
   return (
-    <div className="min-h-screen font-gameboy p-6 relative" style={{ backgroundColor: '#e8e8e8' }}>
-      <div className="absolute inset-0 pointer-events-none" style={{ 
-        backgroundImage: `
-          linear-gradient(rgba(108, 123, 127, 0.5) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(108, 123, 127, 0.5) 1px, transparent 1px)
-        `,
-        backgroundSize: '20px 20px'
-      }}></div>
-      <div className="max-w-4xl mx-auto relative z-10">
+    <div className="min-h-screen font-gameboy p-6" 
+         style={{ 
+           backgroundColor: '#e8e8e8',
+           backgroundImage: `
+             linear-gradient(to right, rgba(176, 176, 176, 0.3) 1px, transparent 1px),
+             linear-gradient(to bottom, rgba(176, 176, 176, 0.3) 1px, transparent 1px)
+           `,
+           backgroundSize: '16px 16px'
+         }}>
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4 text-gameboy-dark font-gameboy">
