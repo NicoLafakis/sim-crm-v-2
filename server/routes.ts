@@ -450,5 +450,31 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Test endpoint for pipeline validation
+  app.get("/api/test/pipeline-validation", async (req, res) => {
+    try {
+      const { testPipelineValidation } = await import('./test-pipeline-validation');
+      
+      // Get user session to find HubSpot token
+      const session = await storage.getSession(1); // Test with user 1
+      if (!session?.hubspotToken) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "No HubSpot token found. Please connect HubSpot account first." 
+        });
+      }
+      
+      const result = await testPipelineValidation(session.hubspotToken, 1);
+      res.json(result);
+      
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        message: "Pipeline validation test failed"
+      });
+    }
+  });
+
   return app;
 }

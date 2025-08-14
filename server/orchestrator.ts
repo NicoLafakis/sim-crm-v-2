@@ -5,6 +5,16 @@ import { join } from 'path';
 import OpenAI from 'openai';
 import { rateLimiter } from './rate-limiter';
 import { personaCache as personaCacheGuardrails, SeededGenerator, LLMValidator } from './llm-guardrails';
+import { 
+  fetchCrmMetadata, 
+  getDealPipelineOptions, 
+  getTicketPipelineOptions, 
+  getOwnerOptions,
+  getDefaultDealPipelineStage,
+  getDefaultTicketPipelineStage,
+  validateDealPipelineStage,
+  validateTicketPipelineStage 
+} from './hubspot-metadata';
 
 // Initialize OpenAI client
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -558,14 +568,41 @@ async function executeJobStepAction(step: any): Promise<any> {
       throw new Error(`Job ${jobId} not found`);
     }
     
-    // Generate realistic data using LLM based on theme/industry
-    const generatedData = await generateRealisticData(typeOfAction, job.theme, job.industry, actionTpl);
-    
     // Get HubSpot API token for the user
     const hubspotToken = await getHubSpotToken(job.simulationId);
     if (!hubspotToken) {
       throw new Error('HubSpot API token not found. Please connect HubSpot account.');
     }
+    
+    // Get simulation details to find user ID
+    const simulation = await storage.getSimulationById(job.simulationId);
+    if (!simulation) {
+      throw new Error('Simulation not found');
+    }
+    
+    // Fetch CRM metadata for pipeline/stage validation
+    let crmMetadata = null;
+    if (['create_deal', 'update_deal', 'create_ticket', 'update_ticket', 'close_ticket'].includes(typeOfAction)) {
+      try {
+        crmMetadata = await fetchCrmMetadata(hubspotToken, simulation.userId);
+        console.log(`📊 Fetched CRM metadata for ${typeOfAction}`);
+      } catch (error: any) {
+        console.warn(`⚠️ Could not fetch CRM metadata: ${error.message}. Using fallback values.`);
+        // Continue without metadata - LLM will use fallback values
+      }
+    }
+    
+    // Generate realistic data using LLM based on theme/industry with CRM metadata
+    const generatedData = await generateRealisticData(
+      typeOfAction, 
+      job.theme, 
+      job.industry, 
+      actionTpl,
+      jobId,
+      step.stepIndex,
+      true, // useSeed
+      crmMetadata
+    );
     
     // Execute the specific action
     switch (typeOfAction) {
@@ -634,7 +671,8 @@ async function generateRealisticData(
   actionTemplate: any,
   jobId?: number,
   stepIndex?: number,
-  useSeed = true
+  useSeed = true,
+  crmMetadata?: any
 ): Promise<any> {
   // Generate deterministic seed if requested
   const seed = useSeed && jobId ? SeededGenerator.generateSeed(jobId, theme, industry, stepIndex) : undefined;
@@ -663,7 +701,7 @@ async function generateRealisticData(
   }
   
   try {
-    let basePrompt = createLLMPrompt(actionType, theme, industry, actionTemplate);
+    let basePrompt = createLLMPrompt(actionType, theme, industry, actionTemplate, crmMetadata);
     
     // Add seeded generation instruction
     if (seed) {
@@ -795,7 +833,7 @@ async function generateRealisticData(
 /**
  * Create LLM prompt based on action type, theme, and industry
  */
-function createLLMPrompt(actionType: string, theme: string, industry: string, template: any): string {
+function createLLMPrompt(actionType: string, theme: string, industry: string, template: any, crmMetadata?: any): string {
   const basePrompt = `Generate realistic ${actionType.replace('_', ' ')} data for a ${theme}-themed ${industry} business simulation.`;
   
   switch (actionType) {
@@ -806,13 +844,57 @@ function createLLMPrompt(actionType: string, theme: string, industry: string, te
       return `${basePrompt} Generate a company with name, domain, city, state, industry, and employee count that fits the ${theme} theme. Be creative but realistic. Return JSON with: {"name": "", "domain": "", "city": "", "state": "", "industry": "", "numberofemployees": ""}`;
       
     case 'create_deal':
-      return `${basePrompt} Generate a deal with name and amount that fits the ${theme} theme in ${industry}. You can use common stage names like "Qualified Lead", "Appointment Scheduled", "Decision Maker Bought-In", "Contract Sent", or "Closed Won". Return JSON with: {"dealname": "", "amount": "", "dealstage": "Qualified Lead", "pipeline": "default"}`;
+      let dealPrompt = `${basePrompt} Generate a deal with name and amount that fits the ${theme} theme in ${industry}.`;
+      if (crmMetadata) {
+        dealPrompt += `\n\nIMPORTANT - Use ONLY these exact pipeline and stage IDs from the target CRM:\n${getDealPipelineOptions(crmMetadata)}`;
+        dealPrompt += `\n\nReturn JSON with: {"dealname": "", "amount": "", "dealstage": "[USE_EXACT_STAGE_ID]", "pipeline": "[USE_EXACT_PIPELINE_ID]"}`;
+      } else {
+        dealPrompt += ` Return JSON with: {"dealname": "", "amount": "", "dealstage": "appointmentscheduled", "pipeline": "default"}`;
+      }
+      return dealPrompt;
       
     case 'create_note':
       return `${basePrompt} Generate a professional note body for a ${theme}-themed ${industry} business interaction. Keep it under 200 characters. Return JSON with: {"hs_note_body": ""}`;
       
     case 'create_ticket':
-      return `${basePrompt} Generate a support ticket with subject and content for ${theme}-themed ${industry} business. Return JSON with: {"subject": "", "content": "", "hs_pipeline_stage": "1"}`;
+      let ticketPrompt = `${basePrompt} Generate a support ticket with subject and content for ${theme}-themed ${industry} business.`;
+      if (crmMetadata) {
+        ticketPrompt += `\n\nIMPORTANT - Use ONLY these exact pipeline and stage IDs from the target CRM:\n${getTicketPipelineOptions(crmMetadata)}`;
+        ticketPrompt += `\n\nReturn JSON with: {"subject": "", "content": "", "hs_pipeline_stage": "[USE_EXACT_STAGE_ID]", "hs_pipeline": "[USE_EXACT_PIPELINE_ID]"}`;
+      } else {
+        ticketPrompt += ` Return JSON with: {"subject": "", "content": "", "hs_pipeline_stage": "1", "hs_pipeline": "0"}`;
+      }
+      return ticketPrompt;
+      
+    case 'update_deal':
+      let updateDealPrompt = `${basePrompt} Generate data to update a deal that fits the ${theme} theme in ${industry}.`;
+      if (crmMetadata) {
+        updateDealPrompt += `\n\nIMPORTANT - Use ONLY these exact stage IDs from the target CRM:\n${getDealPipelineOptions(crmMetadata)}`;
+        updateDealPrompt += `\n\nReturn JSON with stage update: {"dealstage": "[USE_EXACT_STAGE_ID]"}`;
+      } else {
+        updateDealPrompt += ` Return JSON with stage update: {"dealstage": "closedwon"}`;
+      }
+      return updateDealPrompt;
+      
+    case 'update_ticket':
+      let updateTicketPrompt = `${basePrompt} Generate data to update a support ticket that fits the ${theme} theme.`;
+      if (crmMetadata) {
+        updateTicketPrompt += `\n\nIMPORTANT - Use ONLY these exact stage IDs from the target CRM:\n${getTicketPipelineOptions(crmMetadata)}`;
+        updateTicketPrompt += `\n\nReturn JSON with: {"hs_pipeline_stage": "[USE_EXACT_STAGE_ID]"}`;
+      } else {
+        updateTicketPrompt += ` Return JSON with: {"hs_pipeline_stage": "2"}`;
+      }
+      return updateTicketPrompt;
+      
+    case 'close_ticket':
+      let closeTicketPrompt = `${basePrompt} Generate data to close a support ticket.`;
+      if (crmMetadata) {
+        closeTicketPrompt += `\n\nIMPORTANT - Use ONLY these exact stage IDs that represent "closed" status from the target CRM:\n${getTicketPipelineOptions(crmMetadata)}`;
+        closeTicketPrompt += `\n\nReturn JSON with: {"hs_pipeline_stage": "[USE_EXACT_CLOSED_STAGE_ID]"}`;
+      } else {
+        closeTicketPrompt += ` Return JSON with: {"hs_pipeline_stage": "3"}`;
+      }
+      return closeTicketPrompt;
       
     default:
       return `${basePrompt} Generate appropriate data in JSON format.`;
