@@ -44,6 +44,18 @@ let jobRunnerInterval: NodeJS.Timeout | null = null;
 // Search fallback configuration
 const ENABLE_SEARCH_FALLBACK = process.env.ENABLE_SEARCH_FALLBACK === 'true';
 
+// Add round-robin owner assignment
+let currentOwnerIndex = 0;
+
+function getNextOwner(owners: any[]): string | null {
+  if (!owners || owners.length === 0) return null;
+  
+  const owner = owners[currentOwnerIndex % owners.length];
+  currentOwnerIndex = (currentOwnerIndex + 1) % owners.length;
+  
+  return owner.id;
+}
+
 /**
  * Determine outcome based on industry-specific win/loss rates
  */
@@ -904,7 +916,7 @@ async function generateRealisticData(
     try {
       response = await rateLimiter.executeWithRateLimit('openai', async () => {
         return await openai.chat.completions.create({
-          model: "gpt-5-nano",
+          model: "gpt-4o-mini",
           messages: [
             {
               role: "system",
@@ -939,7 +951,7 @@ async function generateRealisticData(
       // Fallback to secondary model with rate limiting
       response = await rateLimiter.executeWithRateLimit('openai', async () => {
         return await openai.chat.completions.create({
-          model: "gpt-4.1-nano",
+          model: "gpt-4o-mini",
           messages: [
             {
               role: "system",
@@ -1250,7 +1262,7 @@ async function getHubSpotToken(simulationId: number): Promise<string | null> {
 /**
  * Execute contact creation with deduplication
  */
-async function executeCreateContact(data: any, token: string, step: any): Promise<any> {
+async function executeCreateContact(data: any, token: string, step?: any): Promise<any> {
   // Check for existing contact if search fallback is enabled and email exists
   if (ENABLE_SEARCH_FALLBACK && data.email) {
     const searchResult = await searchContact(data.email, token);
@@ -1278,8 +1290,21 @@ async function executeCreateContact(data: any, token: string, step: any): Promis
   }
 
   // Resolve owner email to HubSpot owner ID if provided
-  const job = await getJobById(step.jobId);
-  const resolvedData = await resolveOwnerEmail(job.simulationId, data, token);
+  let resolvedData = data;
+  if (step?.jobId) {
+    const job = await getJobById(step.jobId);
+    resolvedData = await resolveOwnerEmail(job.simulationId, data, token);
+  } else {
+    // For direct creation, assign owner if not provided
+    if (!resolvedData.hubspot_owner_id) {
+      const owners = await storage.getHubspotOwners();
+      const nextOwnerId = getNextOwner(owners);
+      if (nextOwnerId) {
+        resolvedData.hubspot_owner_id = nextOwnerId;
+        console.log(`👤 Round-robin: Assigned owner ${nextOwnerId} to contact`);
+      }
+    }
+  }
   
   // Remove generatedAt property if present (HubSpot doesn't allow camelCase)
   delete resolvedData.generatedAt;
@@ -1326,7 +1351,7 @@ async function executeCreateContact(data: any, token: string, step: any): Promis
 /**
  * Execute company creation with deduplication
  */
-async function executeCreateCompany(data: any, token: string, step: any): Promise<any> {
+async function executeCreateCompany(data: any, token: string, step?: any): Promise<any> {
   // Check for existing company if search fallback is enabled and domain exists
   if (ENABLE_SEARCH_FALLBACK && data.domain) {
     const searchResult = await searchCompany(data.domain, token);
@@ -1354,8 +1379,21 @@ async function executeCreateCompany(data: any, token: string, step: any): Promis
   }
 
   // Resolve owner email to HubSpot owner ID if provided
-  const job = await getJobById(step.jobId);
-  const resolvedData = await resolveOwnerEmail(job.simulationId, data, token);
+  let resolvedData = data;
+  if (step?.jobId) {
+    const job = await getJobById(step.jobId);
+    resolvedData = await resolveOwnerEmail(job.simulationId, data, token);
+  } else {
+    // For direct creation, assign owner if not provided
+    if (!resolvedData.hubspot_owner_id) {
+      const owners = await storage.getHubspotOwners();
+      const nextOwnerId = getNextOwner(owners);
+      if (nextOwnerId) {
+        resolvedData.hubspot_owner_id = nextOwnerId;
+        console.log(`👤 Round-robin: Assigned owner ${nextOwnerId} to company`);
+      }
+    }
+  }
   
   // Remove generatedAt property if present (HubSpot doesn't allow camelCase)
   delete resolvedData.generatedAt;
@@ -2724,3 +2762,6 @@ export async function validateDealStage(userId: number, dealData: any, token: st
     };
   }
 }
+
+// Export functions for use in routes
+export { fetchAndCacheOwners };

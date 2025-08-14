@@ -9,7 +9,7 @@ export default function HubSpotSetup() {
   const [, setLocation] = useLocation();
   const [hubspotToken, setHubspotToken] = useState('');
   const { toast } = useToast();
-  const { user, session } = useSession();
+  const { user, session, setSession } = useSession();
 
   // Parse URL parameters for redirect context
   const urlParams = new URLSearchParams(window.location.search);

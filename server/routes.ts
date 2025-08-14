@@ -5,6 +5,10 @@ import { users, sessions, simulations, jobs, jobSteps, apiTokens, insertUserSche
 import type { User, Session, Simulation, InsertSimulation, InsertUser, InsertSession } from "../shared/schema";
 import { DatabaseStorage } from "./storage";
 import { scheduleSimulationJob } from './orchestrator';
+import { storage } from './storage';
+import { rateLimiter } from './rate-limiter';
+import { validateDataOrThrow } from './validation';
+import { fetchAndCacheOwners } from './orchestrator';
 
 const storage = new DatabaseStorage();
 
@@ -158,17 +162,24 @@ export function registerRoutes(app: Express) {
 
   app.put("/api/session/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const updates = req.body;
+      const { userId } = req.params;
+      const updateData = req.body;
       
-      const session = await storage.updateSession(userId, updates);
-      if (!session) {
-        return res.status(404).json({ message: "Session not found" });
+      // If updating with a HubSpot token, sync owners automatically
+      if (updateData.hubspotToken) {
+        try {
+          await fetchAndCacheOwners(updateData.hubspotToken);
+          console.log(`HUBSPOT API: Owners synced for user ${userId}`);
+        } catch (error) {
+          console.warn(`HUBSPOT API: Failed to sync owners for user ${userId}:`, error);
+          // Continue with session update even if owner sync fails
+        }
       }
       
-      res.json(session);
+      const updatedSession = await storage.updateSession(userId, updateData);
+      res.json(updatedSession);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -489,7 +500,8 @@ export function registerRoutes(app: Express) {
 
       // Import orchestrator functions dynamically
       const { executeCreateContact } = require('./orchestrator');
-      const result = await executeCreateContact(data, session.hubspotToken, { jobId: 0 });
+      // Execute without a job context; executeCreateContact handles optional step
+      const result = await executeCreateContact(data, session.hubspotToken);
       
       res.json(result);
     } catch (error: any) {
@@ -506,8 +518,10 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'HubSpot token not found' });
       }
 
+      // Import orchestrator functions dynamically
       const { executeCreateCompany } = require('./orchestrator');
-      const result = await executeCreateCompany(data, session.hubspotToken, { jobId: 0 });
+      // Execute without a job context; executeCreateCompany handles optional step
+      const result = await executeCreateCompany(data, session.hubspotToken);
       
       res.json(result);
     } catch (error: any) {
@@ -515,40 +529,12 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.post('/api/crm/deals', async (req, res) => {
-    try {
-      const { userId, data } = req.body;
-      const session = await storage.getSession(userId);
-      
-      if (!session?.hubspotToken) {
-        return res.status(400).json({ error: 'HubSpot token not found' });
-      }
-
-      const { executeCreateDeal } = require('./orchestrator');
-      const result = await executeCreateDeal(data, session.hubspotToken, { jobId: 0 });
-      
-      res.json(result);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
+  app.post('/api/crm/deals', async (_req, res) => {
+    return res.status(400).json({ error: 'Direct deal creation is unsupported. Use the simulation flow.' });
   });
 
-  app.post('/api/crm/tickets', async (req, res) => {
-    try {
-      const { userId, data } = req.body;
-      const session = await storage.getSession(userId);
-      
-      if (!session?.hubspotToken) {
-        return res.status(400).json({ error: 'HubSpot token not found' });
-      }
-
-      const { executeCreateTicket } = require('./orchestrator');
-      const result = await executeCreateTicket(data, session.hubspotToken, { jobId: 0 });
-      
-      res.json(result);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
+  app.post('/api/crm/tickets', async (_req, res) => {
+    return res.status(400).json({ error: 'Direct ticket creation is unsupported. Use the simulation flow.' });
   });
 
   app.post('/api/crm/notes', async (req, res) => {
