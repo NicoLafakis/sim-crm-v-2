@@ -855,9 +855,9 @@ async function getHubSpotToken(simulationId: number): Promise<string | null> {
       throw new Error('Simulation not found');
     }
     
-    // Get HubSpot token for the user
-    const token = await storage.getApiTokenByService(simulation.userId, 'hubspot');
-    return token?.accessToken || null;
+    // Get HubSpot token from user's session
+    const session = await storage.getSession(simulation.userId);
+    return session?.hubspotToken || null;
   } catch (error) {
     console.error('Error getting HubSpot token:', error);
     return null;

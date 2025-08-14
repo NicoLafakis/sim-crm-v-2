@@ -17,6 +17,7 @@ interface Simulation {
   frequency: string;
   status: string;
   startedAt: string;
+  completedAt?: string;
   creditsUsed: number;
   config: any;
 }
@@ -198,8 +199,24 @@ export default function ProgressPage() {
                                 </div>
                                 <div className="flex justify-between">
                                   <span>Created:</span>
-                                  <span className="font-mono">{new Date(simulation.startedAt).toLocaleDateString()}</span>
+                                  <span className="font-mono">{simulation.startedAt ? new Date(simulation.startedAt).toLocaleDateString() : 'N/A'}</span>
                                 </div>
+                                <div className="flex justify-between">
+                                  <span>Status:</span>
+                                  <span className="font-mono">{simulation.status.toUpperCase()}</span>
+                                </div>
+                                {simulation.status === 'processing' && (
+                                  <div className="flex justify-between">
+                                    <span>Running:</span>
+                                    <span className="font-mono text-green-600">IN PROGRESS</span>
+                                  </div>
+                                )}
+                                {simulation.status === 'completed' && (
+                                  <div className="flex justify-between">
+                                    <span>Completed:</span>
+                                    <span className="font-mono">{simulation.completedAt ? new Date(simulation.completedAt).toLocaleDateString() : 'Unknown'}</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                             
@@ -218,8 +235,8 @@ export default function ProgressPage() {
                             </div>
                           </div>
 
-                          {/* AI Strategy Results */}
-                          {simulation.config?.aiStrategy && (
+                          {/* AI Strategy Results - Only show for completed simulations */}
+                          {simulation.status === 'completed' && simulation.config?.aiStrategy && (
                             <div className="p-4 rounded" style={{ 
                               backgroundColor: '#e8e8e8',
                               backgroundImage: `

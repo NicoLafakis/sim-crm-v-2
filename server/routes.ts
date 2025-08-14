@@ -407,7 +407,7 @@ Please provide a detailed simulation strategy with realistic business scenarios,
 
         // Update simulation with AI response and job info
         await storage.updateSimulation(simulation.id, {
-          status: 'active',
+          status: 'processing',
           config: { ...settings, outcome, acceleratorDays, aiStrategy: aiResponse, jobIds, setCount }
         });
 
