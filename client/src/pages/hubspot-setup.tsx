@@ -38,18 +38,40 @@ export default function HubSpotSetup() {
       setIsValidating(true);
       setValidationSteps([]);
       
-      const response = await apiRequest('POST', '/api/validate-hubspot-comprehensive', { 
-        token, 
-        userId: user?.id 
-      }) as any;
-      
-      setValidationSteps(response.validations || []);
-      
-      if (!response.valid) {
-        throw new Error(response.message);
+      try {
+        const response = await apiRequest('POST', '/api/validate-hubspot-comprehensive', { 
+          token, 
+          userId: user?.id 
+        });
+        
+        const data = await response.json();
+        console.log('Validation response:', data);
+        setValidationSteps(data.validations || []);
+        
+        if (!data.valid) {
+          throw new Error(data.message || 'Validation failed');
+        }
+        
+        return data;
+      } catch (error: any) {
+        console.error('Validation error:', error);
+        
+        // Parse error message if it's a fetch error
+        if (error.message && error.message.includes('500:') || error.message.includes('400:')) {
+          // Try to parse JSON error response
+          try {
+            const errorText = error.message.split(': ')[1];
+            const errorData = JSON.parse(errorText);
+            setValidationSteps(errorData.validations || []);
+            throw new Error(errorData.message || 'Validation failed');
+          } catch (parseError) {
+            // If parsing fails, use the original error
+            throw new Error(error.message);
+          }
+        }
+        
+        throw error;
       }
-      
-      return response;
     },
     onSuccess: async () => {
       // Update session with valid token
@@ -81,6 +103,7 @@ export default function HubSpotSetup() {
       }
     },
     onError: (error) => {
+      console.error('Final validation error:', error);
       toast({
         title: "HubSpot Validation Failed",
         description: error.message || "Please check your HubSpot API token and try again",
@@ -182,17 +205,17 @@ export default function HubSpotSetup() {
                 </h3>
                 <div className="space-y-2">
                   {validationSteps.map((step, index) => (
-                    <div key={index} className="flex items-center justify-between text-xs">
-                      <span className="font-medium">{step.step}</span>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded text-xs ${
+                    <div key={index} className="flex items-start justify-between text-xs">
+                      <span className="font-medium flex-shrink-0 w-32">{step.step}</span>
+                      <div className="flex items-start gap-2 flex-1">
+                        <span className={`px-2 py-1 rounded text-xs flex-shrink-0 ${
                           step.status === 'success' ? 'bg-green-200 text-green-800' :
                           step.status === 'warning' ? 'bg-yellow-200 text-yellow-800' :
                           'bg-red-200 text-red-800'
                         }`}>
                           {step.status === 'success' ? '✓' : step.status === 'warning' ? '⚠' : '✗'}
                         </span>
-                        <span className="text-gray-600 max-w-xs truncate">{step.message}</span>
+                        <span className="text-gray-600 text-xs break-words">{step.message}</span>
                       </div>
                     </div>
                   ))}
