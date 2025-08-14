@@ -643,7 +643,11 @@ async function generateRealisticData(
   const cachedData = personaCacheGuardrails.get(theme, industry, seed);
   if (cachedData) {
     console.log(`📋 Guardrails cache hit for ${theme} + ${industry}${seed ? ` (seed: ${seed})` : ''}`);
-    return addVariationToPersonaData(cachedData, actionType);
+    const variedData = addVariationToPersonaData(cachedData, actionType);
+    // Remove generated_at property before returning
+    delete variedData.generated_at;
+    delete variedData.generatedAt;
+    return variedData;
   }
   
   // Also check old cache system for backward compatibility
@@ -651,7 +655,11 @@ async function generateRealisticData(
   if (personaCache.has(cacheKey)) {
     const oldCachedData = personaCache.get(cacheKey);
     console.log(`📋 Legacy cache hit for ${cacheKey}`);
-    return addVariationToPersonaData(oldCachedData, actionType);
+    const variedData = addVariationToPersonaData(oldCachedData, actionType);
+    // Remove generated_at property before returning
+    delete variedData.generated_at;
+    delete variedData.generatedAt;
+    return variedData;
   }
   
   try {
@@ -738,12 +746,17 @@ async function generateRealisticData(
         const revalidation = LLMValidator.validateGeneratedData(autoFix.data, theme, industry);
         
         if (revalidation.isValid) {
+          // Remove generated_at before caching and returning
+          const cleanData = { ...revalidation.validatedData };
+          delete cleanData.generated_at;
+          delete cleanData.generatedAt;
+          
           // Cache the validated and fixed data
-          personaCacheGuardrails.set(theme, industry, revalidation.validatedData, seed);
-          personaCache.set(cacheKey, revalidation.validatedData); // Legacy cache
+          personaCacheGuardrails.set(theme, industry, cleanData, seed);
+          personaCache.set(cacheKey, cleanData); // Legacy cache
           
           console.log(`✅ LLM output validated and cached after auto-fix`);
-          return revalidation.validatedData;
+          return cleanData;
         }
       }
       
@@ -760,12 +773,17 @@ async function generateRealisticData(
       console.warn(`⚠️ LLM validation warnings:`, validation.warnings);
     }
     
+    // Remove generated_at before caching and returning
+    const cleanData = { ...validation.validatedData };
+    delete cleanData.generated_at;
+    delete cleanData.generatedAt;
+    
     // Cache the validated data with guardrails
-    personaCacheGuardrails.set(theme, industry, validation.validatedData, seed);
-    personaCache.set(cacheKey, validation.validatedData); // Legacy cache for backward compatibility
+    personaCacheGuardrails.set(theme, industry, cleanData, seed);
+    personaCache.set(cacheKey, cleanData); // Legacy cache for backward compatibility
     
     console.log(`✅ LLM output validated and cached successfully`);
-    return validation.validatedData;
+    return cleanData;
     
   } catch (error: any) {
     console.error('Error generating realistic data with LLM (both models failed):', error.message);
@@ -1545,7 +1563,7 @@ async function ensureSelectOptions(objectType: string, propertiesMap: Map<string
             displayOrder: (property.options?.length || 0) + missingOptions.indexOf(value)
           }));
           
-          await makeHubSpotRequest('PUT', `/crm/v3/properties/${objectType}/${propertyName}`, {
+          await makeHubSpotRequest('PATCH', `/crm/v3/properties/${objectType}/${propertyName}`, {
             options: [...(property.options || []), ...newOptions]
           }, token);
           
