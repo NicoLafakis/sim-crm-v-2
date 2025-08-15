@@ -1,17 +1,23 @@
 
-const fs = require('fs');
-const path = require('path');
-const archiver = require('archiver');
+import fs from 'fs';
+import path from 'path';
+import archiver from 'archiver';
 
 // Create the download package
 async function createDownloadPackage() {
   console.log('📦 Creating SimCRM download package...');
   
-  const output = fs.createWriteStream('simcrm-local-dev.zip');
+  const output = fs.createWriteStream('simcrm-download-v2.zip');
   const archive = archiver('zip', { zlib: { level: 9 } });
   
   output.on('close', () => {
-    console.log(`✅ Package created: simcrm-local-dev.zip (${archive.pointer()} bytes)`);
+    console.log(`✅ SimCRM v2 Package created: simcrm-download-v2.zip (${archive.pointer()} bytes)`);
+    console.log('🚀 This package includes all latest fixes:');
+    console.log('   - Stop button functionality');
+    console.log('   - Simulation execution fixes');
+    console.log('   - Template resolution improvements');
+    console.log('   - Enhanced error handling');
+    console.log('   - Company update operation support');
   });
   
   archive.on('error', (err) => {
@@ -44,12 +50,17 @@ async function createDownloadPackage() {
     
     // Documentation
     'README-Download.md',
-    'LOCAL_SETUP.md',
+    'README-Local-Development.md',
     'IMPLEMENTATION.md',
     'replit.md',
     
     // Environment template
-    '.env.example'
+    '.env.example',
+    
+    // CSV templates
+    'attached_assets/universal_30day_timing_key.csv',
+    'attached_assets/Ecommerce_Cycle-ClosedWon_1755104746839.csv',
+    'attached_assets/Ecommerce_Cycle-ClosedLost_1755104746839.csv'
   ];
   
   // Add files to archive
