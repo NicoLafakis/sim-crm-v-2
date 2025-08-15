@@ -101,3 +101,10 @@ The platform features a Game Boy aesthetic, implemented through:
 - **Context Storage Fix**: Enhanced all creation functions (executeCreateDeal, executeCreateNote, executeCreateTicket) to properly store record IDs in job context via storeRecordIdInContext.
 - **LLM Prompt Improvements**: Added explicit instructions to prevent LLM from appending seeds or random values to pipeline/stage IDs.
 - **Validated Solution**: Confirmed elimination of invalid API calls and successful template resolution from create operations to update operations.
+
+### Simulation Execution & Stop Button Fix (August 2025)
+- **Simulation Execution Fixed**: Resolved "Unknown record type for update: Company" error by adding proper handling for Company update operations in orchestrator.
+- **Stop Button Functionality**: Confirmed stop functionality works correctly - updates simulation status to 'stopped' and cancels all pending/paused job steps.
+- **Manual Record Creation**: Created comprehensive manual record creation endpoint that successfully creates contacts, companies, and deals with proper associations.
+- **Job Runner Integration**: Verified that stopped simulations properly cease execution and do not continue processing in background.
+- **Error Handling**: Enhanced error handling for unknown record types to gracefully skip unsupported operations rather than failing.

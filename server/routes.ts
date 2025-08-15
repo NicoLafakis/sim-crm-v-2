@@ -198,14 +198,15 @@ export function registerRoutes(app: Express) {
       
       console.log('🚀 Creating manual records for demonstration...');
       
-      // Create Contact
+      // Create Contact (with unique data to avoid conflicts)
+      const timestamp = Date.now();
       const contactData = {
-        firstname: "Marcus",
-        lastname: "Chen",
-        email: "marcus.chen@quantumtech.io", 
-        phone: "+1-555-987-6543",
-        jobtitle: "VP of Engineering",
-        company: "QuantumTech Innovations"
+        firstname: "Alex",
+        lastname: "Rodriguez",
+        email: `alex.rodriguez.${timestamp}@techcorp.io`, 
+        phone: "+1-555-123-4567",
+        jobtitle: "CTO",
+        company: "TechCorp Solutions"
       };
       
       const contactResponse = await makeHubSpotRequest('POST', '/crm/v3/objects/contacts', {
@@ -214,14 +215,14 @@ export function registerRoutes(app: Express) {
       
       console.log('✅ Contact Created:', contactResponse.id);
       
-      // Create Company
+      // Create Company (with unique data to avoid conflicts)
       const companyData = {
-        name: "QuantumTech Innovations",
-        domain: "quantumtech.io",
-        city: "Austin",
-        state: "Texas",
-        industry: "Software",
-        numberofemployees: "275"
+        name: `TechCorp Solutions ${timestamp}`,
+        domain: `techcorp-${timestamp}.io`,
+        city: "Seattle",
+        state: "Washington",
+        industry: "Technology",
+        numberofemployees: "150"
       };
       
       const companyResponse = await makeHubSpotRequest('POST', '/crm/v3/objects/companies', {
@@ -230,10 +231,10 @@ export function registerRoutes(app: Express) {
       
       console.log('✅ Company Created:', companyResponse.id);
       
-      // Create Deal
+      // Create Deal (with unique data)
       const dealData = {
-        dealname: "Quantum Computing Platform - Enterprise License",
-        amount: "750000",
+        dealname: `Enterprise Cloud Migration - ${timestamp}`,
+        amount: "500000",
         dealstage: "appointmentscheduled",
         pipeline: "default"
       };

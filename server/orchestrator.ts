@@ -783,6 +783,16 @@ async function executeJobStepAction(step: any): Promise<any> {
             message: 'Contact updates not implemented',
             timestamp: new Date().toISOString()
           };
+        } else if (recordType === 'Company') {
+          // For now, log and skip company updates (could implement later)
+          console.log(`⏭️ Skipping company update - not implemented yet`);
+          return {
+            success: true,
+            recordId: 'skipped',
+            action: 'update_company_skipped',
+            message: 'Company updates not implemented',
+            timestamp: new Date().toISOString()
+          };
         } else {
           console.warn(`⚠️ Unknown record type for update: ${recordType}`);
           return {
