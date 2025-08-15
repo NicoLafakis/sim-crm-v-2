@@ -181,6 +181,115 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Manual record creation endpoint (no simulation)
+  app.post("/api/create-manual-records", async (req, res) => {
+    try {
+      const userId = parseInt(req.body.userId || '1');
+      
+      // Get user's HubSpot token from database
+      const userTokens = await storage.getUserTokens(userId);
+      const hubspotToken = userTokens.find(t => t.service === 'HubSpot');
+      
+      if (!hubspotToken || !hubspotToken.accessToken) {
+        return res.status(400).json({ 
+          error: "No HubSpot token found for user. Please connect your HubSpot account first." 
+        });
+      }
+      
+      console.log('🚀 Creating manual records for demonstration...');
+      
+      // Create Contact
+      const contactData = {
+        firstname: "Marcus",
+        lastname: "Chen",
+        email: "marcus.chen@quantumtech.io", 
+        phone: "+1-555-987-6543",
+        jobtitle: "VP of Engineering",
+        company: "QuantumTech Innovations"
+      };
+      
+      const contactResponse = await makeHubSpotRequest('POST', '/crm/v3/objects/contacts', {
+        properties: contactData
+      }, hubspotToken.accessToken);
+      
+      console.log('✅ Contact Created:', contactResponse.id);
+      
+      // Create Company
+      const companyData = {
+        name: "QuantumTech Innovations",
+        domain: "quantumtech.io",
+        city: "Austin",
+        state: "Texas",
+        industry: "Software",
+        numberofemployees: "275"
+      };
+      
+      const companyResponse = await makeHubSpotRequest('POST', '/crm/v3/objects/companies', {
+        properties: companyData
+      }, hubspotToken.accessToken);
+      
+      console.log('✅ Company Created:', companyResponse.id);
+      
+      // Create Deal
+      const dealData = {
+        dealname: "Quantum Computing Platform - Enterprise License",
+        amount: "750000",
+        dealstage: "appointmentscheduled",
+        pipeline: "default"
+      };
+      
+      const dealResponse = await makeHubSpotRequest('POST', '/crm/v3/objects/deals', {
+        properties: dealData
+      }, hubspotToken.accessToken);
+      
+      console.log('✅ Deal Created:', dealResponse.id);
+      
+      // Create Associations
+      console.log('🔗 Creating associations...');
+      
+      // Associate Deal -> Contact (association type 3)
+      const assoc1Response = await makeHubSpotRequest('PUT', 
+        `/crm/v3/objects/deals/${dealResponse.id}/associations/contacts/${contactResponse.id}/3`, 
+        null, hubspotToken.accessToken);
+      
+      // Associate Deal -> Company (association type 5)  
+      const assoc2Response = await makeHubSpotRequest('PUT',
+        `/crm/v3/objects/deals/${dealResponse.id}/associations/companies/${companyResponse.id}/5`,
+        null, hubspotToken.accessToken);
+      
+      console.log('✅ All associations created');
+      
+      res.json({
+        success: true,
+        message: "Records created and associated successfully",
+        records: {
+          contact: {
+            id: contactResponse.id,
+            name: `${contactData.firstname} ${contactData.lastname}`,
+            email: contactData.email
+          },
+          company: {
+            id: companyResponse.id,
+            name: companyData.name,
+            domain: companyData.domain
+          },
+          deal: {
+            id: dealResponse.id,
+            name: dealData.dealname,
+            amount: dealData.amount
+          }
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Manual record creation error:', error.message);
+      res.status(500).json({ 
+        error: error.message,
+        details: error.response?.data || error
+      });
+    }
+  });
+
   // Comprehensive HubSpot validation
   app.post("/api/validate-hubspot-comprehensive", async (req, res) => {
     try {
