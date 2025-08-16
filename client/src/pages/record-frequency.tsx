@@ -10,7 +10,7 @@ export default function RecordFrequency() {
   const { user, session } = useSession();
   
   const [autoMode, setAutoMode] = useState(true); // Always auto mode for free tier
-  const [totalSets, setTotalSets] = useState(36); // Total sets (1-30)
+  const [totalSets, setTotalSets] = useState(36); // Total sets (1-36)
   const [recordsPerSet, setRecordsPerSet] = useState(1); // Records per set
   const [values, setValues] = useState([1, 1, 1, 1, 5]); // Individual records per set
   const [customObjects, setCustomObjects] = useState(false);
@@ -57,7 +57,7 @@ export default function RecordFrequency() {
 
   const handleTotalSetsChange = (newValue: number) => {
     const val = parseInt(newValue.toString());
-    const limitedValue = Math.min(Math.max(1, val), 30);
+    const limitedValue = Math.min(Math.max(1, val), 36);
     setTotalSets(limitedValue);
   };
   
@@ -559,7 +559,7 @@ export default function RecordFrequency() {
                 value={totalSets}
                 onChange={(e) => handleTotalSetsChange(parseInt(e.target.value) || 1)}
                 min="1"
-                max="30"
+                max="36"
                 style={{
                   marginLeft: '10px',
                   padding: '8px 16px',
@@ -607,25 +607,25 @@ export default function RecordFrequency() {
         </div>
 
         <div className="sliders-grid bg-[#9fb89f]">
-          {/* Records Per Set Slider */}
+          {/* Total Sets Slider - # of Leads */}
           <div className="slider-column">
-            <div className="slider-value">{autoMode ? recordsPerSet : 0}</div>
+            <div className="slider-value">{totalSets}</div>
             <div className="slider-container">
-              <div className={`slider-track ${autoMode ? 'active' : ''}`}></div>
+              <div className={`slider-track ${industry === 'ecommerce' ? 'active' : 'disabled-track'}`}></div>
               <input
                 type="range"
                 className="slider-input"
-                min="0"
-                max="20"
+                min="1"
+                max="36"
                 step="1"
-                value={autoMode ? recordsPerSet : 0}
-                onChange={(e) => handleRecordsPerSetChange(parseInt(e.target.value))}
-                disabled={!autoMode}
-                data-testid="slider-auto"
+                value={totalSets}
+                onChange={(e) => handleTotalSetsChange(parseInt(e.target.value))}
+                disabled={industry === 'demo'}
+                data-testid="slider-total-sets"
               />
               <div 
-                className={`slider-thumb ${!autoMode ? 'disabled-thumb' : ''}`}
-                style={{ bottom: `${(autoMode ? recordsPerSet : 0) / 20 * 80}%` }}
+                className={`slider-thumb ${industry === 'demo' ? 'disabled-thumb' : ''}`}
+                style={{ bottom: `${(totalSets - 1) / 35 * 80}%` }}
               />
             </div>
             <div className="slider-label"># of Leads</div>
@@ -633,12 +633,15 @@ export default function RecordFrequency() {
               <input 
                 type="checkbox" 
                 className="toggle-checkbox" 
-                checked={autoMode}
+                checked={industry === 'ecommerce'}
                 disabled={true}
                 readOnly
               />
               <label className="toggle-label"></label>
             </div>
+            {industry === 'demo' && (
+              <div className="locked-indicator" style={{ opacity: 1, visibility: 'visible' }}>Demo Mode - Locked</div>
+            )}
           </div>
 
           {/* Manual Sliders - Requires Level 2 */}
