@@ -10,9 +10,9 @@ export default function RecordFrequency() {
   const { user, session } = useSession();
   
   const [autoMode, setAutoMode] = useState(true); // Always auto mode for free tier
-  const [totalSets, setTotalSets] = useState(10); // Total sets (1-30)
-  const [recordsPerSet, setRecordsPerSet] = useState(6); // Records per set
-  const [values, setValues] = useState([6, 6, 6, 6, 6]); // Individual records per set
+  const [totalSets, setTotalSets] = useState(36); // Total sets (1-30)
+  const [recordsPerSet, setRecordsPerSet] = useState(1); // Records per set
+  const [values, setValues] = useState([1, 1, 1, 1, 5]); // Individual records per set
   const [customObjects, setCustomObjects] = useState(false);
   const [customFields, setCustomFields] = useState(false);
   const [specificOwnership, setSpecificOwnership] = useState(false);
@@ -553,7 +553,7 @@ export default function RecordFrequency() {
             </div>
             
             <div style={{ flex: 1 }}>
-              <label className="timespan-label text-[16px]">Total Sets:</label>
+              <label className="timespan-label text-[16px]"># of Leads:</label>
               <input
                 type="number"
                 value={totalSets}
@@ -628,7 +628,7 @@ export default function RecordFrequency() {
                 style={{ bottom: `${(autoMode ? recordsPerSet : 0) / 20 * 80}%` }}
               />
             </div>
-            <div className="slider-label">Per Set</div>
+            <div className="slider-label"># of Leads</div>
             <div className="auto-toggle">
               <input 
                 type="checkbox" 
