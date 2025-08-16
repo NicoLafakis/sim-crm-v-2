@@ -1071,5 +1071,35 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Marvel Theme Test Sequence
+  app.post("/api/test-marvel-sequence", async (req, res) => {
+    try {
+      const { runSimpleMarvelTest } = await import('./test-marvel-simple');
+      
+      console.log('🎬 Starting Simple Marvel Theme Test...');
+      const results = await runSimpleMarvelTest();
+      
+      res.json({
+        success: true,
+        message: "Marvel theme test sequence completed",
+        results: results,
+        summary: {
+          totalSteps: results.length,
+          successful: results.filter(r => r.success).length,
+          failed: results.filter(r => !r.success).length,
+          successRate: `${((results.filter(r => r.success).length / results.length) * 100).toFixed(1)}%`
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Marvel test sequence error:', error.message);
+      res.status(500).json({ 
+        success: false,
+        error: error.message,
+        message: "Marvel theme test sequence failed"
+      });
+    }
+  });
+
   return app;
 }

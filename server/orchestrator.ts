@@ -3077,7 +3077,7 @@ function validateAndCoerceRecordData(recordData: any, objectType: string): { val
 /**
  * Create associations between HubSpot records with comprehensive validation
  */
-async function createAssociations(fromObjectId: string, fromObjectType: string, associations: any, token: string): Promise<{ 
+async function createAssociations(fromObjectId: string, fromObjectType: string, associations: any, token: string, jobId?: number): Promise<{ 
   successful: number; 
   failed: number; 
   errors: Array<{ association: string; error: string }> 
@@ -3106,7 +3106,7 @@ async function createAssociations(fromObjectId: string, fromObjectType: string, 
 
       const toObjectId = await resolveRecordIdWithFallback(
         toObjectIdTemplate as string, 
-        jobId, 
+        jobId || 0, 
         token, 
         toObjectType
       );
@@ -3784,6 +3784,8 @@ export {
   validateAssociation,
   getSupportedAssociations,
   createAssociations,
+  createAssociationsV4Batch,
+  storeRecordIdInContext,
   executeCreateContact,
   executeCreateCompany,
   executeCreateDeal,
