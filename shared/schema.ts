@@ -4,6 +4,22 @@ import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
 
+// Simulation config type
+export interface SimulationConfig {
+  record_distribution: {
+    contacts: number;
+    companies: number;
+    deals: number;
+    tickets: number;
+    notes: number;
+  };
+  totalSets?: number;
+  duration_days?: number;
+  timeSpan?: string;
+  theme?: string;
+  industry?: string;
+}
+
 // Users table
 export const users = pgTable('users', {
   id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
@@ -40,7 +56,7 @@ export const simulations = pgTable('simulations', {
   theme: varchar('theme', { length: 100 }).notNull(),
   industry: varchar('industry', { length: 100 }).notNull(),
   frequency: varchar('frequency', { length: 50 }).notNull(),
-  config: json('config').notNull(),
+  config: json('config').$type<SimulationConfig>().notNull(),
   status: varchar('status', { length: 50 }).default('pending'), // pending, running, completed, failed
   startedAt: timestamp('started_at'),
   completedAt: timestamp('completed_at'),
