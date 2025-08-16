@@ -2974,10 +2974,26 @@ async function fetchAndCachePipelinesAndStages(userId: number, token: string): P
 
 /**
  * Fetch and cache owners from HubSpot API for a user
+ * Only fetches if cache is empty or stale (older than 1 hour)
  */
-async function fetchAndCacheOwners(userId: number, token: string): Promise<void> {
+async function fetchAndCacheOwners(userId: number, token: string, forceRefresh: boolean = false): Promise<void> {
   try {
-    console.log(`Fetching and caching owners for user ${userId}`);
+    // Check if we already have cached owners
+    const cachedOwners = await storage.getHubspotOwners(userId);
+    
+    if (!forceRefresh && cachedOwners.length > 0) {
+      // Check if cache is fresh (less than 1 hour old)
+      const latestOwner = cachedOwners[0];
+      const cacheAge = Date.now() - new Date(latestOwner.updatedAt).getTime();
+      const oneHourInMs = 60 * 60 * 1000;
+      
+      if (cacheAge < oneHourInMs) {
+        console.log(`Using cached owners for user ${userId} (${cachedOwners.length} owners, cache age: ${Math.round(cacheAge / 60000)} minutes)`);
+        return;
+      }
+    }
+    
+    console.log(`Fetching and caching owners for user ${userId}${forceRefresh ? ' (forced refresh)' : ''}`);
     
     // Fetch owners from HubSpot
     const ownersResponse = await makeHubSpotRequest('GET', '/crm/v3/owners', null, token);

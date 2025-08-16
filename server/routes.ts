@@ -332,22 +332,56 @@ export function registerRoutes(app: Express) {
         });
       }
       
-      // 2. API connectivity test
-      console.log('🔗 Testing HubSpot API connectivity...');
+      // 2. API connectivity test + Owner caching (combined)
+      console.log('🔗 Testing HubSpot API connectivity and caching owners...');
       try {
-        const testResponse = await makeHubSpotRequest('GET', '/crm/v3/owners?limit=1', null, token);
+        await fetchAndCacheOwners(userId, token);
+        const cachedOwners = await storage.getHubspotOwners(userId);
+        
+        // Both connectivity and caching succeeded
         validationResults.push({
           step: 'API Connectivity',
           status: 'success',
           message: 'Successfully connected to HubSpot API'
         });
-      } catch (error: any) {
         validationResults.push({
-          step: 'API Connectivity',
-          status: 'failed', 
-          message: `API connection failed: ${error.message}`
+          step: 'Owners Cache',
+          status: 'success',
+          message: `Cached ${cachedOwners.length} owners successfully`
         });
-        overallValid = false;
+      } catch (error: any) {
+        console.error('API connectivity/owner caching failed:', error.message);
+        
+        // Check if it's a connectivity issue or just caching issue
+        try {
+          // Try a simple API call to test connectivity
+          await makeHubSpotRequest('GET', '/crm/v3/owners?limit=1', null, token);
+          
+          // Connectivity works, but caching failed
+          validationResults.push({
+            step: 'API Connectivity',
+            status: 'success',
+            message: 'Successfully connected to HubSpot API'
+          });
+          validationResults.push({
+            step: 'Owners Cache',
+            status: 'warning',
+            message: `Owner caching failed: ${error.message}`
+          });
+        } catch (connectivityError: any) {
+          // Both connectivity and caching failed
+          validationResults.push({
+            step: 'API Connectivity',
+            status: 'failed',
+            message: `API connectivity failed: ${connectivityError.message}`
+          });
+          validationResults.push({
+            step: 'Owners Cache',
+            status: 'failed',
+            message: `Owner caching failed: ${error.message}`
+          });
+          overallValid = false;
+        }
       }
       
       if (!overallValid) {
@@ -358,26 +392,7 @@ export function registerRoutes(app: Express) {
         });
       }
       
-      // 3. Fetch and cache owners
-      console.log('👥 Fetching and caching HubSpot owners...');
-      try {
-        await fetchAndCacheOwners(userId, token);
-        const cachedOwners = await storage.getHubspotOwners(userId);
-        validationResults.push({
-          step: 'Owners Cache',
-          status: 'success',
-          message: `Cached ${cachedOwners.length} owners successfully`
-        });
-      } catch (error: any) {
-        validationResults.push({
-          step: 'Owners Cache',
-          status: 'warning',
-          message: `Owner caching failed: ${error.message}`
-        });
-        // Not critical - continue validation
-      }
-      
-      // 4. Fetch and cache pipelines/stages
+      // 3. Fetch and cache pipelines/stages
       console.log('🛠️ Fetching and caching pipelines and stages...');
       try {
         await fetchAndCachePipelinesAndStages(userId, token);
@@ -396,7 +411,7 @@ export function registerRoutes(app: Express) {
         // Not critical - continue validation
       }
       
-      // 5. Test record permissions
+      // 4. Test record permissions
       console.log('🔐 Testing record creation permissions...');
       try {
         // Test if we can access contact properties (basic permission test)
