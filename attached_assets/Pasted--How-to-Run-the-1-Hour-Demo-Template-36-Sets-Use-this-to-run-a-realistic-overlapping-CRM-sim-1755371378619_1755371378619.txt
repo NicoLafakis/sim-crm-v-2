@@ -1,0 +1,114 @@
+# How-to: Run the 1-Hour Demo Template (36 Sets)
+
+Use this to run a realistic, overlapping CRM simulation in HubSpot with **36 prospect sets** launched within the first **30 minutes**, each completing a **10-minute** journey. Use the CSV:
+
+* **Schedule:** `simulation_timing_1h_36sets_with_payloads.csv` (includes a `payload` JSON column, action timing, associations, and concise note descriptions)
+
+---
+
+## 1) What the columns mean (how your runner uses them)
+
+* **`simulationId`** – Identifier for the whole run (string placeholder is fine).
+* **`setId`** – 1..36; one prospect journey per set.
+* **`timeToCreate`** – Absolute **seconds from T0** (user clicks “Start Simulation”). Execute each row at `runAt = T0 + timeToCreate`.
+* **`actionId`** – Stable IDs by object (contact=100, company=200, deal=300, ticket=400, note=500).
+* **`typeOfAction`** – `create_*` or `update_*` (drives HTTP verb/endpoint).
+* **`recordType`** – `contact | company | deal | ticket | note`.
+* **`recordId`** – **Simulator-only key** (e.g., `deal_{{simulationId}}_17`). When HubSpot returns the real object ID, store it in a map: `recordId -> hubspotId`.
+* **`associationType | associationTypeId | associatedRecordId`** – When present, create associations *after* the source record exists. Look up each `associatedRecordId` in your map to get the HubSpot ID; call v4 batch associations with `associationTypeId`.
+* **`payload`** – Ready-to-send JSON body template for the object operation. It may include placeholders (e.g., `{{run_at_iso}}`) that you fill at runtime.
+* **`details`** – Human-readable instruction (e.g., “Deal stage → contractsent” or a one-line note description).
+
+> **Creation buffer:** All `create_*` actions include a built-in **+5s** offset within the set timeline. You do not need to add more delay—follow `timeToCreate`.
+
+---
+
+## 2) Endpoints to call (per row)
+
+* **Contacts:**
+
+  * Create: `POST /crm/v3/objects/contacts`
+  * Update: `PATCH /crm/v3/objects/contacts/{id}`
+
+* **Companies:**
+
+  * Create: `POST /crm/v3/objects/companies`
+  * Update: `PATCH /crm/v3/objects/companies/{id}`
+
+* **Deals:**
+
+  * Create: `POST /crm/v3/objects/deals`
+  * Update: `PATCH /crm/v3/objects/deals/{id}`
+
+* **Tickets:**
+
+  * Create: `POST /crm/v3/objects/tickets`
+  * Update: `PATCH /crm/v3/objects/tickets/{id}`
+
+* **Notes:**
+
+  * Create: `POST /crm/v3/objects/notes` (then associate via v4)
+
+* **Associations (v4, batch):**
+
+  * `POST /crm/v4/associations/{fromObject}/{toObject}/batch/create`
+
+Headers for all: `Authorization: Bearer <PRIVATE_APP_TOKEN>`, `Content-Type: application/json`.
+
+---
+
+## 3) One-time lookups you must do before the run
+
+* **Deal & Ticket Pipeline/Stage IDs:**
+  Resolve internal IDs from the Pipelines API and map any stage labels you see in `payload`/`details` to **IDs** (e.g., `appointmentscheduled`, `qualifiedtobuy`, ticket stage “2”, etc.).
+
+* **Association Type IDs:**
+  Resolve `associationTypeId` values for your portal (deal↔contact, deal↔company, ticket↔contact, ticket↔company, note↔contact) and load them into your executor so placeholders in the CSV can be replaced.
+
+---
+
+## 4) Scheduler / executor behavior (plain-text sequence)
+
+1. **Load & sort** the CSV by `timeToCreate` ascending; set **T0** to the moment the user clicks **Start Simulation**.
+2. **Maintain a map** `recordId -> hubspotId`. You’ll populate it on creates and read from it for updates/associations.
+3. **At each row’s `runAt = T0 + timeToCreate`:**
+
+   * **If `typeOfAction` is `create_*` (contact/company/deal/ticket/note):**
+     a) **Call the LLM first** to generate the specific field values needed (names, emails, amounts, note body sentence, etc.).
+     b) **Merge** the LLM’s values into the row’s `payload` JSON (replace placeholders, translate any stage labels to **IDs**, set time fields like `hs_timestamp`/`closedate` to current ISO).
+     c) **Create** the record via the v3 object endpoint and **store** the returned HubSpot ID in your map under this row’s `recordId`.
+     d) If the row includes association columns, **immediately create v4 associations** using the just-created source ID and the mapped target IDs from `associatedRecordId`.
+   * **If `typeOfAction` is `update_*`:**
+     a) Look up the object’s HubSpot ID from your map using `recordId`.
+     b) Replace any stage labels in the `payload` with **pipeline/stage IDs**.
+     c) If this is a **close** event (won or lost), set `closedate` to current ISO.
+     d) **Update** the record via the v3 object endpoint.
+4. **Won/Lost branching:** At the timestamp where both close events appear, choose **one** outcome per `setId` (config or random) and **skip** the other. After a **lost** choice, skip any downstream rows marked as won-only.
+5. **Associations discipline:** Only attempt an association once **both sides exist** in your ID map (the schedule already orders creations correctly; keep a guard anyway).
+6. **Stop condition:** Ignore any row with `runAt > T0 + 3600` (file is capped; this is just a guard).
+7. **Reliability:** On HTTP `429`/transient errors, retry with exponential backoff and small jitter; the staggered schedule keeps burst pressure low.
+
+---
+
+## 5) Rate limits & concurrency
+
+* With 36 sets launched in the first 30 minutes and \~10-minute journeys, peak concurrency is modest (≈ 8–12 active sets).
+* Calls are paced by the schedule and the +5s creation buffer; typical per-row throughput stays well within standard HubSpot app limits. Implement backoff on `429` and continue.
+
+---
+
+## 6) Validation checklist
+
+* Pipelines/stages resolved to **IDs** before first update/close.
+* Associations tested on a sample row using **v4 batch** (e.g., Deal↔Contact and Deal↔Company).
+* Notes created with `hs_note_body` (the one-sentence description) and `hs_timestamp` (current ISO).
+* Won/Lost path switch verified (only one taken per `setId`).
+* No execution after **T0 + 3600s**.
+
+---
+
+## 7) Common pitfalls
+
+* Using stage **labels** instead of **IDs** in updates/creates.
+* Mixing v3 and v4 association patterns; use **v4 batch** consistently.
+* Attempting an association before both object IDs exist in the map.

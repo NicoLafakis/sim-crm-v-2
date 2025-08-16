@@ -38,6 +38,22 @@ interface CsvRow {
   reasonTpl: string;
 }
 
+// New demo mode CSV structure
+interface DemoCsvRow {
+  simulationId: string;
+  setId: string;
+  timeToCreate: number;
+  actionId: number;
+  typeOfAction: string;
+  recordType: string;
+  recordId: string;
+  associationType: string;
+  associationTypeId: string;
+  associatedRecordId: string;
+  payload: string;
+  details: string;
+}
+
 // Job runner state
 let jobRunnerInterval: NodeJS.Timeout | null = null;
 
@@ -220,10 +236,10 @@ export async function scheduleSimulationJob(
     const industryKey = simulation.industry?.toLowerCase();
     console.log(`🔍 Industry: '${industryKey}', Outcome: '${outcome}', Duration: ${acceleratorDays} days`);
     
-    // Handle Demo Mode - programmatic generation
+    // Handle Demo Mode - CSV-based 1-hour simulation with 36 sets
     if (industryKey === 'demo') {
-      console.log('🎮 Demo Mode: Creating programmatic simulation (1 hour duration)');
-      return await createDemoModeJob(simulation, outcome, contactSeq, setStartAt);
+      console.log('🎮 Demo Mode: Creating 1-hour simulation with 36 prospect sets');
+      return await createDemoModeJobFromCSV(simulation, outcome, contactSeq, setStartAt);
     }
     
     // Handle E-commerce - CSV templates
@@ -566,6 +582,188 @@ async function createDemoModeJob(
 }
 
 /**
+ * Create Demo Mode job from CSV template (1 hour duration with 36 sets)
+ */
+async function createDemoModeJobFromCSV(
+  simulation: Simulation,
+  outcome: 'won' | 'lost',
+  contactSeq: number,
+  setStartAt: Date
+): Promise<{ jobId: number; stepsCount: number }> {
+  console.log('🎮 Creating Demo Mode job from CSV template');
+  
+  // Load the CSV template
+  const csvFileName = 'simulation_timing_1h_36sets_with_payloads_1755371217278.csv';
+  const csvPath = join(process.cwd(), 'attached_assets', csvFileName);
+  let csvContent: string;
+  
+  try {
+    csvContent = readFileSync(csvPath, 'utf-8');
+    console.log(`✅ Loaded Demo Mode CSV template: ${csvFileName}`);
+  } catch (error) {
+    console.error(`❌ Failed to load Demo Mode CSV template: ${csvFileName}`, error);
+    throw new Error(`Demo Mode CSV template not found: ${csvFileName}`);
+  }
+  
+  // Parse CSV content with new format
+  const lines = csvContent.split('\n').filter(line => line.trim());
+  const rows: DemoCsvRow[] = [];
+  
+  console.log(`CSV has ${lines.length} lines including header`);
+  
+  for (let i = 1; i < lines.length; i++) {
+    // Enhanced CSV parsing for complex fields with quotes and JSON
+    const line = lines[i];
+    const values: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    let bracketDepth = 0;
+    
+    for (let j = 0; j < line.length; j++) {
+      const char = line[j];
+      const nextChar = line[j + 1];
+      
+      if (char === '"' && nextChar === '"') {
+        // Escaped quote
+        current += '"';
+        j++; // Skip next quote
+      } else if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === '{' && inQuotes) {
+        bracketDepth++;
+        current += char;
+      } else if (char === '}' && inQuotes) {
+        bracketDepth--;
+        current += char;
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim()); // Don't forget the last value
+    
+    if (values.length >= 12) { // New CSV has 12 columns
+      rows.push({
+        simulationId: values[0]?.replace(/"/g, '') || '',
+        setId: values[1]?.replace(/"/g, '') || '',
+        timeToCreate: parseInt(values[2]) || 0,
+        actionId: parseInt(values[3]) || 0,
+        typeOfAction: values[4]?.replace(/"/g, '') || '',
+        recordType: values[5]?.replace(/"/g, '') || '',
+        recordId: values[6]?.replace(/"/g, '') || '',
+        associationType: values[7]?.replace(/"/g, '') || '',
+        associationTypeId: values[8]?.replace(/"/g, '') || '',
+        associatedRecordId: values[9]?.replace(/"/g, '') || '',
+        payload: values[10] || '{}',
+        details: values[11]?.replace(/"/g, '') || ''
+      });
+    }
+  }
+  
+  console.log(`Parsed ${rows.length} rows from Demo Mode CSV template`);
+  
+  // For demo mode, we process all rows but apply won/lost branching during execution
+  // Store outcome preference in job metadata
+  const simulationIdPlaceholder = `sim_${simulation.id}_${Date.now()}`;
+  
+  // Create the job
+  const jobData: InsertJob = {
+    simulationId: simulation.id,
+    outcome,
+    theme: simulation.theme,
+    industry: simulation.industry,
+    contactSeq: contactSeq,
+    originalSource: csvFileName,
+    acceleratorDays: '0.042', // 1 hour = 0.042 days
+    baseCycleDays: 1,
+    jobStartAt: setStartAt,
+    status: 'pending',
+    metadata: {
+      mode: 'demo',
+      csvSource: csvFileName,
+      totalSets: 36,
+      durationHours: 1,
+      simulationIdPlaceholder,
+      outcome // Store the chosen outcome for branching
+    },
+    context: {} // Initialize context for recordId mapping
+  };
+  
+  const createdJob = await storage.createJob(jobData);
+  console.log(`Created Demo Mode job ${createdJob.id} for simulation ${simulation.id}`);
+  
+  // Generate job steps from CSV
+  const jobStepsData: InsertJobStep[] = [];
+  
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    
+    // Replace simulationId placeholder
+    const recordId = row.recordId.replace('{{simulationId}}', simulationIdPlaceholder);
+    const associatedRecordIds = row.associatedRecordId
+      .split('|')
+      .filter(id => id.trim())
+      .map(id => id.replace('{{simulationId}}', simulationIdPlaceholder));
+    
+    // Calculate scheduled time
+    const scheduledAt = new Date(setStartAt.getTime() + row.timeToCreate * 1000);
+    
+    // Skip rows beyond 1 hour (3600 seconds)
+    if (row.timeToCreate > 3600) {
+      console.log(`Skipping row with timeToCreate ${row.timeToCreate} (beyond 1 hour)`);
+      continue;
+    }
+    
+    // Parse payload if present
+    let parsedPayload = {};
+    try {
+      if (row.payload && row.payload !== '{}') {
+        parsedPayload = JSON.parse(row.payload);
+      }
+    } catch (e) {
+      console.warn(`Failed to parse payload for row ${i}:`, e);
+    }
+    
+    // Create job step
+    jobStepsData.push({
+      jobId: createdJob.id,
+      stepIndex: i,
+      templateDay: Math.floor(row.timeToCreate / 86400), // Convert seconds to days
+      scaledDay: Math.floor(row.timeToCreate / 86400),
+      scheduledAt,
+      typeOfAction: row.typeOfAction,
+      recordType: row.recordType,
+      recordIdTpl: recordId,
+      associationsTpl: associatedRecordIds.length > 0 ? associatedRecordIds : null,
+      originalSource: row.details,
+      actionTpl: {
+        ...parsedPayload,
+        setId: row.setId,
+        actionId: row.actionId,
+        associationType: row.associationType,
+        associationTypeId: row.associationTypeId
+      },
+      reasonTpl: row.details,
+      status: 'pending',
+      result: null
+    });
+  }
+  
+  // Insert all job steps
+  if (jobStepsData.length > 0) {
+    await storage.createJobSteps(jobStepsData);
+    console.log(`Created ${jobStepsData.length} Demo Mode job steps for job ${createdJob.id}`);
+  }
+  
+  return {
+    jobId: createdJob.id,
+    stepsCount: jobStepsData.length
+  };
+}
+
+/**
  * Search for existing HubSpot contact by email
  */
 async function searchContact(email: string, token: string): Promise<{ found: boolean; recordId?: string; ambiguous?: boolean }> {
@@ -701,7 +899,39 @@ async function resolveTemplateReferences(
   
   // Resolve associationsTpl - replace template references with actual IDs
   let resolvedAssociations = associationsTpl;
-  if (associationsTpl && typeof associationsTpl === 'object') {
+  
+  // Handle array format (new CSV format)
+  if (Array.isArray(associationsTpl)) {
+    resolvedAssociations = [];
+    for (const assocId of associationsTpl) {
+      if (context[assocId]) {
+        console.log(`✓ Resolved association "${assocId}" -> "${context[assocId]}"`);
+        resolvedAssociations.push(context[assocId]);
+      } else if (typeof assocId === 'string' && assocId.startsWith('{{') && assocId.endsWith('}}')) {
+        // Template reference that couldn't be resolved
+        if (ENABLE_SEARCH_FALLBACK && token && stepData) {
+          const searchResult = await searchFallbackForTemplate(assocId, stepData, token);
+          if (searchResult.found && searchResult.recordId) {
+            await storeRecordIdInContext(jobId, assocId, searchResult.recordId);
+            console.log(`✓ Search fallback resolved "${assocId}" -> "${searchResult.recordId}"`);
+            resolvedAssociations.push(searchResult.recordId);
+          } else if (strictTemplateRefs) {
+            throw new TemplateReferenceError('TEMPLATE_REF_MISSING', 'Missing template reference', {
+              correlationId: correlationId || 'unknown',
+              ref: assocId
+            });
+          }
+        } else if (!assocId.includes('{{')) {
+          // Not a template, use as-is
+          resolvedAssociations.push(assocId);
+        }
+      } else {
+        // Not a template reference, use as-is (might be actual HubSpot ID)
+        resolvedAssociations.push(assocId);
+      }
+    }
+  } else if (associationsTpl && typeof associationsTpl === 'object') {
+    // Handle object format (old format)
     resolvedAssociations = JSON.parse(JSON.stringify(associationsTpl)); // Deep copy
     
     // Recursively resolve template references in associations
@@ -951,17 +1181,56 @@ async function executeJobStepAction(step: any): Promise<any> {
       }
     }
     
-    // Generate realistic data using LLM based on theme/industry with CRM metadata
-    const generatedData = await generateRealisticData(
-      typeOfAction, 
-      job.theme, 
-      job.industry, 
-      actionTpl,
-      jobId,
-      step.stepIndex,
-      true, // useSeed
-      crmMetadata
-    );
+    // Check if we have a payload from the CSV (new demo mode format)
+    let generatedData;
+    if (actionTpl?.properties) {
+      // New CSV format with payload - merge with LLM-generated values for empty fields
+      console.log('📋 Using payload from CSV with LLM fill for empty fields');
+      
+      // Extract properties from payload
+      const payloadProps = actionTpl.properties || {};
+      
+      // Generate data to fill in empty fields
+      const llmData = await generateRealisticData(
+        typeOfAction, 
+        job.theme, 
+        job.industry, 
+        actionTpl,
+        jobId,
+        step.stepIndex,
+        true, // useSeed
+        crmMetadata
+      );
+      
+      // Merge payload with LLM data (payload takes precedence for non-empty values)
+      generatedData = {} as any;
+      for (const [key, value] of Object.entries(payloadProps)) {
+        if (value && value !== '') {
+          generatedData[key] = value;
+        } else if ((llmData as any)[key]) {
+          generatedData[key] = (llmData as any)[key];
+        }
+      }
+      
+      // Add any additional fields from LLM that aren't in payload
+      for (const [key, value] of Object.entries(llmData as any)) {
+        if (!(key in generatedData)) {
+          generatedData[key] = value;
+        }
+      }
+    } else {
+      // Old format or no payload - generate all data with LLM
+      generatedData = await generateRealisticData(
+        typeOfAction, 
+        job.theme, 
+        job.industry, 
+        actionTpl,
+        jobId,
+        step.stepIndex,
+        true, // useSeed
+        crmMetadata
+      );
+    }
     
     // Add required fields that LLM doesn't generate but validation expects
     const enrichedData = { ...generatedData };
@@ -1648,6 +1917,25 @@ async function getJobById(jobId: number): Promise<any> {
 }
 
 /**
+ * Helper to get association type ID for HubSpot v4 API
+ * Maps association type strings to their numeric IDs
+ */
+function getAssociationTypeId(associationType: string): number {
+  const associationMap: Record<string, number> = {
+    'deal_to_contact': 3,
+    'deal_to_company': 5,
+    'ticket_to_contact': 15,
+    'ticket_to_company': 25,
+    'note_to_contact': 10,
+    'note_to_deal': 9,
+    'note_to_company': 11,
+    'contact_to_company': 1
+  };
+  
+  return associationMap[associationType] || 1;
+}
+
+/**
  * Get HubSpot API token for user
  */
 async function getHubSpotToken(simulationId: number): Promise<string | null> {
@@ -1924,8 +2212,15 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
         console.log(`🔍 Deduplication: Using existing deal ${searchResult.recordId} for ${finalData.dealname}`);
         
         // Still handle associations for existing deal
-        if (step.associationsTpl && Object.keys(step.associationsTpl).length > 0) {
-          await createAssociations(searchResult.recordId, 'deals', step.associationsTpl, token);
+        if (step.associationsTpl) {
+          if (Array.isArray(step.associationsTpl) && step.associationsTpl.length > 0) {
+            // New CSV format - use association type from actionTpl
+            const associationType = step.actionTpl?.associationType || 'deal_to_contact';
+            await createAssociationsV4Batch(searchResult.recordId, 'deals', step.associationsTpl, associationType, token);
+          } else if (typeof step.associationsTpl === 'object' && Object.keys(step.associationsTpl).length > 0) {
+            // Old format
+            await createAssociations(searchResult.recordId, 'deals', step.associationsTpl, token);
+          }
         }
         
         return {
@@ -1959,8 +2254,15 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
   await storeRecordIdInContext(step.jobId, step.recordIdTpl, response.id);
   
   // Handle associations if specified
-  if (step.associationsTpl && Object.keys(step.associationsTpl).length > 0) {
-    await createAssociations(response.id, 'deals', step.associationsTpl, token);
+  if (step.associationsTpl) {
+    if (Array.isArray(step.associationsTpl) && step.associationsTpl.length > 0) {
+      // New CSV format - use association type from actionTpl
+      const associationType = step.actionTpl?.associationType || 'deal_to_contact';
+      await createAssociationsV4Batch(response.id, 'deals', step.associationsTpl, associationType, token);
+    } else if (typeof step.associationsTpl === 'object' && Object.keys(step.associationsTpl).length > 0) {
+      // Old format
+      await createAssociations(response.id, 'deals', step.associationsTpl, token);
+    }
   }
   
   return {
@@ -1997,8 +2299,15 @@ async function executeCreateNote(data: any, token: string, step: any): Promise<a
   await storeRecordIdInContext(step.jobId, step.recordIdTpl, response.id);
   
   // Handle associations if specified
-  if (step.associationsTpl && Object.keys(step.associationsTpl).length > 0) {
-    await createAssociations(response.id, 'notes', step.associationsTpl, token);
+  if (step.associationsTpl) {
+    if (Array.isArray(step.associationsTpl) && step.associationsTpl.length > 0) {
+      // New CSV format - use association type from actionTpl
+      const associationType = step.actionTpl?.associationType || 'note_to_contact';
+      await createAssociationsV4Batch(response.id, 'notes', step.associationsTpl, associationType, token);
+    } else if (typeof step.associationsTpl === 'object' && Object.keys(step.associationsTpl).length > 0) {
+      // Old format
+      await createAssociations(response.id, 'notes', step.associationsTpl, token);
+    }
   }
   
   return {
@@ -2044,8 +2353,15 @@ async function executeCreateTicket(data: any, token: string, step: any): Promise
   await storeRecordIdInContext(step.jobId, step.recordIdTpl, response.id);
   
   // Handle associations if specified
-  if (step.associationsTpl && Object.keys(step.associationsTpl).length > 0) {
-    await createAssociations(response.id, 'tickets', step.associationsTpl, token);
+  if (step.associationsTpl) {
+    if (Array.isArray(step.associationsTpl) && step.associationsTpl.length > 0) {
+      // New CSV format - use association type from actionTpl
+      const associationType = step.actionTpl?.associationType || 'ticket_to_contact';
+      await createAssociationsV4Batch(response.id, 'tickets', step.associationsTpl, associationType, token);
+    } else if (typeof step.associationsTpl === 'object' && Object.keys(step.associationsTpl).length > 0) {
+      // Old format
+      await createAssociations(response.id, 'tickets', step.associationsTpl, token);
+    }
   }
   
   return {
@@ -2738,6 +3054,63 @@ async function createAssociations(fromObjectId: string, fromObjectType: string, 
 }
 
 /**
+ * Create associations using v4 batch API (for new CSV format)
+ */
+async function createAssociationsV4Batch(
+  fromObjectId: string,
+  fromObjectType: string,
+  toObjectIds: string[],
+  associationType: string,
+  token: string
+): Promise<void> {
+  if (!toObjectIds || toObjectIds.length === 0) {
+    return;
+  }
+  
+  // Parse association type to determine to-object type
+  const [fromType, , toType] = associationType.split('_');
+  let toObjectType = toType;
+  
+  // Map to HubSpot object type names
+  const typeMap: Record<string, string> = {
+    'contact': 'contacts',
+    'company': 'companies',
+    'deal': 'deals',
+    'ticket': 'tickets',
+    'note': 'notes'
+  };
+  
+  toObjectType = typeMap[toType] || toType;
+  
+  // Get the association type ID
+  const associationTypeId = getAssociationTypeId(associationType);
+  
+  console.log(`🔗 Creating v4 batch associations: ${fromObjectType}:${fromObjectId} -> ${toObjectType} (${toObjectIds.length} associations, type: ${associationTypeId})`);
+  
+  // Prepare batch inputs
+  const inputs = toObjectIds.map(toId => ({
+    from: { id: fromObjectId },
+    to: { id: toId },
+    types: [{
+      associationCategory: 'HUBSPOT_DEFINED',
+      associationTypeId: associationTypeId
+    }]
+  }));
+  
+  try {
+    // Use v4 batch API
+    await makeHubSpotRequest('POST', `/crm/v4/associations/${fromObjectType}/${toObjectType}/batch/create`, {
+      inputs
+    }, token);
+    
+    console.log(`✅ Created ${toObjectIds.length} associations via v4 batch API`);
+  } catch (error: any) {
+    console.error(`❌ Failed to create v4 batch associations:`, error.message);
+    // Continue execution even if associations fail
+  }
+}
+
+/**
  * Comprehensive HubSpot Association Type Mapping
  * 
  * This centralized mapping covers all supported object relationships in HubSpot.
@@ -2885,21 +3258,6 @@ const HUBSPOT_ASSOCIATION_MAP: Record<string, Record<string, number>> = {
   }
 };
 
-/**
- * Get association type ID for HubSpot associations with validation
- */
-function getAssociationTypeId(fromType: string, toType: string): number {
-  const normalizedFromType = fromType.toLowerCase();
-  const normalizedToType = toType.toLowerCase();
-  
-  const associationTypeId = HUBSPOT_ASSOCIATION_MAP[normalizedFromType]?.[normalizedToType];
-  
-  if (!associationTypeId) {
-    throw new Error(`Unsupported association: ${fromType} → ${toType}. Check supported associations with validateAssociation().`);
-  }
-  
-  return associationTypeId;
-}
 
 /**
  * Validate if an association combination is supported
@@ -3105,7 +3463,7 @@ async function fetchAndCacheOwners(userId: number, token: string, forceRefresh: 
     if (!forceRefresh && cachedOwners.length > 0) {
       // Check if cache is fresh (less than 1 hour old)
       const latestOwner = cachedOwners[0];
-      const cacheAge = Date.now() - new Date(latestOwner.updatedAt).getTime();
+      const cacheAge = Date.now() - new Date(latestOwner.updatedAt || Date.now()).getTime();
       const oneHourInMs = 60 * 60 * 1000;
       
       if (cacheAge < oneHourInMs) {
