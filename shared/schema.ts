@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { integer, pgTable, text, timestamp, varchar, boolean, json, jsonb, serial, numeric } from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, timestamp, varchar, boolean, json, jsonb, serial, numeric, unique } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
@@ -163,6 +163,10 @@ export const hubspotOwners = pgTable('hubspot_owners', {
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => {
+  return {
+    userEmailUnique: unique().on(table.userId, table.email)
+  };
 });
 
 // Note: Simulation execution tables removed (scheduledJobs, cachedPersonas, hubspotRecords, hubspotAssociations)
