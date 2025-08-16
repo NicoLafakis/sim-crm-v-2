@@ -47,6 +47,137 @@ const ENABLE_SEARCH_FALLBACK = process.env.ENABLE_SEARCH_FALLBACK === 'true';
 // Add round-robin owner assignment
 let currentOwnerIndex = 0;
 
+/**
+ * Helper function to detect if an error is related to property validation
+ */
+function isPropertyValidationError(error: any): boolean {
+  if (!error?.message) return false;
+  
+  const errorMessage = error.message.toLowerCase();
+  return (
+    errorMessage.includes('property') &&
+    (
+      errorMessage.includes('does not exist') ||
+      errorMessage.includes('invalid value') ||
+      errorMessage.includes('not found') ||
+      errorMessage.includes('invalid option') ||
+      errorMessage.includes('enumeration')
+    )
+  );
+}
+
+/**
+ * Helper function to parse property validation errors and extract missing values
+ */
+function parsePropertyValidationError(error: any): { propertyName?: string; missingValue?: string; propertyType?: string } {
+  if (!error?.message) return {};
+  
+  const errorMessage = error.message;
+  const result: any = {};
+  
+  // Try to extract property name
+  const propertyMatch = errorMessage.match(/property[\s'"]*([\w_]+)/i);
+  if (propertyMatch) {
+    result.propertyName = propertyMatch[1];
+  }
+  
+  // Try to extract missing value for enumeration fields
+  const valueMatch = errorMessage.match(/value[\s'"]*([^'"\s]+)/i) || errorMessage.match(/option[\s'"]*([^'"\s]+)/i);
+  if (valueMatch) {
+    result.missingValue = valueMatch[1];
+  }
+  
+  // Determine property type from error context
+  if (errorMessage.toLowerCase().includes('enumeration') || errorMessage.toLowerCase().includes('option')) {
+    result.propertyType = 'enumeration';
+  }
+  
+  return result;
+}
+
+/**
+ * Enhanced record creation with retry logic for property validation failures
+ */
+async function createRecordWithRetry(
+  objectType: string,
+  recordData: any,
+  token: string,
+  originalData?: any
+): Promise<any> {
+  const endpoint = `/crm/v3/objects/${objectType}`;
+  
+  try {
+    // First attempt
+    const response = await makeHubSpotRequest('POST', endpoint, {
+      properties: recordData
+    }, token);
+    
+    console.log(`✅ Successfully created ${objectType} record on first attempt`);
+    return response;
+    
+  } catch (firstAttemptError: any) {
+    console.log(`⚠️ First attempt failed for ${objectType} creation:`, firstAttemptError.message);
+    
+    // Check if this is a property validation error we can fix
+    if (isPropertyValidationError(firstAttemptError)) {
+      console.log(`🔧 Detected property validation error, attempting to fix and retry...`);
+      
+      const errorInfo = parsePropertyValidationError(firstAttemptError);
+      console.log(`📝 Error analysis:`, errorInfo);
+      
+      try {
+        // Try to fix the property issue
+        if (errorInfo.propertyName && errorInfo.missingValue && errorInfo.propertyType === 'enumeration') {
+          console.log(`🔨 Attempting to add missing option '${errorInfo.missingValue}' to property '${errorInfo.propertyName}'`);
+          
+          // Get the property details
+          const property = await makeHubSpotRequest('GET', `/crm/v3/properties/${objectType}/${errorInfo.propertyName}`, null, token);
+          
+          if (property && property.type === 'enumeration') {
+            // Add the missing option
+            const newOption = {
+              label: errorInfo.missingValue,
+              value: errorInfo.missingValue,
+              description: `Auto-created option for retry`,
+              displayOrder: (property.options?.length || 0)
+            };
+            
+            await makeHubSpotRequest('PATCH', `/crm/v3/properties/${objectType}/${errorInfo.propertyName}`, {
+              options: [...(property.options || []), newOption]
+            }, token);
+            
+            console.log(`✅ Added missing option '${errorInfo.missingValue}' to property '${errorInfo.propertyName}'`);
+          }
+        } else if (originalData) {
+          // If we have original data, try to ensure all properties exist again
+          console.log(`🔨 Re-ensuring properties exist for ${objectType}...`);
+          await ensureHubSpotProperties(objectType, Object.keys(originalData), token, originalData);
+        }
+        
+        // Wait a moment for HubSpot to process the change
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Retry the record creation
+        console.log(`🔄 Retrying ${objectType} creation after property fix...`);
+        const retryResponse = await makeHubSpotRequest('POST', endpoint, {
+          properties: recordData
+        }, token);
+        
+        console.log(`✅ Successfully created ${objectType} record after retry!`);
+        return retryResponse;
+        
+      } catch (retryError: any) {
+        console.error(`❌ Failed to fix property issue and retry ${objectType} creation:`, retryError.message);
+        // Rethrow the original error since the fix didn't work
+        throw firstAttemptError;
+      }
+    } else {
+      // Not a property validation error, rethrow original error
+      throw firstAttemptError;
+    }
+  }
+}
+
 function getNextOwner(owners: any[]): string | null {
   if (!owners || owners.length === 0) return null;
   
@@ -1612,10 +1743,8 @@ async function executeCreateContact(data: any, token: string, step?: any): Promi
   // Convert property names to HubSpot-compatible format
   const hubspotData = convertPropertiesToHubSpotFormat(legacyValidatedData);
   
-  // Create contact via HubSpot API
-  const response = await makeHubSpotRequest('POST', '/crm/v3/objects/contacts', {
-    properties: hubspotData
-  }, token);
+  // Create contact via HubSpot API with retry logic
+  const response = await createRecordWithRetry('contacts', hubspotData, token, legacyValidatedData);
   
   return {
     success: true,
@@ -1703,10 +1832,8 @@ async function executeCreateCompany(data: any, token: string, step?: any): Promi
   // Convert property names to HubSpot-compatible format
   const hubspotData = convertPropertiesToHubSpotFormat(legacyValidatedData);
   
-  // Create company via HubSpot API
-  const response = await makeHubSpotRequest('POST', '/crm/v3/objects/companies', {
-    properties: hubspotData
-  }, token);
+  // Create company via HubSpot API with retry logic
+  const response = await createRecordWithRetry('companies', hubspotData, token, legacyValidatedData);
   
   return {
     success: true,
@@ -1825,10 +1952,8 @@ async function executeCreateDeal(data: any, token: string, step: any): Promise<a
   // Convert property names to HubSpot-compatible format
   const hubspotData = convertPropertiesToHubSpotFormat(coercedData);
   
-  // Create deal via HubSpot API
-  const response = await makeHubSpotRequest('POST', '/crm/v3/objects/deals', {
-    properties: hubspotData
-  }, token);
+  // Create deal via HubSpot API with retry logic
+  const response = await createRecordWithRetry('deals', hubspotData, token, coercedData);
   
   // Store the deal ID in job context for future template resolution
   await storeRecordIdInContext(step.jobId, step.recordIdTpl, response.id);
@@ -1865,10 +1990,8 @@ async function executeCreateNote(data: any, token: string, step: any): Promise<a
   // Convert property names to HubSpot-compatible format
   const hubspotData = convertPropertiesToHubSpotFormat(data);
   
-  // Create note via HubSpot API
-  const response = await makeHubSpotRequest('POST', '/crm/v3/objects/notes', {
-    properties: hubspotData
-  }, token);
+  // Create note via HubSpot API with retry logic
+  const response = await createRecordWithRetry('notes', hubspotData, token, data);
   
   // Store the note ID in job context for future template resolution
   await storeRecordIdInContext(step.jobId, step.recordIdTpl, response.id);
@@ -1914,10 +2037,8 @@ async function executeCreateTicket(data: any, token: string, step: any): Promise
   // Convert property names to HubSpot-compatible format
   const hubspotData = convertPropertiesToHubSpotFormat(validatedData);
   
-  // Create ticket via HubSpot API
-  const response = await makeHubSpotRequest('POST', '/crm/v3/objects/tickets', {
-    properties: hubspotData
-  }, token);
+  // Create ticket via HubSpot API with retry logic
+  const response = await createRecordWithRetry('tickets', hubspotData, token, validatedData);
   
   // Store the ticket ID in job context for future template resolution
   await storeRecordIdInContext(step.jobId, step.recordIdTpl, response.id);
