@@ -12,18 +12,18 @@ export default function IndustrySelection() {
   const { user, session } = useSession();
 
   const industries = [
-    { id: 'saas', name: 'SaaS', icon: '💻' },
-    { id: 'ecommerce', name: 'E-commerce', icon: '🛒' },
-    { id: 'healthcare', name: 'Healthcare', icon: '🏥' },
-    { id: 'finance', name: 'Finance', icon: '💰' },
-    { id: 'education', name: 'Education', icon: '📚' },
-    { id: 'realestate', name: 'Real Estate', icon: '🏠' },
-    { id: 'consulting', name: 'Consulting', icon: '📊' },
-    { id: 'manufacturing', name: 'Manufacturing', icon: '🏭' },
-    { id: 'retail', name: 'Retail', icon: '🏪' },
-    { id: 'nonprofit', name: 'Non-Profit', icon: '🤝' },
-    { id: 'salon', name: 'Salon/Spa', icon: '💇' },
-    { id: 'lawfirm', name: 'Law Firm', icon: '⚖️' },
+    { id: 'demo', name: 'Demo Mode', icon: '🎮', enabled: true, description: '1 hour quick demo' },
+    { id: 'ecommerce', name: 'E-commerce', icon: '🛒', enabled: true, description: '90 day simulation' },
+    { id: 'saas', name: 'SaaS', icon: '💻', enabled: false },
+    { id: 'healthcare', name: 'Healthcare', icon: '🏥', enabled: false },
+    { id: 'finance', name: 'Finance', icon: '💰', enabled: false },
+    { id: 'education', name: 'Education', icon: '📚', enabled: false },
+    { id: 'realestate', name: 'Real Estate', icon: '🏠', enabled: false },
+    { id: 'consulting', name: 'Consulting', icon: '📊', enabled: false },
+    { id: 'manufacturing', name: 'Manufacturing', icon: '🏭', enabled: false },
+    { id: 'retail', name: 'Retail', icon: '🏪', enabled: false },
+    { id: 'nonprofit', name: 'Non-Profit', icon: '🤝', enabled: false },
+    { id: 'salon', name: 'Salon/Spa', icon: '💇', enabled: false },
   ];
 
   const updateSessionMutation = useMutation({
@@ -110,19 +110,18 @@ export default function IndustrySelection() {
           {/* Industries Grid */}
           <div className="grid grid-cols-3 gap-4 mb-8">
             {industries.map((industry) => {
-              const isEcommerce = industry.id === 'ecommerce';
-              const isDisabled = !isEcommerce;
+              const isEnabled = industry.enabled !== false;
               
               return (
-                <button
-                  key={industry.id}
-                  onClick={() => isEcommerce ? handleIndustrySelect(industry.id) : null}
-                  disabled={isDisabled}
-                  className="h-20 rounded border-2 text-center flex flex-col justify-center items-center transition-all"
-                  style={selectedIndustry === industry.id 
-                    ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white', cursor: 'pointer' }
-                    : isEcommerce
-                      ? { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f', cursor: 'pointer' }
+                <div key={industry.id} className="relative group">
+                  <button
+                    onClick={() => isEnabled ? handleIndustrySelect(industry.id) : null}
+                    disabled={!isEnabled}
+                    className="h-20 w-full rounded border-2 text-center flex flex-col justify-center items-center transition-all"
+                    style={selectedIndustry === industry.id 
+                      ? { borderColor: '#8b0000', backgroundColor: '#8b0000', color: 'white', cursor: 'pointer' }
+                      : isEnabled
+                        ? { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f', cursor: 'pointer' }
                       : { borderColor: '#6c7b7f', backgroundColor: '#6c7b7f', color: '#9fb89f', cursor: 'not-allowed', opacity: 0.5 }
                   }
                   data-testid={`industry-${industry.id}`}
@@ -130,9 +129,23 @@ export default function IndustrySelection() {
                   <div className="text-lg mb-1">{industry.icon}</div>
                   <div className="text-xs font-bold uppercase tracking-wide">
                     {industry.name}
-                    {isDisabled && <div className="text-xs mt-1">(Coming Soon)</div>}
                   </div>
+                  {industry.description && (
+                    <div className="text-xs mt-1" style={{ fontSize: '10px' }}>
+                      {industry.description}
+                    </div>
+                  )}
                 </button>
+                
+                {/* Tooltip for disabled items */}
+                {!isEnabled && (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    <div className="bg-black text-white text-xs px-2 py-1 rounded">
+                      Coming Soon
+                    </div>
+                  </div>
+                )}
+              </div>
               );
             })}
           </div>

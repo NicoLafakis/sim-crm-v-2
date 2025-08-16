@@ -86,165 +86,118 @@ export async function scheduleSimulationJob(
   setStartAt: Date
 ): Promise<{ jobId: number; stepsCount: number }> {
   try {
-    // Determine which CSV template to use based on industry and outcome
-    let csvFileName = 'universal_30day_timing_key.csv'; // Default fallback
-    let usingIndustrySpecificTemplate = false;
-    
-    // Industry-specific CSV mapping (ONLY E-commerce has industry-specific templates)
-    const industryTemplates: Record<string, { won: string; lost: string }> = {
-      'ecommerce': {
-        won: 'Ecommerce_Cycle-ClosedWon_1755104746839.csv',
-        lost: 'Ecommerce_Cycle-ClosedLost_1755104746839.csv'
-      },
-      // Handle legacy/fallback mapping - if "business" is somehow being set, treat it as ecommerce
-      'business': {
-        won: 'Ecommerce_Cycle-ClosedWon_1755104746839.csv',
-        lost: 'Ecommerce_Cycle-ClosedLost_1755104746839.csv'
-      }
-      // TODO: Add more industry-specific templates as they become available
-      // 'saas': { won: 'SaaS_Cycle-ClosedWon.csv', lost: 'SaaS_Cycle-ClosedLost.csv' },
-      // 'healthcare': { won: 'Healthcare_Cycle-ClosedWon.csv', lost: 'Healthcare_Cycle-ClosedLost.csv' },
-      // etc.
-    };
-    
     const industryKey = simulation.industry?.toLowerCase();
-    console.log(`🔍 Template Selection Debug: industryKey='${industryKey}', available templates: ${Object.keys(industryTemplates).join(', ')}`);
+    console.log(`🔍 Industry: '${industryKey}', Outcome: '${outcome}', Duration: ${acceleratorDays} days`);
     
-    if (industryKey && industryTemplates[industryKey]) {
-      const templates = industryTemplates[industryKey];
-      csvFileName = outcome?.toLowerCase() === 'won' ? templates.won : templates.lost;
-      usingIndustrySpecificTemplate = true;
-      console.log(`✅ Found industry-specific template: ${csvFileName}`);
-    } else {
-      console.log(`⚠️  No match found for industry '${industryKey}'`);
+    // Handle Demo Mode - programmatic generation
+    if (industryKey === 'demo') {
+      console.log('🎮 Demo Mode: Creating programmatic simulation (1 hour duration)');
+      return await createDemoModeJob(simulation, outcome, contactSeq, setStartAt);
     }
     
-    // Load industry-specific CSV template
-    const csvPath = join(process.cwd(), 'attached_assets', csvFileName);
-    let csvContent: string;
-    
-    console.log(`📋 Template Info: Loading ${csvFileName} for industry: ${simulation.industry}, outcome: ${outcome}`);
-    if (!usingIndustrySpecificTemplate) {
-      // Only E-commerce should have industry-specific templates
-      if (simulation.industry?.toLowerCase() === 'ecommerce' || simulation.industry?.toLowerCase() === 'business') {
-        console.error(`🚨 ERROR: E-commerce simulation should use industry-specific template, but using universal! Check template selection logic.`);
-      } else {
-        console.log(`📊 Template Info: Using universal timing template - industry-specific patterns not yet available for ${simulation.industry}.`);
-      }
-    } else {
-      console.log(`✅ Template Info: Using E-commerce specific template for ${simulation.industry} - ${outcome} outcome`);
-    }
-    
-    try {
-      csvContent = readFileSync(csvPath, 'utf-8');
-    } catch (fileError) {
-      console.error(`Error reading CSV template ${csvFileName}:`, fileError);
+    // Handle E-commerce - CSV templates
+    if (industryKey === 'ecommerce' || industryKey === 'business') {
+      console.log('🛒 E-commerce Mode: Using CSV templates (90 day simulation)');
+      const csvFileName = outcome?.toLowerCase() === 'won' 
+        ? 'Ecommerce_Cycle-ClosedWon_1755104746839.csv'
+        : 'Ecommerce_Cycle-ClosedLost_1755104746839.csv';
       
-      // Fallback to universal template if industry-specific template fails
+      const csvPath = join(process.cwd(), 'attached_assets', csvFileName);
+      let csvContent: string;
+      
       try {
-        console.log('Falling back to universal template');
-        const fallbackPath = join(process.cwd(), 'attached_assets', 'universal_30day_timing_key.csv');
-        csvContent = readFileSync(fallbackPath, 'utf-8');
-        csvFileName = 'universal_30day_timing_key.csv';
-      } catch (fallbackError) {
-        console.error('Error reading fallback CSV template:', fallbackError);
-        throw new Error('No CSV template file found');
+        csvContent = readFileSync(csvPath, 'utf-8');
+        console.log(`✅ Loaded E-commerce template: ${csvFileName}`);
+      } catch (error) {
+        console.error(`❌ Failed to load E-commerce template: ${csvFileName}`, error);
+        throw new Error(`E-commerce template not found: ${csvFileName}`);
       }
-    }
-    
-    // Parse CSV content (skip header row)
-    const lines = csvContent.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim());
-    const rows: CsvRow[] = [];
-    
-    console.log(`CSV has ${lines.length} lines including header`);
-    
-    for (let i = 1; i < lines.length; i++) {
-      // Handle CSV parsing with quoted fields that may contain commas
-      const line = lines[i];
-      const values: string[] = [];
-      let current = '';
-      let inQuotes = false;
       
-      for (let j = 0; j < line.length; j++) {
-        const char = line[j];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          values.push(current.trim());
-          current = '';
-        } else {
-          current += char;
+      // Parse CSV content
+      const lines = csvContent.split('\n').filter(line => line.trim());
+      const rows: CsvRow[] = [];
+      
+      console.log(`CSV has ${lines.length} lines including header`);
+      
+      for (let i = 1; i < lines.length; i++) {
+        // Handle CSV parsing with quoted fields that may contain commas
+        const line = lines[i];
+        const values: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim()); // Don't forget the last value
+        
+        if (values.length >= 7) { // Ensure we have at least the required columns
+          rows.push({
+            templateDay: parseInt(values[0]) || 0,
+            typeOfAction: values[1]?.replace(/"/g, '') || '',
+            recordType: values[2]?.replace(/"/g, '') || '',
+            recordIdTpl: values[3]?.replace(/"/g, '') || '',
+            associationsTpl: values[4]?.replace(/"/g, '') || '',
+            originalSource: values[5]?.replace(/"/g, '') || '',
+            actionTpl: values[6]?.replace(/"/g, '') || '',
+            reasonTpl: values[7]?.replace(/"/g, '') || ''
+          });
         }
       }
-      values.push(current.trim()); // Don't forget the last value
       
-      if (values.length >= 7) { // Ensure we have at least the required columns
-        rows.push({
-          templateDay: parseInt(values[0]) || 0,
-          typeOfAction: values[1]?.replace(/"/g, '') || '',
-          recordType: values[2]?.replace(/"/g, '') || '',
-          recordIdTpl: values[3]?.replace(/"/g, '') || '',
-          associationsTpl: values[4]?.replace(/"/g, '') || '',
-          originalSource: values[5]?.replace(/"/g, '') || '',
-          actionTpl: values[6]?.replace(/"/g, '') || '',
-          reasonTpl: values[7]?.replace(/"/g, '') || ''
-        });
+      console.log(`Parsed ${rows.length} rows from E-commerce CSV template`);
+      
+      // E-commerce templates are already outcome-specific
+      const filteredRows = rows;
+      console.log(`Using ${filteredRows.length} rows for execution`);
+      
+      // Guard against empty CSV or missing templateDay values
+      if (filteredRows.length === 0) {
+        throw new Error("CSV template missing templateDay values");
       }
-    }
-    
-    console.log(`Parsed ${rows.length} rows from CSV template`);
-
-    // For Ecommerce templates, use all rows as they are outcome-specific already
-    // For universal template, filter by outcome
-    const filteredRows = csvFileName.includes('Ecommerce') 
-      ? rows  // Use all rows for Ecommerce templates
-      : rows.filter(row => 
-          row.originalSource === 'universal' || 
-          row.originalSource === outcome ||
-          row.originalSource.toLowerCase().includes(outcome)
-        );
-    
-    console.log(`Filtered to ${filteredRows.length} rows for execution`);
-    
-    // Guard against empty CSV or missing templateDay values
-    if (filteredRows.length === 0) {
-      throw new Error("CSV template missing templateDay values");
-    }
-    
-    // Compute dynamic base cycle from CSV data
-    const baseCycleDays = Math.max(...filteredRows.map(row => row.templateDay));
-    if (!baseCycleDays || baseCycleDays <= 0) {
-      throw new Error("CSV template missing templateDay values");
-    }
-    
-    // Scale timings in hours (not days)
-    const baseCycleHours = baseCycleDays * 24;
-    const targetCycleHours = acceleratorDays * 24;
-    const scalingFactor = targetCycleHours / baseCycleHours;
-    
-    // Create the job
-    const jobData: InsertJob = {
-      simulationId: simulation.id,
-      outcome,
-      theme: simulation.theme,
-      industry: simulation.industry,
-      contactSeq: contactSeq,
-      originalSource: `orchestrator_${outcome}`,
-      acceleratorDays: acceleratorDays.toString(),
-      baseCycleDays,
-      jobStartAt: setStartAt,
-      status: 'pending',
-      metadata: {
-        scalingFactor,
-        originalRowCount: filteredRows.length,
-        csvSource: csvFileName,
-        usingIndustrySpecificTemplate,
-        templateType: usingIndustrySpecificTemplate ? `${simulation.industry}-${outcome}` : 'universal'
+      
+      // Compute dynamic base cycle from CSV data (always 90 days for E-commerce)
+      const baseCycleDays = Math.max(...filteredRows.map(row => row.templateDay));
+      if (!baseCycleDays || baseCycleDays <= 0) {
+        throw new Error("CSV template missing templateDay values");
       }
-    };
+      
+      // For E-commerce, always use 90 days
+      const targetCycleDays = 90;
+      const baseCycleHours = baseCycleDays * 24;
+      const targetCycleHours = targetCycleDays * 24;
+      const scalingFactor = targetCycleHours / baseCycleHours;
+      
+      // Create the job
+      const jobData: InsertJob = {
+        simulationId: simulation.id,
+        outcome,
+        theme: simulation.theme,
+        industry: simulation.industry,
+        contactSeq: contactSeq,
+        originalSource: csvFileName,
+        acceleratorDays: targetCycleDays.toString(),
+        baseCycleDays,
+        jobStartAt: setStartAt,
+        status: 'pending',
+        metadata: {
+          scalingFactor,
+          originalRowCount: filteredRows.length,
+          csvSource: csvFileName,
+          usingIndustrySpecificTemplate: true,
+          templateType: 'ecommerce-' + outcome
+        }
+      };
 
-    const createdJob = await storage.createJob(jobData);
+      const createdJob = await storage.createJob(jobData);
     
     // Generate job steps with fractional hour precision
     const jobStepsData: InsertJobStep[] = [];
@@ -283,15 +236,202 @@ export async function scheduleSimulationJob(
     // Insert all job steps
     const createdSteps = await storage.createJobSteps(jobStepsData);
 
-    return {
-      jobId: createdJob.id,
-      stepsCount: createdSteps.length
-    };
-
+      return {
+        jobId: createdJob.id,
+        stepsCount: createdSteps.length
+      };
+    }
+    
+    // If we reach here, unsupported industry
+    throw new Error(`Unsupported industry: ${industryKey}. Only 'demo' and 'ecommerce' are currently supported.`);
+    
   } catch (error: any) {
     console.error('Error scheduling simulation job:', error);
     throw new Error(`Failed to schedule simulation job: ${error.message}`);
   }
+}
+
+/**
+ * Create Demo Mode job with programmatic timing
+ */
+async function createDemoModeJob(
+  simulation: Simulation,
+  outcome: 'won' | 'lost',
+  contactSeq: number,
+  setStartAt: Date
+): Promise<{ jobId: number; stepsCount: number }> {
+  console.log('🎮 Creating Demo Mode job with programmatic timing');
+  
+  // Demo mode configuration
+  const totalSets = Math.min(20, Math.floor((simulation.config?.record_distribution?.contacts || 30) / 1.5));
+  const recordsPerSet = {
+    contacts: Math.floor((simulation.config?.record_distribution?.contacts || 30) / totalSets),
+    companies: Math.floor((simulation.config?.record_distribution?.companies || 30) / totalSets),
+    deals: Math.floor((simulation.config?.record_distribution?.deals || 30) / totalSets),
+    tickets: Math.floor((simulation.config?.record_distribution?.tickets || 30) / totalSets),
+    notes: Math.floor((simulation.config?.record_distribution?.notes || 30) / totalSets)
+  };
+  
+  // Create the job
+  const jobData: InsertJob = {
+    simulationId: simulation.id,
+    outcome,
+    theme: simulation.theme,
+    industry: simulation.industry,
+    contactSeq: contactSeq,
+    originalSource: 'demo_mode_programmatic',
+    acceleratorDays: '0.042', // 1 hour = 0.042 days
+    baseCycleDays: 1,
+    jobStartAt: setStartAt,
+    status: 'pending',
+    metadata: {
+      mode: 'demo',
+      totalSets,
+      recordsPerSet,
+      durationHours: 1
+    }
+  };
+  
+  const createdJob = await storage.createJob(jobData);
+  console.log(`Created Demo Mode job ${createdJob.id} for simulation ${simulation.id}`);
+  
+  // Generate job steps programmatically
+  const jobStepsData: InsertJobStep[] = [];
+  let stepIndex = 0;
+  
+  for (let setNum = 0; setNum < totalSets; setNum++) {
+    // First set at 15 seconds, then every 30-90 seconds
+    const secondsOffset = setNum === 0 ? 15 : (15 + setNum * (30 + Math.random() * 60));
+    const scheduledAt = new Date(setStartAt.getTime() + secondsOffset * 1000);
+    
+    // Create contact
+    if (recordsPerSet.contacts > 0) {
+      for (let i = 0; i < recordsPerSet.contacts; i++) {
+        jobStepsData.push({
+          jobId: createdJob.id,
+          stepIndex: ++stepIndex,
+          templateDay: 0,
+          scaledDay: 0,
+          scheduledAt,
+          typeOfAction: 'create',
+          recordType: 'Contact',
+          recordIdTpl: `contact_${setNum}_${i}_{{contactSeq}}`,
+          associationsTpl: null,
+          originalSource: 'demo',
+          actionTpl: null,
+          reasonTpl: `Demo set ${setNum + 1}`,
+          status: 'pending',
+          result: null
+        });
+      }
+    }
+    
+    // Create company
+    if (recordsPerSet.companies > 0) {
+      for (let i = 0; i < recordsPerSet.companies; i++) {
+        jobStepsData.push({
+          jobId: createdJob.id,
+          stepIndex: ++stepIndex,
+          templateDay: 0,
+          scaledDay: 0,
+          scheduledAt: new Date(scheduledAt.getTime() + 1000), // 1 second after contact
+          typeOfAction: 'create',
+          recordType: 'Company',
+          recordIdTpl: `company_${setNum}_${i}_{{contactSeq}}`,
+          associationsTpl: null,
+          originalSource: 'demo',
+          actionTpl: null,
+          reasonTpl: `Demo set ${setNum + 1}`,
+          status: 'pending',
+          result: null
+        });
+      }
+    }
+    
+    // Create deal
+    if (recordsPerSet.deals > 0) {
+      for (let i = 0; i < recordsPerSet.deals; i++) {
+        jobStepsData.push({
+          jobId: createdJob.id,
+          stepIndex: ++stepIndex,
+          templateDay: 0,
+          scaledDay: 0,
+          scheduledAt: new Date(scheduledAt.getTime() + 2000), // 2 seconds after contact
+          typeOfAction: 'create',
+          recordType: 'Deal',
+          recordIdTpl: `deal_${setNum}_${i}_{{contactSeq}}`,
+          associationsTpl: JSON.stringify({
+            Contact: [`contact_${setNum}_0_{{contactSeq}}`],
+            Company: [`company_${setNum}_0_{{contactSeq}}`]
+          }),
+          originalSource: 'demo',
+          actionTpl: null,
+          reasonTpl: `Demo set ${setNum + 1}`,
+          status: 'pending',
+          result: null
+        });
+      }
+    }
+    
+    // Create ticket
+    if (recordsPerSet.tickets > 0) {
+      for (let i = 0; i < recordsPerSet.tickets; i++) {
+        jobStepsData.push({
+          jobId: createdJob.id,
+          stepIndex: ++stepIndex,
+          templateDay: 0,
+          scaledDay: 0,
+          scheduledAt: new Date(scheduledAt.getTime() + 3000), // 3 seconds after contact
+          typeOfAction: 'create',
+          recordType: 'Ticket',
+          recordIdTpl: `ticket_${setNum}_${i}_{{contactSeq}}`,
+          associationsTpl: JSON.stringify({
+            Contact: [`contact_${setNum}_0_{{contactSeq}}`]
+          }),
+          originalSource: 'demo',
+          actionTpl: null,
+          reasonTpl: `Demo set ${setNum + 1}`,
+          status: 'pending',
+          result: null
+        });
+      }
+    }
+    
+    // Create note
+    if (recordsPerSet.notes > 0) {
+      for (let i = 0; i < recordsPerSet.notes; i++) {
+        jobStepsData.push({
+          jobId: createdJob.id,
+          stepIndex: ++stepIndex,
+          templateDay: 0,
+          scaledDay: 0,
+          scheduledAt: new Date(scheduledAt.getTime() + 4000), // 4 seconds after contact
+          typeOfAction: 'create',
+          recordType: 'Note',
+          recordIdTpl: `note_${setNum}_${i}_{{contactSeq}}`,
+          associationsTpl: JSON.stringify({
+            Contact: [`contact_${setNum}_0_{{contactSeq}}`],
+            Deal: [`deal_${setNum}_0_{{contactSeq}}`]
+          }),
+          originalSource: 'demo',
+          actionTpl: null,
+          reasonTpl: `Demo set ${setNum + 1}`,
+          status: 'pending',
+          result: null
+        });
+      }
+    }
+  }
+  
+  // Insert all job steps
+  const createdSteps = await storage.createJobSteps(jobStepsData);
+  
+  console.log(`✅ Created ${createdSteps.length} steps for Demo Mode job ${createdJob.id}`);
+  
+  return {
+    jobId: createdJob.id,
+    stepsCount: createdSteps.length
+  };
 }
 
 /**

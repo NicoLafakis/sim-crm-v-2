@@ -28,8 +28,8 @@ The platform features a Game Boy aesthetic, implemented through:
 - **AI Strategy Generation**: Integrates with OpenAI to generate CRM simulation strategies and business scenarios, displaying processing states and storing responses.
 - **Data Validation & Error Handling**: Comprehensive validation is implemented for HubSpot object types, including email format, phone number, required fields, and numeric values. HubSpot-specific error handling provides detailed messages for validation, authentication, authorization, and rate limit errors.
 - **Association Type Coverage**: Implemented centralized association mapping for all supported HubSpot object relationships with complete coverage across major CRM objects, pre-validation, enhanced error handling, and bidirectional support.
-- **Staggered Simulation Scheduling**: Implemented a comprehensive staggered scheduling system based on Contacts count with precise timing control, multi-set scheduling, and fractional hour precision, optimized for rate limits.
-- **Industry-Specific CSV Templates**: Enhanced CSV template selection logic with clear logging and UI indicators. Currently supports E-commerce specific templates (won/lost cycles), with universal fallback for other industries. User interface displays template type (Industry-Specific vs Universal) to communicate which timing patterns are being used.
+- **Staggered Simulation Scheduling**: Implemented a comprehensive staggered scheduling system based on Total Sets with precise timing control, multi-set scheduling, and fractional hour precision, optimized for rate limits.
+- **Industry-Specific CSV Templates**: E-commerce uses specific CSV templates (won/lost cycles). Demo Mode uses programmatic generation with rapid execution (1 hour total). No universal templates are used anymore.
 
 ## External Dependencies
 
@@ -58,6 +58,15 @@ The platform features a Game Boy aesthetic, implemented through:
 - **Express sessions**: For server-side session management.
 
 ## Recent Updates
+
+### Industry Simplification & Demo Mode Implementation (January 2025)
+- **Major Simplification**: Reduced industries from 12+ to only 2 active options (Demo Mode and E-commerce)
+- **Demo Mode Added**: New 1-hour quick demo mode for users without API keys to test the system
+- **Removed Universal Templates**: Eliminated confusing universal 30-day templates, now only industry-specific
+- **UI Paradigm Shift**: Changed from "record distribution" to "Total Sets" concept for clearer understanding
+- **Industry Status**: Demo and E-commerce fully enabled, all others marked as "Coming Soon"
+- **Duration System**: Demo Mode runs 1 hour, E-commerce runs 90 days - no user selection needed
+- **Template Management**: E-commerce uses CSV templates (ClosedWon/ClosedLost), Demo uses programmatic generation
 
 ### HubSpot Validation System Implementation (January 2025)
 - **Comprehensive Validation Process**: Implemented multi-step HubSpot validation including token format verification, API connectivity testing, owner caching, pipeline/stage caching, and permissions verification.

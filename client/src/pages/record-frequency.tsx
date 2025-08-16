@@ -10,25 +10,33 @@ export default function RecordFrequency() {
   const { user, session } = useSession();
   
   const [autoMode, setAutoMode] = useState(true); // Always auto mode for free tier
-  const [autoValue, setAutoValue] = useState(30);
-  const [values, setValues] = useState([30, 30, 30, 30, 30]);
+  const [totalSets, setTotalSets] = useState(10); // Total sets (1-30)
+  const [recordsPerSet, setRecordsPerSet] = useState(6); // Records per set
+  const [values, setValues] = useState([6, 6, 6, 6, 6]); // Individual records per set
   const [customObjects, setCustomObjects] = useState(false);
   const [customFields, setCustomFields] = useState(false);
   const [specificOwnership, setSpecificOwnership] = useState(false);
   const [distributionWeights, setDistributionWeights] = useState(false);
-  const [timeSpan, setTimeSpan] = useState('90 days');
   
   const labels = ['Contacts', 'Companies', 'Deals', 'Tickets', 'Notes'];
   const disabledLabels = ['Tasks', 'Calls'];
-  const maxTotal = 150;
-  const recordsDisplay = `${values.reduce((a, b) => a + b, 0)} / ${maxTotal}`;
+  
+  // Calculate duration based on industry
+  const industry = session?.selectedIndustry || 'demo';
+  const duration = industry === 'ecommerce' ? '90 days' : '1 hour';
+  const durationDays = industry === 'ecommerce' ? 90 : 0.042; // 1 hour = 0.042 days
+  
+  // Calculate total records
+  const totalRecords = totalSets * values.reduce((a, b) => a + b, 0);
+  const maxTotal = industry === 'demo' ? 600 : 450; // Demo mode allows more records
+  const recordsDisplay = `${totalRecords} / ${maxTotal} total`;
 
   useEffect(() => {
     if (autoMode) {
-      const newValues = Array(5).fill(autoValue);
+      const newValues = Array(5).fill(recordsPerSet);
       setValues(newValues);
     }
-  }, [autoValue, autoMode]);
+  }, [recordsPerSet, autoMode]);
 
   const handleSliderChange = (index: number, newValue: number) => {
     if (autoMode) return;
@@ -47,11 +55,17 @@ export default function RecordFrequency() {
     setValues(newValues);
   };
 
-  const handleAutoChange = (newValue: number) => {
+  const handleTotalSetsChange = (newValue: number) => {
     const val = parseInt(newValue.toString());
-    const maxPerSlider = 30; // Fixed max for auto mode
-    const limitedValue = Math.min(val, maxPerSlider);
-    setAutoValue(limitedValue);
+    const limitedValue = Math.min(Math.max(1, val), 30);
+    setTotalSets(limitedValue);
+  };
+  
+  const handleRecordsPerSetChange = (newValue: number) => {
+    const val = parseInt(newValue.toString());
+    const maxPerRecord = Math.floor(maxTotal / (totalSets * 5)); // Distribute evenly
+    const limitedValue = Math.min(val, maxPerRecord);
+    setRecordsPerSet(limitedValue);
   };
 
   const handleStartSimulation = async () => {
@@ -59,31 +73,21 @@ export default function RecordFrequency() {
       return;
     }
 
-    const totalRecords = values.reduce((a, b) => a + b, 0);
-    
-    // Convert timeSpan to duration_days (with special handling for 1 day = 12 hours)
-    const getDurationDays = (timeSpan: string): number => {
-      const numericValue = parseInt(timeSpan.split(' ')[0]);
-      // Special case: 1 day simulation compressed to 12 hours for faster execution
-      if (numericValue === 1) {
-        return 0.5; // 0.5 days = 12 hours
-      }
-      return numericValue;
-    };
-
     // Build the simulation settings for backend API
     const simulationSettings = {
       theme: session?.selectedTheme || "generic",
-      industry: session?.selectedIndustry || "business", 
-      duration_days: getDurationDays(timeSpan),
-      timeSpan: timeSpan,
+      industry: session?.selectedIndustry || "demo", 
+      duration_days: durationDays,
+      timeSpan: duration,
       record_distribution: {
-        contacts: values[0],
-        companies: values[1],
-        deals: values[2],
-        tickets: values[3],
-        notes: values[4]
-      }
+        contacts: totalSets * values[0],
+        companies: totalSets * values[1],
+        deals: totalSets * values[2],
+        tickets: totalSets * values[3],
+        notes: totalSets * values[4]
+      },
+      totalSets,
+      recordsPerSet: values
     };
 
     try {
@@ -529,27 +533,50 @@ export default function RecordFrequency() {
           <div className="records-info">Records: {recordsDisplay}</div>
         </div>
 
-        {/* TimeSpan Dropdown */}
+        {/* Duration and Total Sets Display */}
         <div className="timespan-container">
-          <label className="timespan-label text-[16px]" htmlFor="timespan-select">Time Span:</label>
-          <select
-            id="timespan-select"
-            className="timespan-dropdown bg-[#2d3e2d]"
-            value={timeSpan}
-            onChange={(e) => setTimeSpan(e.target.value)}
-            data-testid="dropdown-timespan"
-          >
-            <option value="1 day">1 day (12h compressed)</option>
-            <option value="7 days">7 days</option>
-            <option value="14 days">14 days</option>
-            <option value="30 days">30 days</option>
-            <option value="60 days">60 days</option>
-            <option value="90 days">90 days</option>
-            <option value="120 days" disabled>120 days (unavailable)</option>
-            <option value="190 days" disabled>190 days (unavailable)</option>
-            <option value="Custom" disabled>Custom (unavailable)</option>
-          </select>
-          <div className="tooltip-container" style={{ marginLeft: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ flex: 1 }}>
+              <label className="timespan-label text-[16px]">Duration:</label>
+              <div style={{
+                display: 'inline-block',
+                marginLeft: '10px',
+                padding: '8px 16px',
+                border: '2px solid #4ade80',
+                background: '#2d3748',
+                color: '#4ade80',
+                fontSize: '16px',
+                fontWeight: 'bold'
+              }}>
+                {duration}
+              </div>
+            </div>
+            
+            <div style={{ flex: 1 }}>
+              <label className="timespan-label text-[16px]">Total Sets:</label>
+              <input
+                type="number"
+                value={totalSets}
+                onChange={(e) => handleTotalSetsChange(parseInt(e.target.value) || 1)}
+                min="1"
+                max="30"
+                style={{
+                  marginLeft: '10px',
+                  padding: '8px 16px',
+                  border: '2px solid #e8e8e8',
+                  background: '#2d3748',
+                  color: '#e8e8e8',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  width: '80px',
+                  textAlign: 'center'
+                }}
+                data-testid="input-total-sets"
+              />
+            </div>
+          </div>
+          
+          <div className="tooltip-container" style={{ marginTop: '10px' }}>
             <span style={{ 
               color: '#e8e8e8', 
               cursor: 'help',
@@ -571,34 +598,37 @@ export default function RecordFrequency() {
               color: '#e8e8e8',
               border: '1px solid #e8e8e8'
             }}>
-              Time Span sets the simulation duration. The "1 day" option is compressed to 12 hours for faster execution. Records are staggered evenly across the period. Example: 30 contacts over 1 day = 1 set every 24 minutes.
+              {industry === 'demo' 
+                ? 'Demo Mode: Creates records in rapid succession over 1 hour. Great for testing!'
+                : 'E-commerce Mode: Spreads records over 90 days following realistic business patterns.'}
+              Adjust Total Sets to control how many batches of records are created.
             </div>
           </div>
         </div>
 
         <div className="sliders-grid bg-[#9fb89f]">
-          {/* Auto Slider */}
+          {/* Records Per Set Slider */}
           <div className="slider-column">
-            <div className="slider-value">{autoMode ? autoValue : 0}</div>
+            <div className="slider-value">{autoMode ? recordsPerSet : 0}</div>
             <div className="slider-container">
               <div className={`slider-track ${autoMode ? 'active' : ''}`}></div>
               <input
                 type="range"
                 className="slider-input"
                 min="0"
-                max="30"
+                max="20"
                 step="1"
-                value={autoMode ? autoValue : 0}
-                onChange={(e) => handleAutoChange(parseInt(e.target.value))}
+                value={autoMode ? recordsPerSet : 0}
+                onChange={(e) => handleRecordsPerSetChange(parseInt(e.target.value))}
                 disabled={!autoMode}
                 data-testid="slider-auto"
               />
               <div 
                 className={`slider-thumb ${!autoMode ? 'disabled-thumb' : ''}`}
-                style={{ bottom: `${(autoMode ? autoValue : 0) / 30 * 80}%` }}
+                style={{ bottom: `${(autoMode ? recordsPerSet : 0) / 20 * 80}%` }}
               />
             </div>
-            <div className="slider-label">Auto</div>
+            <div className="slider-label">Per Set</div>
             <div className="auto-toggle">
               <input 
                 type="checkbox" 

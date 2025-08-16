@@ -1,0 +1,26 @@
+```
+Issue:
+The current system has a confusing array of industry options with a universal 30-day timing template fallback and accelerator functionality that creates ambiguity for users. Multiple industries are non-functional but appear selectable, the universal template serves as an inadequate fallback for unsupported industries, and the current demo experience relies on CSV parsing rather than purpose-built demonstration logic. The codebase contains legacy fallback mechanisms, complex duration calculations, and references to the universal_30day_timing_key.csv file that need complete removal.
+
+Plan:
+1. Update industry selection page to disable/gray out all industries except E-Commerce and Demo Mode, adding "Coming soon" tooltips to disabled options
+2. Delete universal_30day_timing_key.csv file from attached_assets directory
+3. Remove all universal template references from orchestrator code including loading logic, fallback mechanisms, and processing functions
+4. Implement new template selection logic: IF industry === 'ecommerce' use existing CSV templates with 90-day duration, ELSE use Demo Mode with 1-hour duration
+5. Create programmatic Demo Mode generation in orchestrator with hard-coded set patterns starting 15 seconds after initiation, new sets every 30-90 seconds for 30 minutes, maximum 20 sets
+6. Update Record Frequency page to rename auto slider to "Total Sets" (range 1-30), modify individual sliders to show records per set, change duration display to static text showing "90 days" for E-Commerce or "1 hour" for Demo
+7. Clean up orchestrator by removing all non-ecommerce industry handling except demo, accelerator day calculations, and fallback mechanisms
+8. Simplify backend routes to handle only E-Commerce (90 days, CSV templates) and Demo (1 hour, programmatic) paths
+9. Update progress page to properly handle Demo Mode display timing
+
+Verification:
+1. Industry selection page shows only E-Commerce and Demo Mode as interactive options with all other industries grayed out and displaying "Coming soon" tooltip on hover
+2. universal_30day_timing_key.csv file no longer exists in attached_assets directory
+3. Code search confirms zero references to universal template loading, fallback logic, or universal_30day_timing_key.csv remain in codebase
+4. E-Commerce selection results in 90-day simulation using existing Ecommerce_Cycle CSV templates
+5. Demo Mode selection results in 1-hour programmatic generation with first set created 15 seconds after start and subsequent sets every 30-90 seconds
+6. Record Frequency page displays "Total Sets" slider (1-30 range), shows per-set record distribution, and displays static duration text matching selected mode
+7. Orchestrator handles only two code paths: E-Commerce CSV processing and Demo Mode programmatic generation
+8. Backend routes respond correctly to ecommerce (90-day CSV) and demo (1-hour programmatic) requests with no other industry handling
+9. Demo Mode completes within 1 hour with approximately 20 sets created and proper progress tracking displayed
+```
