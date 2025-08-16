@@ -1037,7 +1037,30 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
 
         // Get HubSpot token for search operations
         const job = await getJobById(step.jobId);
+        
+        // Skip this step if job or simulation no longer exists
+        if (!job) {
+          console.warn(`Job ${step.jobId} not found - marking step as cancelled`);
+          await storage.updateJobStepStatus(step.id, 'cancelled', {
+            error: 'Job not found',
+            timestamp: new Date().toISOString()
+          });
+          failed++;
+          continue;
+        }
+        
         const hubspotToken = await getHubSpotToken(job.simulationId);
+        
+        // Skip this step if token not available (simulation deleted/invalid)
+        if (!hubspotToken) {
+          console.warn(`No HubSpot token for simulation ${job.simulationId} - marking step as cancelled`);
+          await storage.updateJobStepStatus(step.id, 'cancelled', {
+            error: 'Simulation deleted or HubSpot token not available',
+            timestamp: new Date().toISOString()
+          });
+          failed++;
+          continue;
+        }
         
         // Create correlation ID for template resolution
         const correlationId = `${step.jobId}-${step.stepIndex}`;
@@ -1943,7 +1966,8 @@ async function getHubSpotToken(simulationId: number): Promise<string | null> {
     // Get simulation to find user ID
     const simulation = await storage.getSimulationById(simulationId);
     if (!simulation) {
-      throw new Error('Simulation not found');
+      console.warn(`Simulation ${simulationId} not found - likely deleted or invalid`);
+      return null;
     }
     
     // Get HubSpot token from user's session

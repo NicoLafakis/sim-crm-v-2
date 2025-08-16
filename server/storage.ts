@@ -31,7 +31,7 @@ import {
   hubspotOwners
 } from "../shared/schema";
 import { db } from "./db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, or } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -337,12 +337,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDueJobSteps(scheduledAt: Date): Promise<JobStep[]> {
-    const dueSteps = await db.select().from(jobSteps)
-      .where(and(
-        eq(jobSteps.status, 'pending'),
-        sql`${jobSteps.scheduledAt} <= ${scheduledAt}`
-      ))
-      .orderBy(jobSteps.scheduledAt);
+    const dueSteps = await db.select({
+      id: jobSteps.id,
+      jobId: jobSteps.jobId,
+      stepIndex: jobSteps.stepIndex,
+      templateDay: jobSteps.templateDay,
+      scaledDay: jobSteps.scaledDay,
+      scheduledAt: jobSteps.scheduledAt,
+      typeOfAction: jobSteps.typeOfAction,
+      recordType: jobSteps.recordType,
+      recordIdTpl: jobSteps.recordIdTpl,
+      associationsTpl: jobSteps.associationsTpl,
+      originalSource: jobSteps.originalSource,
+      actionTpl: jobSteps.actionTpl,
+      reasonTpl: jobSteps.reasonTpl,
+      status: jobSteps.status,
+      result: jobSteps.result
+    })
+    .from(jobSteps)
+    .innerJoin(jobs, eq(jobSteps.jobId, jobs.id))
+    .innerJoin(simulations, eq(jobs.simulationId, simulations.id))
+    .where(and(
+      eq(jobSteps.status, 'pending'),
+      sql`${jobSteps.scheduledAt} <= ${scheduledAt}`,
+      or(
+        eq(simulations.status, 'running'),
+        eq(simulations.status, 'processing')
+      )
+    ))
+    .orderBy(jobSteps.scheduledAt);
     return dueSteps;
   }
 
