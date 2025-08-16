@@ -1,0 +1,15 @@
+To add or update a property's value, you must provide the property's internal name and a value that conforms to the property's data type.
+
+### General Requirements
+
+* **Internal Property Name**: All API requests must use the property's internal name (e.g., `favorite_food`) rather than its label (e.g., "Favorite Food").
+* **Data Type Matching**: The value you provide must match the property's field type (e.g., string, number, date).
+
+### Requirements by Field Type
+
+* **String**: Accepts plain text. Character limits may apply depending on the specific property.
+* **Number**: Accepts numeric values. Some properties may have specific formatting (e.g., currency, percentage).
+* **Boolean (Checkbox)**: To set a checkbox to "Yes" or checked, the value must be `true`. To set it to "No" or unchecked, the value must be `false`.
+* **Date**: For date properties, values should be submitted as a millisecond timestamp set to midnight UTC or in the ISO 8601 date format (YYYY-MM-DD).
+* **Date and time**: For datetime properties, values should be submitted as a millisecond timestamp or in the ISO 8601 date and time format (YYYY-MM-DDThh:mm:ss.sTZD). All times are represented in UTC.
+* **Enumeration (Dropdown Select, Multiple Checkboxes, Radio Select)**: The value provided must be the internal value of one of the property's predefined options, not the label displayed in the UI. For multiple checkboxes, values should be separated by semicolons.

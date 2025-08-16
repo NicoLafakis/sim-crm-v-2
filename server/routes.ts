@@ -1101,5 +1101,45 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Marvel Comprehensive Test with Persona Registry
+  app.post("/api/test-marvel-comprehensive", async (req, res) => {
+    try {
+      // Enable persona registry for this test
+      process.env.PERSONA_REGISTRY_ENABLED = 'true';
+      
+      const { runMarvelComprehensiveTest } = await import('./tests/marvel-comprehensive-test');
+      
+      // Extract test options from request body
+      const options = req.body || {};
+      
+      console.log('🎬 Starting Marvel Comprehensive Test with Persona Registry...');
+      console.log('Options:', options);
+      
+      const results = await runMarvelComprehensiveTest(options);
+      
+      res.json({
+        success: true,
+        message: "Marvel comprehensive test completed successfully",
+        results: results.summary,
+        tests: results.tests,
+        personaStats: results.personaStats,
+        totalTests: results.summary.totalTests,
+        successfulTests: results.summary.successfulTests,
+        failedTests: results.summary.failedTests,
+        successRate: results.summary.successRate,
+        totalDuration: results.summary.totalDuration,
+        avgDurationPerTest: results.summary.avgDurationPerTest
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Marvel comprehensive test error:', error.message);
+      res.status(500).json({ 
+        success: false,
+        error: error.message,
+        message: "Marvel comprehensive test failed"
+      });
+    }
+  });
+
   return app;
 }

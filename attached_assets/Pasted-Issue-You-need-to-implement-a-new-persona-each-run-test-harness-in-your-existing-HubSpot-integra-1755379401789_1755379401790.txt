@@ -1,0 +1,113 @@
+Issue:
+You need to implement a “new persona each run” test harness in your existing HubSpot-integrated repo without changing current app behavior. The harness must (a) prevent duplicate contacts/properties, (b) validate/create associations, and (c) run end-to-end using existing helpers. Current repo lacks a Persona Registry and embeddings; association type IDs are portal-specific. Operational impact: duplicates and collisions can occur during tests without a registry/locks, and association/ID handling must remain portal-safe.
+
+Plan:
+
+1. Scope & isolation
+
+   * Add an opt-in test harness under `server/tests/` that leaves existing flows/UI untouched.
+   * Gate with feature flag `PERSONA_REGISTRY_ENABLED`.
+
+2. Persona Registry (new)
+
+   * Implement a lightweight in-memory module in `server/tests/persona-registry.ts`.
+   * Store: `name`, `company`, `role`, `industry`, `email`, `domain`, canonical string, deterministic hash.
+   * Provide APIs: `checkExact(hash|email|domain)`, `checkSimilar(canonical)`, `lock(key)`, `unlock(key)`, `record(persona)`.
+   * Use simple Jaccard/cosine on canonical strings (no embeddings yet).
+
+3. Pre-generation guardrails
+
+   * Pull recent personas from the registry.
+   * Query HubSpot via `makeHubSpotRequest` for existing contacts by email/domain.
+   * Build “unusable options” (emails/domains/names/companies) for the LLM call per `test-llm-guardrails.md`.
+
+4. Persona generation
+
+   * Call the LLM for K candidates (JSON schema per guardrails doc).
+   * Enforce: no reuse of values in “unusable options”; require synthetic, unique emails.
+   * Temperature moderately high for diversity.
+
+5. Post-generation validation & selection
+
+   * Schema-validate output.
+   * Exact checks: registry + HubSpot (email/domain).
+   * Similarity checks: simple cosine/Jaccard vs. registry canonical strings.
+   * If none pass, re-call LLM with expanded “unusable options”.
+
+6. Idempotency & race safety
+
+   * Acquire in-process lock in the registry keyed by `domain` or persona hash.
+   * Use hash as idempotency key through creation flow.
+   * Release lock after registry `record()` succeeds.
+
+7. Entity creation (use existing helpers)
+
+   * Contacts/companies/deals/tickets/notes via:
+
+     * `[executeCreateContact]`, `[executeCreateCompany]`, `[executeCreateDeal]`, `[executeCreateTicket]`, `executeCreateNote`.
+   * Properties: rely on internal coercion/ensure logic within `executeCreateContact`; when adding property values, append only if not present.
+   * Associations: validate before create using `[validateAssociation]`, then `createAssociations` or direct API via `makeHubSpotRequest`.
+
+8. Portal-safe association IDs
+
+   * Resolve association type IDs dynamically (recommended) or reuse IDs as in `test-marvel-sequence.ts`; optionally centralize via `validateAssociation`.
+
+9. Rate limiting & backoff
+
+   * Keep existing behavior per `test-rate-limiting.md`.
+   * The registry lock prevents intra-process collisions during bursts.
+
+10. End-to-end harness examples
+
+* Base flows on `test-marvel-sequence.ts` and `server/test-marvel-simple.ts` for sequence and assertions.
+* Keep all persona-only code in new files under `server/tests/`.
+
+Verification:
+
+1. Isolation
+
+   * With `PERSONA_REGISTRY_ENABLED=false`, run normal app flows (including `client/src/pages/theme-selection.tsx`); no code paths reference the registry.
+   * With flag enabled, only tests in `server/tests/` import/use the registry.
+
+2. Duplicate prevention
+
+   * Run 50 sequential and 50 concurrent persona generations (≥5 workers).
+   * Expected:
+
+     * 0 duplicate HubSpot contacts (no 409/“exists” responses).
+     * 0 duplicate registry hashes.
+     * No candidate accepted with similarity ≥ threshold used in the registry.
+
+3. Property behavior
+
+   * For a contact with a multi-value property, attempt to add an existing value → value unchanged.
+   * Add a new value → value appended exactly once.
+
+4. Associations
+
+   * For each created entity, call `validateAssociation` prior to creation; verify returned IDs match created links.
+   * Post-run, fetch entities and confirm all expected associations exist (type IDs correct for the portal).
+
+5. End-to-end sequence
+
+   * Execute adapted `test-marvel-sequence.ts`.
+   * Confirm successful creation of contact/company/deal/ticket/note, associations present, and final IDs logged.
+
+6. Guardrails evidence
+
+   * Persist test artifacts: LLM prompt snapshot (redacted), “unusable options”, rejected candidates with reasons, final selection.
+   * Verify each accepted persona’s email/domain absent from “unusable options” and HubSpot prior to creation.
+
+7. Concurrency/rate limits
+
+   * Under load, verify no rate-limit errors escape retries; backoff behavior matches `test-rate-limiting.md`.
+   * Registry lock acquire/release events have 1:1 parity with accepted personas (no deadlocks).
+
+8. Portal ID handling
+
+   * If using dynamic resolution: log resolved association type IDs once per run; assert IDs remain consistent across creations.
+   * If using static IDs: compare to IDs used in `test-marvel-sequence.ts`; tests fail if mismatched.
+
+9. Non-regression
+
+   * Rerun standard tests with `PERSONA_REGISTRY_ENABLED=false`; all previous tests pass, proving no change to existing behavior.
