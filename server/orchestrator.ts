@@ -313,7 +313,7 @@ async function createDemoModeJob(
           templateDay: 0,
           scaledDay: 0,
           scheduledAt,
-          typeOfAction: 'create',
+          typeOfAction: 'create_contact',
           recordType: 'Contact',
           recordIdTpl: `contact_${setNum}_${i}_{{contactSeq}}`,
           associationsTpl: null,
@@ -335,7 +335,7 @@ async function createDemoModeJob(
           templateDay: 0,
           scaledDay: 0,
           scheduledAt: new Date(scheduledAt.getTime() + 1000), // 1 second after contact
-          typeOfAction: 'create',
+          typeOfAction: 'create_company',
           recordType: 'Company',
           recordIdTpl: `company_${setNum}_${i}_{{contactSeq}}`,
           associationsTpl: null,
@@ -357,7 +357,7 @@ async function createDemoModeJob(
           templateDay: 0,
           scaledDay: 0,
           scheduledAt: new Date(scheduledAt.getTime() + 2000), // 2 seconds after contact
-          typeOfAction: 'create',
+          typeOfAction: 'create_deal',
           recordType: 'Deal',
           recordIdTpl: `deal_${setNum}_${i}_{{contactSeq}}`,
           associationsTpl: JSON.stringify({
@@ -382,7 +382,7 @@ async function createDemoModeJob(
           templateDay: 0,
           scaledDay: 0,
           scheduledAt: new Date(scheduledAt.getTime() + 3000), // 3 seconds after contact
-          typeOfAction: 'create',
+          typeOfAction: 'create_ticket',
           recordType: 'Ticket',
           recordIdTpl: `ticket_${setNum}_${i}_{{contactSeq}}`,
           associationsTpl: JSON.stringify({
@@ -406,7 +406,7 @@ async function createDemoModeJob(
           templateDay: 0,
           scaledDay: 0,
           scheduledAt: new Date(scheduledAt.getTime() + 4000), // 4 seconds after contact
-          typeOfAction: 'create',
+          typeOfAction: 'create_note',
           recordType: 'Note',
           recordIdTpl: `note_${setNum}_${i}_{{contactSeq}}`,
           associationsTpl: JSON.stringify({
