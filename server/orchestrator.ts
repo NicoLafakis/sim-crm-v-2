@@ -943,6 +943,29 @@ async function executeJobStepAction(step: any): Promise<any> {
           };
         }
         
+      case 'create':
+        // Handle generic create actions - determine record type and route appropriately
+        console.log(`📝 Processing generic create action for record type: ${recordType}`);
+        if (recordType === 'Contact') {
+          return await executeCreateContact(enrichedData, hubspotToken, step);
+        } else if (recordType === 'Company') {
+          return await executeCreateCompany(enrichedData, hubspotToken, step);
+        } else if (recordType === 'Opportunity' || recordType === 'Deal') {
+          return await executeCreateDeal(generatedData, hubspotToken, step);
+        } else if (recordType === 'Note') {
+          return await executeCreateNote(generatedData, hubspotToken, step);
+        } else if (recordType === 'Ticket') {
+          return await executeCreateTicket(generatedData, hubspotToken, step);
+        } else {
+          console.warn(`⚠️ Unknown record type for create: ${recordType}`);
+          return {
+            success: false,
+            error: `Unknown record type for create: ${recordType}`,
+            action: 'create_unknown',
+            timestamp: new Date().toISOString()
+          };
+        }
+        
       default:
         throw new Error(`Unknown action type: ${typeOfAction}`);
     }
