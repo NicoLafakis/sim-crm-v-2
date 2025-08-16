@@ -1477,8 +1477,16 @@ function substituteTemplatePlaceholders(template: string, simulation: Simulation
     .replace(/\{\{timestamp\}\}/g, new Date().toISOString());
 }
 
-// Updated system prompt for better handling of fictional themes
-const SYSTEM_PROMPT = "You are an expert CRM data generator for the SimCRM application. Generate consistent and appropriate data that fits the specified theme and industry. The theme may be fictional (like TV shows, movies, music) or real-world. Respond with valid JSON only. Follow the exact schema requirements and ensure all required fields are present with the correct data types.";
+/**
+ * Generate theme-specific system prompt based on theme and industry
+ */
+function getSystemPrompt(theme: string, industry: string): string {
+  return `You are an expert CRM data generator for the SimCRM application. Generate realistic and appropriate data that fits the "${theme}" theme in the ${industry} industry context.
+
+IMPORTANT: All generated content must align with the "${theme}" theme. Use names, companies, job titles, and terminology that would fit naturally within this theme. Be creative but consistent.
+
+Respond with valid JSON only. Follow the exact schema requirements and ensure all required fields are present with the correct data types.`;
+}
 
 /**
  * Generate realistic data using LLM based on theme, industry, and action template
@@ -1570,8 +1578,20 @@ async function generateRealisticData(
     
     // Log LLM request with enhanced details
     console.log(`🚀 LLM REQUEST: ${actionType} for ${theme}/${industry}`);
-    console.log(`📝 System Prompt: ${SYSTEM_PROMPT.slice(0, 100)}...`);
+    console.log(`📝 System Prompt: ${getSystemPrompt(theme, industry).slice(0, 100)}...`);
     console.log(`📝 User Prompt: ${basePrompt.slice(0, 200)}...`);
+    
+    // Get simulation context for Demo Mode details
+    const simulation = await storage.getSimulationById(jobId || 0);
+    const demoDetailsSamples = simulation?.config?.demoDetailsSamples as string[];
+    
+    // Add demo details to prompts for notes and tickets in Demo Mode
+    let enhancedPrompt = basePrompt;
+    if (industry === 'demo' && demoDetailsSamples && demoDetailsSamples.length > 0 && 
+        (actionType.includes('note') || actionType.includes('ticket'))) {
+      const sampleDetails = demoDetailsSamples.slice(0, 6).join('\n• ');
+      enhancedPrompt += `\n\nFor context, here are some example scenarios from this demo simulation:\n• ${sampleDetails}\n\nUse these as inspiration for realistic content that fits the ${theme} theme.`;
+    }
     
     logEvent('info', correlationId, 'generate.llm.request', {
       model: 'gpt-5-nano', // primary model
@@ -1591,11 +1611,11 @@ async function generateRealisticData(
           messages: [
             {
               role: "system",
-              content: SYSTEM_PROMPT
+              content: getSystemPrompt(theme, industry)
             },
             {
               role: "user",
-              content: basePrompt
+              content: enhancedPrompt
             }
           ],
           response_format: { type: "json_object" }
@@ -1626,11 +1646,11 @@ async function generateRealisticData(
           messages: [
             {
               role: "system",
-              content: SYSTEM_PROMPT
+              content: getSystemPrompt(theme, industry)
             },
             {
               role: "user",
-              content: basePrompt
+              content: enhancedPrompt
             }
           ],
           response_format: { type: "json_object" }

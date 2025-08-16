@@ -75,7 +75,7 @@ export default function RecordFrequency() {
 
     // Build the simulation settings for backend API
     const simulationSettings = {
-      theme: session?.selectedTheme || "generic",
+      theme: session?.selectedTheme || "Unknown Theme",
       industry: session?.selectedIndustry || "demo", 
       duration_days: durationDays,
       timeSpan: duration,

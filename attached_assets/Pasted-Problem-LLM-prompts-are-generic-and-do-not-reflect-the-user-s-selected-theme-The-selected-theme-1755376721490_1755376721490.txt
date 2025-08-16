@@ -1,0 +1,39 @@
+Problem
+
+LLM prompts are generic and do not reflect the user’s selected theme.
+The selected theme from client ThemeSelection is not carried through to the server and into the LLM prompt assembly.
+Demo Mode prompts lack concrete examples/context; they should include the “details” column from attached_assets/simulation_timing_1h_36sets_with_payloads_1755371217278.csv.
+What to change/update Client
+
+ThemeSelection (already sets selectedTheme and saves to session): no change required here.
+Wherever the simulation is started (e.g., on Industry Selection or Record Frequency “Start” action), include the theme in the POST /api/simulation/start body. Source it from the saved session (selectedTheme) or component state.
+If the client currently does not fetch session (to read selectedTheme) on the pages that start a simulation, add that fetch and pass theme along.
+Server
+
+routes: Require theme in POST /api/simulation/start. Persist it into the simulation context when creating the simulation. Reject requests without a non-empty theme.
+orchestrator (LLM call site in orchestrator.ts):
+Ensure all LLM prompt assembly functions accept a theme string and use it in the system messages (remove any “generic themed” phrasing).
+For Demo Mode only: on simulation start, load the CSV simulation_timing_1h_36sets_with_payloads_1755371217278.csv once, read the “details” column, and store an array of non-empty lines in the simulation context (e.g., demoDetailsSamples).
+When building prompts for notes/tickets in Demo, include a small sample (e.g., first 3–6) of those details lines to give the model specific examples.
+For E‑Commerce, still pass theme through to prompts (details are optional if no equivalent CSV exists).
+Types/storage: Ensure simulation context supports { theme: string, demoDetailsSamples?: string[] } and that downstream prompt-building code reads from context.
+Expected outcome
+
+LLM prompts explicitly reference the user’s chosen theme (e.g., “Star Wars”, “Fast & Furious”) and no longer mention a generic demo.
+Demo Mode prompts also include concrete “details” examples from the CSV, improving realism for notes and tickets.
+E‑Commerce prompts include the theme for consistency (even without CSV examples).
+How to validate
+
+Client:
+Start a Demo and an E‑Commerce simulation after selecting a theme.
+Inspect the network request for POST /api/simulation/start: verify the body includes theme with the selected value.
+Server:
+Log or inspect the created simulation’s context: verify theme is present and, for Demo, demoDetailsSamples is a non-empty array (CSV successfully loaded).
+Add a debug log of the first LLM messages: confirm system messages include the theme and, for Demo, a short list of details examples.
+Functional:
+Generated notes and tickets contain on-theme vocabulary and scenarios; no “generic demo” language.
+Demo Mode content shows specificity aligned with CSV details.
+Regression checks:
+Code search for “generic themed” returns no matches.
+Starting without a theme returns 400 from /api/simulation/start.
+E‑Commerce flow unaffected aside from themed prompts.

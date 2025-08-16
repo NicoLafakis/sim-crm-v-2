@@ -7,6 +7,8 @@ import { DatabaseStorage } from "./storage";
 import { scheduleSimulationJob, fetchAndCacheOwners, fetchAndCachePipelinesAndStages, makeHubSpotRequest } from './orchestrator';
 import { rateLimiter } from './rate-limiter';
 import { validateDataOrThrow } from './validation';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const storage = new DatabaseStorage();
 
@@ -682,6 +684,13 @@ export function registerRoutes(app: Express) {
     try {
       const { userId, settings } = req.body;
       
+      // Validate required theme
+      if (!settings.theme || settings.theme.trim() === '' || settings.theme === 'generic') {
+        return res.status(400).json({ 
+          message: "Theme is required and cannot be empty or generic. Please select a valid theme." 
+        });
+      }
+      
       console.log('Starting simulation with settings:', {
         theme: settings.theme,
         industry: settings.industry,
@@ -705,6 +714,39 @@ export function registerRoutes(app: Express) {
       };
 
       const simulation = await storage.createSimulation(simulationData);
+      
+      // For Demo Mode: Load CSV details and store in simulation context
+      if (settings.industry === 'demo') {
+        try {
+          const csvPath = join(__dirname, '../attached_assets/simulation_timing_1h_36sets_with_payloads_1755371217278.csv');
+          const csvContent = readFileSync(csvPath, 'utf-8');
+          const lines = csvContent.split('\n');
+          
+          // Extract details column (last column), skip header and filter non-empty
+          const demoDetailsSamples = lines
+            .slice(1) // Skip header
+            .map(line => {
+              const columns = line.split(',');
+              return columns[columns.length - 1]?.replace(/^"|"$/g, '').trim(); // Remove quotes and trim
+            })
+            .filter(detail => detail && detail.length > 0 && !detail.includes('Create') && !detail.includes('Deal stage'))
+            .slice(0, 20); // Limit to first 20 meaningful details
+          
+          console.log(`📝 Loaded ${demoDetailsSamples.length} demo details samples for LLM prompts`);
+          
+          // Update simulation with demo context
+          await storage.updateSimulation(simulation.id, {
+            config: { 
+              ...settings, 
+              theme: settings.theme,
+              demoDetailsSamples 
+            }
+          });
+        } catch (error) {
+          console.warn('⚠️ Failed to load demo CSV details:', error);
+          // Continue without demo details - not a critical failure
+        }
+      }
 
       console.log('Simulation started with orchestrator job scheduling:', {
         simulationId: simulation.id,

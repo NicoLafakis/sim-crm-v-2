@@ -18,6 +18,7 @@ export interface SimulationConfig {
   timeSpan?: string;
   theme?: string;
   industry?: string;
+  demoDetailsSamples?: string[];
 }
 
 // Users table
