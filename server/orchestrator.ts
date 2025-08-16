@@ -1090,6 +1090,7 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
           // Store the created record ID in context for future steps
           if (result.recordId && step.recordIdTpl && step.typeOfAction?.startsWith('create_')) {
             await storeRecordIdInContext(step.jobId, step.recordIdTpl, result.recordId);
+            console.log(`💾 Stored created record: ${step.recordIdTpl} -> ${result.recordId}`);
           }
           
           await storage.updateJobStepStatus(step.id, 'completed', result);
@@ -2422,7 +2423,23 @@ async function executeCreateTicket(data: any, token: string, step: any): Promise
  * Execute deal update
  */
 async function executeUpdateDeal(data: any, token: string, step: any): Promise<any> {
-  const dealId = extractRecordId(step.recordIdTpl);
+  // Resolve the deal ID with fallback logic
+  const dealId = await resolveRecordIdWithFallback(
+    step.recordIdTpl, 
+    step.jobId, 
+    token, 
+    'deal'
+  );
+  
+  // Validate we have a proper numeric ID
+  if (!isNumericId(dealId)) {
+    return {
+      success: false,
+      error: `Invalid deal ID: ${dealId}. Expected numeric HubSpot ID.`,
+      action: 'update_deal',
+      timestamp: new Date().toISOString()
+    };
+  }
   
   // Get user ID from job for validation if pipeline/stage data is being updated
   if (data.pipeline || data.dealstage) {
@@ -2490,7 +2507,23 @@ async function executeUpdateDeal(data: any, token: string, step: any): Promise<a
  * Execute ticket update
  */
 async function executeUpdateTicket(data: any, token: string, step: any): Promise<any> {
-  const ticketId = extractRecordId(step.recordIdTpl);
+  // Resolve the ticket ID with fallback logic
+  const ticketId = await resolveRecordIdWithFallback(
+    step.recordIdTpl, 
+    step.jobId, 
+    token, 
+    'ticket'
+  );
+  
+  // Validate we have a proper numeric ID
+  if (!isNumericId(ticketId)) {
+    return {
+      success: false,
+      error: `Invalid ticket ID: ${ticketId}. Expected numeric HubSpot ID.`,
+      action: 'update_ticket',
+      timestamp: new Date().toISOString()
+    };
+  }
   
   // Validate and ensure properties exist
   await ensureHubSpotProperties('tickets', Object.keys(data), token, data);
@@ -2517,7 +2550,23 @@ async function executeUpdateTicket(data: any, token: string, step: any): Promise
  * Execute ticket closure
  */
 async function executeCloseTicket(data: any, token: string, step: any): Promise<any> {
-  const ticketId = extractRecordId(step.recordIdTpl);
+  // Resolve the ticket ID with fallback logic
+  const ticketId = await resolveRecordIdWithFallback(
+    step.recordIdTpl, 
+    step.jobId, 
+    token, 
+    'ticket'
+  );
+  
+  // Validate we have a proper numeric ID
+  if (!isNumericId(ticketId)) {
+    return {
+      success: false,
+      error: `Invalid ticket ID: ${ticketId}. Expected numeric HubSpot ID.`,
+      action: 'close_ticket',
+      timestamp: new Date().toISOString()
+    };
+  }
   
   // Validate and ensure properties exist
   await ensureHubSpotProperties('tickets', Object.keys(data), token, data);
@@ -3055,7 +3104,12 @@ async function createAssociations(fromObjectId: string, fromObjectType: string, 
         continue;
       }
 
-      const toObjectId = extractRecordId(toObjectIdTemplate as string);
+      const toObjectId = await resolveRecordIdWithFallback(
+        toObjectIdTemplate as string, 
+        jobId, 
+        token, 
+        toObjectType
+      );
       
       if (!toObjectId || toObjectId.trim() === '') {
         const errorMsg = `Invalid target object ID: ${toObjectIdTemplate}`;
@@ -3366,11 +3420,128 @@ function getSupportedAssociations(objectType?: string): Record<string, string[]>
 }
 
 /**
- * Extract record ID from template string
+ * Extract record ID from template string - should already be resolved
+ * If it's still a template, try to search for it
  */
 function extractRecordId(template: string): string {
-  // For now, return the template as-is
-  // In a real implementation, this would resolve template variables
+  // If this looks like a template (contains underscores and isn't numeric), 
+  // it means template resolution failed and we have a problem
+  if (template && !isNumericId(template) && template.includes('_')) {
+    console.warn(`⚠️ Using unresolved template ID: ${template}`);
+  }
+  return template;
+}
+
+/**
+ * Check if an ID is a valid numeric HubSpot ID
+ */
+function isNumericId(id: string): boolean {
+  return /^\d+$/.test(id);
+}
+
+/**
+ * Search for a record by template reference using various strategies
+ */
+async function searchForRecordByTemplate(
+  template: string, 
+  recordType: string, 
+  token: string, 
+  jobId: number
+): Promise<{ found: boolean; recordId?: string; ambiguous?: boolean }> {
+  
+  // Strategy 1: Extract sequence number and search by other created records
+  const sequenceMatch = template.match(/_([0-9]+)$/);
+  if (sequenceMatch) {
+    const sequence = sequenceMatch[1];
+    console.log(`🔢 Searching for ${recordType} with sequence: ${sequence}`);
+    
+    // If looking for a deal/ticket/note, try to find associated contact first
+    if (recordType === 'deal' || recordType === 'ticket') {
+      const contactTemplate = template.replace(/^(deal|ticket)_/, 'contact_');
+      const context = await storage.getJobContext(jobId);
+      
+      if (context[contactTemplate]) {
+        const contactId = context[contactTemplate];
+        console.log(`🔗 Found associated contact: ${contactId}`);
+        
+        // Search for deals/tickets associated with this contact
+        try {
+          const endpoint = recordType === 'deal' ? 
+            `/crm/v3/objects/contacts/${contactId}/associations/deals` :
+            `/crm/v3/objects/contacts/${contactId}/associations/tickets`;
+            
+          const associations = await makeHubSpotRequest('GET', endpoint, null, token);
+          
+          if (associations.results && associations.results.length > 0) {
+            // For now, return the first associated record
+            // TODO: More sophisticated matching based on creation order/sequence
+            const recordId = associations.results[0].id;
+            console.log(`✅ Found associated ${recordType}: ${recordId}`);
+            return { found: true, recordId };
+          }
+        } catch (error) {
+          console.warn(`⚠️ Failed to search associations: ${error}`);
+        }
+      }
+    }
+  }
+  
+  // Strategy 2: Search by email for contacts
+  if (template.includes('contact_')) {
+    try {
+      // Try to extract job metadata to find related email
+      const job = await getJobById(jobId);
+      if (job && job.metadata) {
+        // Look for email in job metadata or step data
+        console.log(`📧 Searching for contact by email pattern`);
+        // This would need more sophisticated email extraction logic
+      }
+    } catch (error) {
+      console.warn(`⚠️ Contact email search failed: ${error}`);
+    }
+  }
+  
+  return { found: false };
+}
+
+/**
+ * Enhanced record ID resolution with fallback search
+ */
+async function resolveRecordIdWithFallback(
+  template: string, 
+  jobId: number, 
+  token: string,
+  recordType: string
+): Promise<string> {
+  // If it's already a numeric ID, return it
+  if (isNumericId(template)) {
+    return template;
+  }
+  
+  // Try to get from job context first
+  const context = await storage.getJobContext(jobId);
+  if (context[template]) {
+    console.log(`✓ Resolved "${template}" -> "${context[template]}" from context`);
+    return context[template];
+  }
+  
+  // Enhanced fallback: search by email and associated records
+  if (ENABLE_SEARCH_FALLBACK) {
+    try {
+      const searchResult = await searchForRecordByTemplate(template, recordType, token, jobId);
+      if (searchResult.found && searchResult.recordId) {
+        // Cache the found ID for future use
+        await storeRecordIdInContext(jobId, template, searchResult.recordId);
+        console.log(`🔍 Search fallback resolved "${template}" -> "${searchResult.recordId}"`);
+        return searchResult.recordId;
+      }
+    } catch (error) {
+      console.warn(`⚠️ Search fallback failed for ${template}: ${error}`);
+    }
+  }
+  
+  // If we can't resolve it, log the issue and return the template
+  console.error(`❌ Could not resolve template ID: ${template}`);
   return template;
 }
 
