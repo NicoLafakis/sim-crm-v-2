@@ -3306,7 +3306,8 @@ async function createAssociations(fromObjectId: string, fromObjectType: string, 
 }
 
 /**
- * Create associations using v4 batch API (for new CSV format)
+ * Create associations using v4 individual API (for new CSV format)
+ * Uses individual PUT requests as batch should only be used for 1-to-many scenarios
  */
 async function createAssociationsV4Batch(
   fromObjectId: string,
@@ -3319,9 +3320,9 @@ async function createAssociationsV4Batch(
     return;
   }
   
-  // Parse association type to determine to-object type
-  const [fromType, , toType] = associationType.split('_');
-  let toObjectType = toType;
+  // Parse multiple association types separated by "|"
+  // Example: "deal_to_contact|deal_to_company" -> ["deal_to_contact", "deal_to_company"]
+  const associationTypes = associationType.split('|');
   
   // Map to HubSpot object type names for v4 API
   const typeMap: Record<string, string> = {
@@ -3332,30 +3333,39 @@ async function createAssociationsV4Batch(
     'note': 'notes'
   };
   
-  toObjectType = typeMap[toType] || toType;
+  console.log(`🔗 Creating ${toObjectIds.length} v4 individual associations from ${fromObjectType}:${fromObjectId}`);
   
-  // Note: For v4 default associations, we don't need associationTypeId
-  // The API infers the correct relationship from the object types
-  
-  console.log(`🔗 Creating v4 batch associations: ${fromObjectType}:${fromObjectId} -> ${toObjectType} (${toObjectIds.length} associations)`);
-  
-  // Fix v4 API compatibility: Use correct endpoint and payload structure
-  // For default associations, we use the /batch/associate/default endpoint
-  // with simplified payload structure (just object IDs)
-  const inputs = toObjectIds.map(toId => ({
-    id: toId  // v4 API expects just the ID for default associations
-  }));
-  
-  try {
-    // Use correct v4 batch API endpoint for default associations
-    await makeHubSpotRequest('POST', `/crm/v4/associations/${fromObjectType}/${toObjectType}/batch/associate/default`, {
-      inputs
-    }, token);
+  // Process each association type with corresponding target IDs
+  for (let i = 0; i < associationTypes.length && i < toObjectIds.length; i++) {
+    const assocType = associationTypes[i].trim();
+    const toObjectId = toObjectIds[i];
     
-    console.log(`✅ Created ${toObjectIds.length} associations via v4 batch API`);
-  } catch (error: any) {
-    console.error(`❌ Failed to create v4 batch associations:`, error.message);
-    // Continue execution even if associations fail
+    if (!assocType || !toObjectId) {
+      console.warn(`⚠️ Skipping empty association: type="${assocType}", id="${toObjectId}"`);
+      continue;
+    }
+    
+    // Parse association type to determine target object type
+    // Example: "deal_to_contact" -> ["deal", "to", "contact"] -> "contact"
+    const parts = assocType.split('_');
+    if (parts.length < 3) {
+      console.error(`❌ Invalid association type format: ${assocType}`);
+      continue;
+    }
+    
+    const toType = parts[parts.length - 1]; // Get the last part (target type)
+    const toObjectType = typeMap[toType] || toType;
+    
+    try {
+      // Use individual PUT request for 1-to-1 associations
+      // /crm/v4/objects/{fromObjectType}/{fromObjectId}/associations/default/{toObjectType}/{toObjectId}
+      await makeHubSpotRequest('PUT', `/crm/v4/objects/${fromObjectType}/${fromObjectId}/associations/default/${toObjectType}/${toObjectId}`, {}, token);
+      
+      console.log(`✅ Created association: ${fromObjectType}:${fromObjectId} → ${toObjectType}:${toObjectId} (${assocType})`);
+    } catch (error: any) {
+      console.error(`❌ Failed to create association ${assocType}:`, error.message);
+      // Continue with other associations even if one fails
+    }
   }
 }
 
