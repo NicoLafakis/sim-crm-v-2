@@ -94,6 +94,9 @@ export interface IStorage {
   getHubspotStages(pipelineId: number): Promise<HubspotStage[]>;
   getHubspotOwners(userId: number): Promise<HubspotOwner[]>;
   clearHubspotCache(userId: number): Promise<void>;
+  
+  // Comprehensive user data reset operations
+  resetUserData(userId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -473,6 +476,52 @@ export class DatabaseStorage implements IStorage {
   async clearHubspotCache(userId: number): Promise<void> {
     await db.delete(hubspotPipelines).where(eq(hubspotPipelines.userId, userId));
     await db.delete(hubspotOwners).where(eq(hubspotOwners.userId, userId));
+  }
+
+  /**
+   * Comprehensive user data reset - clears all simulation data, tokens, and cache
+   * This effectively resets the user back to a clean state as if they just signed up
+   */
+  async resetUserData(userId: number): Promise<void> {
+    console.log(`🧹 Starting comprehensive data reset for user ${userId}...`);
+    
+    try {
+      // Step 1: Delete all simulations (cascades to jobs and jobSteps)
+      const deletedSimulations = await db.delete(simulations)
+        .where(eq(simulations.userId, userId))
+        .returning();
+      console.log(`🗑️ Deleted ${deletedSimulations.length} simulations (with cascaded jobs/steps)`);
+      
+      // Step 2: Delete all API tokens (HubSpot, etc.)
+      const deletedTokens = await db.delete(apiTokens)
+        .where(eq(apiTokens.userId, userId))
+        .returning();
+      console.log(`🔑 Deleted ${deletedTokens.length} API tokens`);
+      
+      // Step 3: Clear HubSpot cache (pipelines, stages, owners)
+      await this.clearHubspotCache(userId);
+      console.log(`🗃️ Cleared HubSpot cache data`);
+      
+      // Step 4: Reset session data (keep session but clear all configuration)
+      await db.update(sessions)
+        .set({
+          hubspotToken: null,
+          hubspotRefreshToken: null,
+          selectedTheme: null,
+          selectedIndustry: null,
+          selectedFrequency: null,
+          simulationConfig: null,
+          updatedAt: new Date()
+        })
+        .where(eq(sessions.userId, userId));
+      console.log(`📋 Reset session configuration data`);
+      
+      console.log(`✅ User ${userId} data reset completed successfully`);
+      
+    } catch (error: any) {
+      console.error(`❌ Failed to reset user ${userId} data:`, error.message);
+      throw new Error(`User data reset failed: ${error.message}`);
+    }
   }
 }
 

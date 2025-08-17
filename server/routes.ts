@@ -821,6 +821,34 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Comprehensive user data reset endpoint
+  app.delete("/api/user/:userId/reset", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      console.log(`🧹 User ${userId} requested comprehensive data reset`);
+      await storage.resetUserData(userId);
+      
+      res.json({ 
+        message: "User data reset successfully",
+        resetItems: [
+          "All simulations and jobs deleted",
+          "HubSpot credentials cleared", 
+          "API tokens removed",
+          "Session configuration reset",
+          "Cached owners and pipelines cleared"
+        ]
+      });
+      
+    } catch (error: any) {
+      console.error(`Failed to reset user data:`, error.message);
+      res.status(500).json({ 
+        error: "Reset failed", 
+        message: error.message 
+      });
+    }
+  });
+
   app.post("/api/simulation/:simulationId/pause", async (req, res) => {
     try {
       const simulationId = parseInt(req.params.simulationId);

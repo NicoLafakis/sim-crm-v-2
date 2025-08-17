@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Trash2, Plus, Key, User, Shield } from 'lucide-react';
+import { Eye, EyeOff, Trash2, Plus, Key, User, Shield, AlertTriangle } from 'lucide-react';
 
 interface ApiToken {
   id: number;
@@ -33,6 +33,7 @@ export default function ProfilePage() {
     service: '',
     token: '',
   });
+  const [showResetConfirmation, setShowResetConfirmation] = useState(false);
 
   const { data: tokens } = useQuery<ApiToken[]>({
     queryKey: [`/api/user/${user?.id}/tokens`],
@@ -98,6 +99,45 @@ export default function ProfilePage() {
       toast({
         title: "Error",
         description: "Failed to remove token.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetUserDataMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('DELETE', `/api/user/${user?.id}/reset`);
+    },
+    onSuccess: async () => {
+      // Clear frontend session state
+      const { setSession } = useSession.getState();
+      if (user?.id) {
+        try {
+          const response = await apiRequest('GET', `/api/session/${user.id}`);
+          const updatedSession = await response.json();
+          setSession(updatedSession);
+        } catch (error) {
+          console.warn('Failed to refresh session after reset:', error);
+        }
+      }
+      
+      // Invalidate all queries to refresh UI
+      queryClient.invalidateQueries({ queryKey: [`/api/user/${user?.id}/tokens`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/user/${user?.id}/simulations`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/session/${user?.id}`] });
+      
+      setShowResetConfirmation(false);
+      
+      toast({
+        title: "Data Reset Complete",
+        description: "All your simulation data, tokens, and configurations have been cleared.",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Reset Failed",
+        description: error.message || "Failed to reset user data.",
         variant: "destructive",
       });
     },
@@ -329,6 +369,76 @@ export default function ProfilePage() {
                 <Plus className="w-4 h-4 mr-2" />
                 Add Token
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Danger Zone - Data Reset */}
+        <Card className="border-2" style={{ backgroundColor: '#e8e8e8', borderColor: '#8b0000', color: '#000000' }}>
+          <CardHeader>
+            <div className="flex items-center space-x-4">
+              <AlertTriangle className="w-6 h-6" style={{ color: '#8b0000' }} />
+              <div>
+                <CardTitle style={{ color: '#8b0000', fontFamily: 'var(--font-gameboy)' }}>Danger Zone</CardTitle>
+                <CardDescription style={{ color: '#000000' }}>
+                  Irreversible actions that will permanently delete your data
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 rounded-lg border-2" style={{ backgroundColor: '#ffe6e6', borderColor: '#8b0000' }}>
+              <h3 className="font-semibold mb-2" style={{ color: '#8b0000', fontFamily: 'var(--font-gameboy)' }}>
+                Reset All Data
+              </h3>
+              <p className="text-sm mb-4" style={{ color: '#000000' }}>
+                This will permanently delete:
+              </p>
+              <ul className="text-sm space-y-1 mb-4" style={{ color: '#000000' }}>
+                <li>• All simulations and job history</li>
+                <li>• HubSpot credentials and tokens</li>
+                <li>• Theme and industry selections</li>
+                <li>• Cached owner and pipeline data</li>
+                <li>• All configuration settings</li>
+              </ul>
+              
+              {!showResetConfirmation ? (
+                <Button
+                  onClick={() => setShowResetConfirmation(true)}
+                  className="font-mono"
+                  style={{ backgroundColor: '#8b0000', borderColor: '#8b0000', color: 'white' }}
+                  data-testid="button-show-reset-confirmation"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Reset All Data
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold" style={{ color: '#8b0000' }}>
+                    Are you absolutely sure? This action cannot be undone.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => resetUserDataMutation.mutate()}
+                      disabled={resetUserDataMutation.isPending}
+                      className="font-mono"
+                      style={{ backgroundColor: '#8b0000', borderColor: '#8b0000', color: 'white' }}
+                      data-testid="button-confirm-reset"
+                    >
+                      {resetUserDataMutation.isPending ? 'Resetting...' : 'Yes, Delete Everything'}
+                    </Button>
+                    <Button
+                      onClick={() => setShowResetConfirmation(false)}
+                      variant="outline"
+                      className="font-mono"
+                      style={{ borderColor: '#6c7b7f', color: '#1e3a5f' }}
+                      data-testid="button-cancel-reset"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
