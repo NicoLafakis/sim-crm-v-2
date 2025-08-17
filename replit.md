@@ -55,6 +55,14 @@ The platform features a Game Boy aesthetic, implemented through custom CSS varia
 
 ## Recent Updates
 
+### Data Reset & Association Fix (August 2025)
+- **HubSpot Association API Fix**: Removed problematic `"associationCategory": "HUBSPOT_DEFINED"` field from all association creation payloads to resolve "Unable to infer object type" errors.
+- **Comprehensive User Data Reset**: Implemented complete user data deletion system with `resetUserData()` backend method and `DELETE /api/user/:userId/reset` endpoint.
+- **Frontend Reset Interface**: Added "Danger Zone" section in Profile page with two-step confirmation flow for data deletion.
+- **Session State Synchronization**: Fixed TypeScript errors and improved session state management between database and frontend Zustand store.
+- **Database Cleanup**: Enhanced reset functionality to clean orphaned records (jobs, job_steps, hubspot_stages) and ensure complete data removal.
+- **User Experience**: Reset preserves user account while clearing all simulation data, tokens, configurations, and cached HubSpot data.
+
 ### Read-Only Property Fix (August 2025)
 - **HubSpot Standard Property Protection**: Added comprehensive list of read-only HubSpot standard properties (pipeline, lifecyclestage, etc.) that cannot be modified via API.
 - **Property Option Modification Prevention**: Enhanced ensureSelectOptions() function to skip read-only properties and prevent "read-only definition" errors.
