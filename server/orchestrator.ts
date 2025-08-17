@@ -3126,12 +3126,13 @@ function getFieldType(propertyName: string): string {
 
 // Read-only HubSpot standard properties that cannot have their options modified
 const READ_ONLY_HUBSPOT_PROPERTIES = new Set([
-  'pipeline', 'lifecyclestage', 'hs_pipeline', 'dealstage', 'ticketstage',
+  'pipeline', 'lifecyclestage', 'hs_pipeline', 'hs_pipeline_stage', 'dealstage', 'ticketstage',
   'hs_lead_status', 'hubspot_owner_id', 'hs_object_source', 'hs_object_source_label',
   'hs_object_source_id', 'createdate', 'lastmodifieddate', 'hs_lastmodifieddate',
   'hs_createdate', 'hs_object_id', 'hs_analytics_source', 'hs_analytics_source_data_1',
   'hs_analytics_source_data_2', 'hs_email_domain', 'hs_all_owner_ids',
-  'hs_all_team_ids', 'hs_all_accessible_team_ids', 'hs_merged_object_ids'
+  'hs_all_team_ids', 'hs_all_accessible_team_ids', 'hs_merged_object_ids',
+  'hs_ticket_priority', 'hs_ticket_category'
 ]);
 
 /**

@@ -79,6 +79,11 @@ The platform features a Game Boy aesthetic, implemented through custom CSS varia
 - **Error Resolution**: Fixed "contact|deal" inference errors by using proper v4 API format that separates object types in URL path rather than payload.
 - **Comprehensive v4 Compliance**: All association creation now fully compliant with HubSpot's v4 associations API requirements for default relationships.
 
+### Ticket Pipeline Stage Fix (August 2025)
+- **Read-Only Property Protection**: Added `hs_pipeline_stage` and `hs_ticket_priority` to the list of read-only HubSpot properties that cannot be modified.
+- **Prevented API Errors**: System now skips attempting to modify ticket pipeline stages which are managed by HubSpot's internal systems.
+- **Enhanced Property Handling**: Improved detection of read-only properties to prevent "read-only definition" errors during property updates.
+
 ### Company Name Consistency Fix (August 2025)
 - **Eliminated Company Name Mismatch**: Companies now automatically use the contact's company field value instead of generating new names via LLM, ensuring CRM data consistency.
 - **LLM Prompt Update**: Modified company generation prompt to exclude name field - it's now populated directly from associated contact's company property.
