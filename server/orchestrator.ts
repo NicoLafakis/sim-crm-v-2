@@ -3027,12 +3027,35 @@ function getFieldType(propertyName: string): string {
   return 'text';
 }
 
+// Read-only HubSpot standard properties that cannot have their options modified
+const READ_ONLY_HUBSPOT_PROPERTIES = new Set([
+  'pipeline', 'lifecyclestage', 'hs_pipeline', 'dealstage', 'ticketstage',
+  'hs_lead_status', 'hubspot_owner_id', 'hs_object_source', 'hs_object_source_label',
+  'hs_object_source_id', 'createdate', 'lastmodifieddate', 'hs_lastmodifieddate',
+  'hs_createdate', 'hs_object_id', 'hs_analytics_source', 'hs_analytics_source_data_1',
+  'hs_analytics_source_data_2', 'hs_email_domain', 'hs_all_owner_ids',
+  'hs_all_team_ids', 'hs_all_accessible_team_ids', 'hs_merged_object_ids'
+]);
+
 /**
  * Ensure select field options exist for enumeration properties
  */
 async function ensureSelectOptions(objectType: string, propertiesMap: Map<string, any>, recordData: any, token: string): Promise<void> {
   for (const [propertyName, property] of Array.from(propertiesMap.entries())) {
     if (property.type === 'enumeration' && recordData[propertyName]) {
+      
+      // Skip read-only HubSpot standard properties
+      if (READ_ONLY_HUBSPOT_PROPERTIES.has(propertyName.toLowerCase())) {
+        console.log(`⚠️ Skipping read-only HubSpot property: ${propertyName}`);
+        continue;
+      }
+      
+      // Skip properties that are marked as hubspotDefined and readOnlyOptions
+      if (property.hubspotDefined && property.modificationMetadata?.readOnlyOptions) {
+        console.log(`⚠️ Skipping read-only HubSpot standard property: ${propertyName}`);
+        continue;
+      }
+      
       const currentValue = recordData[propertyName];
       const values = Array.isArray(currentValue) ? currentValue : [currentValue];
       
@@ -3058,7 +3081,12 @@ async function ensureSelectOptions(objectType: string, propertiesMap: Map<string
           
           console.log(`✅ Added options [${missingOptions.join(', ')}] to property ${propertyName} for ${objectType}`);
         } catch (error: any) {
-          console.warn(`❌ Failed to add options to property ${propertyName}:`, error.message);
+          // Check if it's a read-only property error
+          if (error.message?.includes('read-only definition') || error.message?.includes('readOnlyOptions')) {
+            console.warn(`⚠️ Skipping read-only property ${propertyName}: ${error.message}`);
+          } else {
+            console.warn(`❌ Failed to add options to property ${propertyName}:`, error.message);
+          }
           // Continue with other properties
         }
       }

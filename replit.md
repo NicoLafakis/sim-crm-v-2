@@ -52,3 +52,13 @@ The platform features a Game Boy aesthetic, implemented through custom CSS varia
 - **PostgreSQL**: Configured database backend.
 - **OpenAI API**: Used for AI strategy and scenario generation (gpt-5-nano model only).
 - **Express sessions**: For server-side session management.
+
+## Recent Updates
+
+### Read-Only Property Fix (August 2025)
+- **HubSpot Standard Property Protection**: Added comprehensive list of read-only HubSpot standard properties (pipeline, lifecyclestage, etc.) that cannot be modified via API.
+- **Property Option Modification Prevention**: Enhanced ensureSelectOptions() function to skip read-only properties and prevent "read-only definition" errors.
+- **Intelligent Property Detection**: Added checks for hubspotDefined and modificationMetadata.readOnlyOptions flags to identify system properties.
+- **Enhanced Error Handling**: Improved error messaging to distinguish between read-only property errors and other API failures.
+- **Pipeline/Stage Validation**: Fixed issues with pipeline and lifecyclestage properties by using existing values instead of attempting to create new options.
+- **Clean Property Management**: System now properly respects HubSpot's property constraints and only modifies custom/modifiable properties.
