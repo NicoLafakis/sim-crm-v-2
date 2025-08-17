@@ -2221,6 +2221,42 @@ async function executeCreateContact(data: any, token: string, step?: any): Promi
  * Execute company creation with deduplication
  */
 async function executeCreateCompany(data: any, token: string, step?: any): Promise<any> {
+  // IMPORTANT: If this company is being associated to a contact, use the contact's company name
+  // to avoid LLM-generated mismatches in the CRM
+  if (step?.associationsTpl && Array.isArray(step.associationsTpl) && step.associationsTpl.length > 0) {
+    try {
+      // Get the contact ID from associations
+      const contactId = await resolveRecordIdWithFallback(
+        step.associationsTpl[0], // First association should be the contact
+        step.jobId, 
+        token, 
+        'contact'
+      );
+      
+      if (contactId && isNumericId(contactId)) {
+        console.log(`🔗 Fetching contact ${contactId} to get company name for company creation`);
+        
+        // Fetch the contact record to get the company name
+        const contactResponse = await makeHubSpotRequest('GET', `/crm/v3/objects/contacts/${contactId}`, null, token);
+        const contactCompanyName = contactResponse.properties?.company;
+        
+        if (contactCompanyName && contactCompanyName.trim() !== '') {
+          console.log(`✅ Using contact's company name: "${contactCompanyName}" instead of LLM-generated name`);
+          data.name = contactCompanyName;
+          
+          // Also use contact's location data for company if available
+          if (contactResponse.properties?.city) data.city = contactResponse.properties.city;
+          if (contactResponse.properties?.state) data.state = contactResponse.properties.state;
+          if (contactResponse.properties?.country) data.country = contactResponse.properties.country;
+          if (contactResponse.properties?.industry) data.industry = contactResponse.properties.industry;
+        }
+      }
+    } catch (error) {
+      console.warn(`⚠️ Could not fetch contact for company name: ${error.message}`);
+      // Continue with LLM-generated data as fallback
+    }
+  }
+  
   // Check for existing company if search fallback is enabled and domain exists
   if (ENABLE_SEARCH_FALLBACK && data.domain) {
     const searchResult = await searchCompany(data.domain, token);
