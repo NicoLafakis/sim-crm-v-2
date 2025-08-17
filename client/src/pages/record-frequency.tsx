@@ -73,6 +73,13 @@ export default function RecordFrequency() {
       return;
     }
 
+    // Debug: Log session state to identify theme selection issues
+    console.log('Session state for simulation:', {
+      selectedTheme: session?.selectedTheme,
+      selectedIndustry: session?.selectedIndustry,
+      sessionId: session?.id
+    });
+
     // Build the simulation settings for backend API
     const simulationSettings = {
       theme: session?.selectedTheme || "Unknown Theme",
@@ -89,6 +96,8 @@ export default function RecordFrequency() {
       totalSets,
       recordsPerSet: values
     };
+
+    console.log('Simulation settings being sent:', simulationSettings);
 
     try {
       // Call backend API which will handle configuration saving

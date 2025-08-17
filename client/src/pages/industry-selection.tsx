@@ -33,8 +33,20 @@ export default function IndustrySelection() {
         selectedIndustry: industry
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Invalidate React Query cache
       queryClient.invalidateQueries({ queryKey: [`/api/session/${user?.id}`] });
+      
+      // Refetch and update Zustand session state
+      if (user?.id) {
+        try {
+          const updatedSession = await apiRequest('GET', `/api/session/${user.id}`);
+          const { setSession } = useSession.getState();
+          setSession(updatedSession);
+        } catch (error) {
+          console.warn('Failed to update session state after industry selection:', error);
+        }
+      }
     }
   });
 
