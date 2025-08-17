@@ -1406,6 +1406,8 @@ async function executeJobStepAction(step: any): Promise<any> {
         return await executeCreateContact(enrichedData, hubspotToken, step);
         
       case 'create_company':
+        // Remove any LLM-generated company name - it should come from contact's company field
+        delete enrichedData.name;
         return await executeCreateCompany(enrichedData, hubspotToken, step);
         
       case 'create_deal':
@@ -1470,6 +1472,8 @@ async function executeJobStepAction(step: any): Promise<any> {
         if (recordType === 'Contact') {
           return await executeCreateContact(enrichedData, hubspotToken, step);
         } else if (recordType === 'Company') {
+          // Remove any LLM-generated company name - it should come from contact's company field
+          delete enrichedData.name;
           return await executeCreateCompany(enrichedData, hubspotToken, step);
         } else if (recordType === 'Opportunity' || recordType === 'Deal') {
           return await executeCreateDeal(generatedData, hubspotToken, step);
@@ -1969,11 +1973,10 @@ function createLLMPrompt(actionType: string, theme: string, industry: string, te
       Generate a complete contact that fits the ${theme} theme with ALL these fields populated.`;
       
     case 'create_company':
-      return `${basePrompt} You MUST return complete company data in valid JSON format. Include ALL required fields with realistic values:
+      return `${basePrompt} You MUST return complete company data in valid JSON format. DO NOT generate a company name - it will come from the contact record.
       
       Example expected output:
       {
-        "name": "TechCorp Inc",
         "domain": "techcorp.com", 
         "city": "San Francisco",
         "state": "California",
@@ -1981,7 +1984,7 @@ function createLLMPrompt(actionType: string, theme: string, industry: string, te
         "numberofemployees": 150
       }
       
-      Generate a complete company that fits the ${theme} theme with ALL these fields populated.`;
+      Generate company data that fits the ${theme} theme. DO NOT include "name" field - it will be populated from contact's company field.`;
       
     case 'create_deal':
       let dealPrompt = `${basePrompt} You MUST return complete deal data in valid JSON format. Include ALL required fields with realistic values.`;
@@ -2059,9 +2062,8 @@ function addVariationToPersonaData(cachedData: any, actionType: string): any {
       }
       break;
     case 'create_company':
-      if (data.name) {
-        data.name = `${data.name} ${Math.floor(timestamp / 1000)}`;
-      }
+      // Name comes from contact's company field, not generated
+      // Skip adding variation to company name
       break;
     case 'create_deal':
       if (data.dealname) {
@@ -2249,12 +2251,22 @@ async function executeCreateCompany(data: any, token: string, step?: any): Promi
           if (contactResponse.properties?.state) data.state = contactResponse.properties.state;
           if (contactResponse.properties?.country) data.country = contactResponse.properties.country;
           if (contactResponse.properties?.industry) data.industry = contactResponse.properties.industry;
+        } else {
+          console.warn(`⚠️ Contact ${contactId} has no company name set`);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.warn(`⚠️ Could not fetch contact for company name: ${error.message}`);
       // Continue with LLM-generated data as fallback
     }
+  }
+  
+  // Ensure company has a name (required field)
+  if (!data.name || data.name.trim() === '') {
+    // Generate a fallback name based on theme
+    const fallbackName = `${data.industry || 'Company'} ${Date.now()}`;
+    console.log(`⚠️ No company name available, using fallback: "${fallbackName}"`);
+    data.name = fallbackName;
   }
   
   // Check for existing company if search fallback is enabled and domain exists

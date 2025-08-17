@@ -78,3 +78,11 @@ The platform features a Game Boy aesthetic, implemented through custom CSS varia
 - **Default Association Optimization**: Eliminated unnecessary fields in v4 API calls, allowing HubSpot to automatically infer relationship types from object types.
 - **Error Resolution**: Fixed "contact|deal" inference errors by using proper v4 API format that separates object types in URL path rather than payload.
 - **Comprehensive v4 Compliance**: All association creation now fully compliant with HubSpot's v4 associations API requirements for default relationships.
+
+### Company Name Consistency Fix (August 2025)
+- **Eliminated Company Name Mismatch**: Companies now automatically use the contact's company field value instead of generating new names via LLM, ensuring CRM data consistency.
+- **LLM Prompt Update**: Modified company generation prompt to exclude name field - it's now populated directly from associated contact's company property.
+- **Contact Field Enhancement**: Added missing contact fields (address, city, state, country, industry) to CSV templates and contact creation payloads.
+- **Data Inheritance**: Companies inherit location and industry data from their associated contacts when available.
+- **Fallback Handling**: Added safety check to ensure companies always have a name (required field), using timestamp-based fallback if needed.
+- **CSV Template Updates**: Enhanced Demo mode CSV templates to include complete contact information fields for better data quality.
