@@ -1561,6 +1561,22 @@ function substituteTemplatePlaceholders(template: string, simulation: Simulation
  * Generate theme-specific system prompt based on theme and industry
  */
 function getSystemPrompt(theme: string, industry: string): string {
+  // Validate theme input to prevent invalid LLM prompts
+  if (!theme || theme.trim() === '' || theme === 'Unknown Theme' || theme === 'generic') {
+    const error = `Invalid theme provided to LLM prompt generation: "${theme}"`;
+    console.error(error);
+    throw new Error(error);
+  }
+
+  // Validate industry input
+  if (!industry || industry.trim() === '') {
+    const error = `Invalid industry provided to LLM prompt generation: "${industry}"`;
+    console.error(error);
+    throw new Error(error);
+  }
+
+  console.log(`✅ LLM Prompt - Valid theme: "${theme}", industry: "${industry}"`);
+
   return `You are an expert CRM data generator for the SimCRM application. Generate realistic and appropriate data that fits the "${theme}" theme in the ${industry} industry context.
 
 IMPORTANT: All generated content must align with the "${theme}" theme. Use names, companies, job titles, and terminology that would fit naturally within this theme. Be creative but consistent.
@@ -1581,6 +1597,21 @@ async function generateRealisticData(
   useSeed = true,
   crmMetadata?: any
 ): Promise<any> {
+  // Validate inputs before LLM generation to prevent invalid prompts
+  if (!theme || theme.trim() === '' || theme === 'Unknown Theme' || theme === 'generic') {
+    const error = `❌ Invalid theme in LLM generation: "${theme}" (job: ${jobId}, step: ${stepIndex})`;
+    console.error(error);
+    throw new Error(error);
+  }
+
+  if (!industry || industry.trim() === '') {
+    const error = `❌ Invalid industry in LLM generation: "${industry}" (job: ${jobId}, step: ${stepIndex})`;
+    console.error(error);
+    throw new Error(error);
+  }
+
+  console.log(`✅ LLM Generation validated - Theme: "${theme}", Industry: "${industry}", Action: ${actionType}`);
+
   // Environment flags
   const strictGeneration = process.env.STRICT_GENERATION !== 'false'; // default true
   const actionScopedCache = process.env.ACTION_SCOPED_CACHE !== 'false'; // default true

@@ -165,6 +165,31 @@ export function registerRoutes(app: Express) {
       const { userId } = req.params;
       const updateData = req.body;
       
+      // Validate theme if being updated - prevent invalid values from being stored
+      if (updateData.selectedTheme !== undefined) {
+        if (!updateData.selectedTheme || updateData.selectedTheme.trim() === '' || 
+            updateData.selectedTheme === 'Unknown Theme' || updateData.selectedTheme === 'generic') {
+          console.error(`Invalid theme submitted for user ${userId}:`, updateData.selectedTheme);
+          return res.status(400).json({ 
+            error: "Invalid theme value. Theme cannot be empty, unknown, or generic.",
+            invalidTheme: updateData.selectedTheme
+          });
+        }
+        console.log(`✅ Valid theme being saved for user ${userId}:`, updateData.selectedTheme);
+      }
+
+      // Validate industry if being updated
+      if (updateData.selectedIndustry !== undefined) {
+        if (!updateData.selectedIndustry || updateData.selectedIndustry.trim() === '') {
+          console.error(`Invalid industry submitted for user ${userId}:`, updateData.selectedIndustry);
+          return res.status(400).json({ 
+            error: "Invalid industry value. Industry cannot be empty.",
+            invalidIndustry: updateData.selectedIndustry
+          });
+        }
+        console.log(`✅ Valid industry being saved for user ${userId}:`, updateData.selectedIndustry);
+      }
+      
       // If updating with a HubSpot token, sync owners automatically
       if (updateData.hubspotToken) {
         try {
@@ -177,8 +202,15 @@ export function registerRoutes(app: Express) {
       }
       
       const updatedSession = await storage.updateSession(parseInt(userId), updateData);
+      
+      if (!updatedSession) {
+        return res.status(500).json({ error: "Failed to update session" });
+      }
+      
+      console.log(`✅ Session updated successfully for user ${userId}`);
       res.json(updatedSession);
     } catch (error: any) {
+      console.error(`Session update error for user ${userId}:`, error.message);
       res.status(500).json({ error: error.message });
     }
   });
@@ -676,6 +708,10 @@ export function registerRoutes(app: Express) {
     const formattedTheme = themeNames[theme] || theme;
     const formattedIndustry = industryNames[industry] || industry;
     
+    // Log for debugging theme propagation issues
+    console.log(`formatSimulationName - Original theme: "${theme}", Formatted: "${formattedTheme}"`);
+    console.log(`formatSimulationName - Original industry: "${industry}", Formatted: "${formattedIndustry}"`);
+    
     return `${formattedIndustry} ${formattedTheme} Simulation`;
   };
 
@@ -684,10 +720,21 @@ export function registerRoutes(app: Express) {
     try {
       const { userId, settings } = req.body;
       
-      // Validate required theme
-      if (!settings.theme || settings.theme.trim() === '' || settings.theme === 'generic') {
+      // Validate required theme - reject empty, null, or fallback values
+      if (!settings.theme || settings.theme.trim() === '' || settings.theme === 'generic' || settings.theme === 'Unknown Theme') {
+        console.error('Invalid theme submitted:', settings.theme);
         return res.status(400).json({ 
-          message: "Theme is required and cannot be empty or generic. Please select a valid theme." 
+          message: "Invalid theme provided. Theme cannot be empty, generic, or unknown. Please select a valid theme.",
+          invalidTheme: settings.theme
+        });
+      }
+
+      // Validate required industry
+      if (!settings.industry || settings.industry.trim() === '') {
+        console.error('Invalid industry submitted:', settings.industry);
+        return res.status(400).json({ 
+          message: "Industry is required and cannot be empty. Please select a valid industry.",
+          invalidIndustry: settings.industry
         });
       }
       

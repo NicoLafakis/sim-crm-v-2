@@ -1,0 +1,66 @@
+Issue:  
+Theme handling is inconsistent across the system, resulting in invalid or "Unknown Theme" values reaching LLM prompt generation.  
+- User-selected themes fail to persist correctly in the session database.  
+- Session state synchronization is unreliable between React Query cache, Zustand store, and backend database.  
+- Race conditions occur when navigation happens before session save completes.  
+- Client-side fallbacks such as "Unknown Theme" mask failures instead of preventing invalid states.  
+- Backend validation is weak, allowing null or invalid themes into simulation creation.  
+- LLM orchestrator accepts invalid themes, resulting in malformed prompts.  
+- Error handling provides no clear feedback to users and lacks retry/recovery flows.  
+- Logging and debugging capabilities are insufficient, preventing root cause tracing.  
+- Operational impact: Inconsistent theme propagation leads to incorrect LLM behavior, degraded user experience, and difficulty debugging.  
+
+Plan:  
+1. **Fix Session State Management**  
+   - Resolve race conditions in `theme-selection.tsx` by blocking navigation until session save completes.  
+   - Improve synchronization between React Query cache, Zustand store, and database session state.  
+   - Add error handling when session updates fail and prevent silent failures.  
+
+2. **Strengthen Client-Side Validation**  
+   - Remove permissive fallbacks like "Unknown Theme" in `record-frequency.tsx`.  
+   - Add theme validation before allowing simulation start.  
+   - Block navigation if theme is null or invalid.  
+   - Introduce debugging and logging hooks to trace session state across navigation.  
+
+3. **Enhance Backend Session Management**  
+   - Improve session retrieval and update logic in `routes.ts`.  
+   - Enforce validation to ensure themes are persisted correctly in session records.  
+   - Add validation at simulation creation to reject invalid themes.  
+   - Expand backend logging for theme-related flows.  
+
+4. **Secure LLM Prompt Generation**  
+   - Validate theme inputs before prompt creation in the orchestrator.  
+   - Ensure `getSystemPrompt` and `createLLMPrompt` only receive valid themes.  
+   - Add safeguards to reject empty or generic placeholders.  
+   - Add trace logging of theme values throughout prompt generation.  
+
+5. **Improve Error Handling and Recovery**  
+   - Implement error boundaries around theme selection.  
+   - Add retry mechanisms for session update failures.  
+   - Provide clear user-facing feedback when theme persistence fails.  
+   - Redirect users back to theme selection when invalid states occur.  
+
+6. **Add Monitoring and Debugging**  
+   - Implement detailed logging across the full theme flow.  
+   - Add debug endpoints to inspect current session state.  
+   - Create monitoring alerts for repeated theme validation failures.  
+   - Track session update latency and error rates.  
+
+Verification:  
+- Run a session with theme selection and confirm:  
+  1. **Session Persistence:**  
+     - User-selected theme is correctly stored in the database and survives page reload.  
+     - Session state remains consistent between client and server.  
+  2. **Client-Side Behavior:**  
+     - Navigation only occurs after theme persistence is confirmed.  
+     - Invalid/null themes are blocked with clear error feedback.  
+     - "Unknown Theme" never appears in UI or logs.  
+  3. **Backend Validation:**  
+     - Invalid themes are rejected at session update and simulation creation endpoints.  
+     - Logs clearly indicate any validation failures.  
+  4. **LLM Prompt Generation:**  
+     - Orchestrator only generates prompts with valid, user-selected themes.  
+     - No empty or fallback themes appear in `getSystemPrompt` or `createLLMPrompt`.  
+  5. **Error Handling:**  
+     - If a session update fails, retry occurs or user receives actionable error feedback.  
+     - Recovery flow redirects user to theme selection instead of propagating invalid state. 

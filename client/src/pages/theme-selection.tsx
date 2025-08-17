@@ -39,18 +39,33 @@ export default function ThemeSelection() {
   });
 
   const handleThemeSelect = async (themeId: string) => {
+    if (!themeId || themeId.trim() === '') {
+      console.error('Invalid theme selected:', themeId);
+      toast({
+        title: "Invalid Theme",
+        description: "Please select a valid theme.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSelectedTheme(themeId);
+    console.log('Theme selected:', themeId, 'for user:', user?.id);
     
     try {
+      // Block navigation until session save completes
       await updateSessionMutation.mutateAsync(themeId);
-      // Auto-navigate after selection
-      setTimeout(() => {
-        setLocation('/industry-selection');
-      }, 500);
+      
+      console.log('Theme saved successfully, navigating to industry selection');
+      
+      // Navigate immediately after successful save
+      setLocation('/industry-selection');
     } catch (error) {
+      console.error('Theme save failed:', error);
+      setSelectedTheme(null); // Reset selection on failure
       toast({
-        title: "Error",
-        description: "Failed to save theme selection",
+        title: "Theme Save Failed",
+        description: "Failed to save your theme selection. Please try again.",
         variant: "destructive"
       });
     }

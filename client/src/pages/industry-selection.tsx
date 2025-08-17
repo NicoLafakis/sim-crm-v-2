@@ -52,18 +52,33 @@ export default function IndustrySelection() {
   });
 
   const handleIndustrySelect = async (industry: string) => {
+    if (!industry || industry.trim() === '') {
+      console.error('Invalid industry selected:', industry);
+      toast({
+        title: "Invalid Industry",
+        description: "Please select a valid industry.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSelectedIndustry(industry);
+    console.log('Industry selected:', industry, 'for user:', user?.id);
     
     try {
+      // Block navigation until session save completes
       await updateSessionMutation.mutateAsync(industry);
-      // Auto-navigate after selection
-      setTimeout(() => {
-        setLocation('/record-frequency');
-      }, 500);
+      
+      console.log('Industry saved successfully, navigating to record frequency');
+      
+      // Navigate immediately after successful save
+      setLocation('/record-frequency');
     } catch (error) {
+      console.error('Industry save failed:', error);
+      setSelectedIndustry(''); // Reset selection on failure
       toast({
-        title: "Error",
-        description: "Failed to save industry selection",
+        title: "Industry Save Failed", 
+        description: "Failed to save your industry selection. Please try again.",
         variant: "destructive"
       });
     }

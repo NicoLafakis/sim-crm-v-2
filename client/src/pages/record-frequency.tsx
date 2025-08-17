@@ -70,20 +70,45 @@ export default function RecordFrequency() {
 
   const handleStartSimulation = async () => {
     if (!user || !session) {
+      console.error('No user or session found');
+      toast({
+        title: "Session Error",
+        description: "User session is invalid. Please refresh the page.",
+        variant: "destructive"
+      });
       return;
     }
 
-    // Debug: Log session state to identify theme selection issues
-    console.log('Session state for simulation:', {
-      selectedTheme: session?.selectedTheme,
-      selectedIndustry: session?.selectedIndustry,
-      sessionId: session?.id
-    });
+    // Validate theme is present and valid
+    if (!session.selectedTheme || session.selectedTheme.trim() === '') {
+      console.error('No theme selected in session:', session);
+      toast({
+        title: "Theme Required",
+        description: "Please select a theme before starting the simulation.",
+        variant: "destructive"
+      });
+      setLocation('/theme-selection');
+      return;
+    }
+
+    // Validate industry is present
+    if (!session.selectedIndustry || session.selectedIndustry.trim() === '') {
+      console.error('No industry selected in session:', session);
+      toast({
+        title: "Industry Required", 
+        description: "Please select an industry before starting the simulation.",
+        variant: "destructive"
+      });
+      setLocation('/industry-selection');
+      return;
+    }
+
+    console.log('✅ Session validation passed - Theme:', session.selectedTheme, 'Industry:', session.selectedIndustry);
 
     // Build the simulation settings for backend API
     const simulationSettings = {
-      theme: session?.selectedTheme || "Unknown Theme",
-      industry: session?.selectedIndustry || "demo", 
+      theme: session.selectedTheme,
+      industry: session.selectedIndustry, 
       duration_days: durationDays,
       timeSpan: duration,
       record_distribution: {
