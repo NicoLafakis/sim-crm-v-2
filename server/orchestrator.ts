@@ -3278,12 +3278,11 @@ async function createAssociations(fromObjectId: string, fromObjectType: string, 
         continue;
       }
 
-      // Create the association using validated type ID
-      await makeHubSpotRequest('PUT', `/crm/v4/objects/${fromObjectType}/${fromObjectId}/associations/${toObjectType}/${toObjectId}`, {
-        associationTypeId: validation.associationTypeId
-      }, token);
+      // Create the association using v4 API for default associations (no custom labels)
+      // For default associations, we use the /default/ endpoint without payload
+      await makeHubSpotRequest('PUT', `/crm/v4/objects/${fromObjectType}/${fromObjectId}/associations/default/${toObjectType}/${toObjectId}`, {}, token);
       
-      console.log(`✅ Created association: ${fromObjectType}:${fromObjectId} → ${toObjectType}:${toObjectId} (type: ${validation.associationTypeId})`);
+      console.log(`✅ Created association: ${fromObjectType}:${fromObjectId} → ${toObjectType}:${toObjectId} (default association)`);
       results.successful++;
       
     } catch (error: any) {
@@ -3324,10 +3323,10 @@ async function createAssociationsV4Batch(
   const [fromType, , toType] = associationType.split('_');
   let toObjectType = toType;
   
-  // Map to HubSpot object type names
+  // Map to HubSpot object type names for v4 API
   const typeMap: Record<string, string> = {
     'contact': 'contacts',
-    'company': 'companies',
+    'company': 'companies', 
     'deal': 'deals',
     'ticket': 'tickets',
     'note': 'notes'
@@ -3335,23 +3334,21 @@ async function createAssociationsV4Batch(
   
   toObjectType = typeMap[toType] || toType;
   
-  // Get the association type ID
-  const associationTypeId = getAssociationTypeId(associationType);
+  // Note: For v4 default associations, we don't need associationTypeId
+  // The API infers the correct relationship from the object types
   
-  console.log(`🔗 Creating v4 batch associations: ${fromObjectType}:${fromObjectId} -> ${toObjectType} (${toObjectIds.length} associations, type: ${associationTypeId})`);
+  console.log(`🔗 Creating v4 batch associations: ${fromObjectType}:${fromObjectId} -> ${toObjectType} (${toObjectIds.length} associations)`);
   
-  // Prepare batch inputs
+  // Fix v4 API compatibility: Use correct endpoint and payload structure
+  // For default associations, we use the /batch/associate/default endpoint
+  // with simplified payload structure (just object IDs)
   const inputs = toObjectIds.map(toId => ({
-    from: { id: fromObjectId },
-    to: { id: toId },
-    types: [{
-      associationTypeId: associationTypeId
-    }]
+    id: toId  // v4 API expects just the ID for default associations
   }));
   
   try {
-    // Use v4 batch API
-    await makeHubSpotRequest('POST', `/crm/v4/associations/${fromObjectType}/${toObjectType}/batch/create`, {
+    // Use correct v4 batch API endpoint for default associations
+    await makeHubSpotRequest('POST', `/crm/v4/associations/${fromObjectType}/${toObjectType}/batch/associate/default`, {
       inputs
     }, token);
     

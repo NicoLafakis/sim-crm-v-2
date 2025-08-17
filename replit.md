@@ -70,3 +70,11 @@ The platform features a Game Boy aesthetic, implemented through custom CSS varia
 - **Enhanced Error Handling**: Improved error messaging to distinguish between read-only property errors and other API failures.
 - **Pipeline/Stage Validation**: Fixed issues with pipeline and lifecyclestage properties by using existing values instead of attempting to create new options.
 - **Clean Property Management**: System now properly respects HubSpot's property constraints and only modifies custom/modifiable properties.
+
+### HubSpot Associations v4 API Compatibility (August 2025)
+- **Batch Associations API Fix**: Updated `createAssociationsV4Batch` to use correct v4 endpoint `/crm/v4/associations/{fromObjectType}/{toObjectType}/batch/associate/default` with simplified payload structure.
+- **Individual Associations API Fix**: Updated `createAssociations` to use `/crm/v4/objects/{fromObjectType}/{fromObjectId}/associations/default/{toObjectType}/{toObjectId}` endpoint for default associations.
+- **Payload Structure Correction**: Removed problematic `associationCategory`, `associationTypeId`, and complex `types` array that caused "Unable to infer object type" errors.
+- **Default Association Optimization**: Eliminated unnecessary fields in v4 API calls, allowing HubSpot to automatically infer relationship types from object types.
+- **Error Resolution**: Fixed "contact|deal" inference errors by using proper v4 API format that separates object types in URL path rather than payload.
+- **Comprehensive v4 Compliance**: All association creation now fully compliant with HubSpot's v4 associations API requirements for default relationships.

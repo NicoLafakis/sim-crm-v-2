@@ -77,4 +77,3 @@ app.use((req, res, next) => {
     log('job runner started');
   });
 })();
-})();
