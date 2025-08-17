@@ -3231,7 +3231,6 @@ async function createAssociations(fromObjectId: string, fromObjectType: string, 
 
       // Create the association using validated type ID
       await makeHubSpotRequest('PUT', `/crm/v4/objects/${fromObjectType}/${fromObjectId}/associations/${toObjectType}/${toObjectId}`, {
-        associationCategory: 'HUBSPOT_DEFINED',
         associationTypeId: validation.associationTypeId
       }, token);
       
@@ -3297,7 +3296,6 @@ async function createAssociationsV4Batch(
     from: { id: fromObjectId },
     to: { id: toId },
     types: [{
-      associationCategory: 'HUBSPOT_DEFINED',
       associationTypeId: associationTypeId
     }]
   }));

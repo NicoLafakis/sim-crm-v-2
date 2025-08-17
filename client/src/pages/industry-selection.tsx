@@ -40,7 +40,8 @@ export default function IndustrySelection() {
       // Refetch and update Zustand session state
       if (user?.id) {
         try {
-          const updatedSession = await apiRequest('GET', `/api/session/${user.id}`);
+          const response = await apiRequest('GET', `/api/session/${user.id}`);
+          const updatedSession = await response.json();
           const { setSession } = useSession.getState();
           setSession(updatedSession);
         } catch (error) {
