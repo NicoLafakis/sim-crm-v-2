@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { startJobRunner } from "./orchestrator";
+import { startJobRunner, clearAllCancellationTracking } from "./orchestrator";
 
 const app = express();
 app.use(express.json());
@@ -69,8 +69,12 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
     
+    // Clear any stale cancellation tracking from previous server runs
+    clearAllCancellationTracking();
+    
     // Start the job runner after server is listening
     startJobRunner();
     log('job runner started');
   });
+})();
 })();

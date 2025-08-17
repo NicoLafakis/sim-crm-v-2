@@ -73,6 +73,7 @@ export function markSimulationForCancellation(simulationId: number): void {
  */
 export function unmarkSimulationForCancellation(simulationId: number): void {
   cancelledSimulations.delete(simulationId);
+  console.log(`✅ Removed simulation ${simulationId} from cancellation tracking`);
 }
 
 /**
@@ -80,6 +81,30 @@ export function unmarkSimulationForCancellation(simulationId: number): void {
  */
 export function isSimulationCancelled(simulationId: number): boolean {
   return cancelledSimulations.has(simulationId);
+}
+
+/**
+ * Clear all cancellation tracking (useful for server restart)
+ */
+export function clearAllCancellationTracking(): void {
+  const count = cancelledSimulations.size;
+  cancelledSimulations.clear();
+  if (count > 0) {
+    console.log(`🧹 Cleared ${count} stale cancellation tracking entries`);
+  }
+}
+
+/**
+ * Get current cancellation tracking status for debugging
+ */
+export function getCancellationTrackingStatus(): { 
+  trackedSimulations: number[], 
+  count: number 
+} {
+  return {
+    trackedSimulations: Array.from(cancelledSimulations),
+    count: cancelledSimulations.size
+  };
 }
 
 // Search fallback configuration
@@ -1081,32 +1106,25 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
           failed++;
           continue;
         }
-        
-        // Double-check simulation status from database (in case of recent stop)
-        const simulation = await storage.getSimulationById(jobForToken.simulationId);
-        if (!simulation || simulation.status === 'stopped') {
-          console.log(`🛑 Skipping step ${step.id} - simulation ${jobForToken.simulationId} is stopped`);
-          await storage.updateJobStepStatus(step.id, 'cancelled', {
-            error: 'Simulation stopped',
-            timestamp: new Date().toISOString()
-          });
-          failed++;
-          continue;
+
+        // Also check if simulation status is 'stopped' or 'completed' in database
+        try {
+          const simulation = await storage.getSimulationById(jobForToken.simulationId);
+          if (simulation && (simulation.status === 'stopped' || simulation.status === 'completed')) {
+            console.log(`🛑 Skipping step ${step.id} - simulation ${jobForToken.simulationId} has status: ${simulation.status}`);
+            await storage.updateJobStepStatus(step.id, 'cancelled', {
+              error: `Simulation ${simulation.status}`,
+              timestamp: new Date().toISOString()
+            });
+            failed++;
+            continue;
+          }
+        } catch (error) {
+          console.warn(`⚠️ Could not verify simulation ${jobForToken.simulationId} status:`, error);
         }
         
         // Mark step as processing only after all checks pass
         await storage.updateJobStepStatus(step.id, 'processing');
-        
-        // Skip this step if job or simulation no longer exists
-        if (!jobForToken) {
-          console.warn(`Job ${step.jobId} not found - marking step as cancelled`);
-          await storage.updateJobStepStatus(step.id, 'cancelled', {
-            error: 'Job not found',
-            timestamp: new Date().toISOString()
-          });
-          failed++;
-          continue;
-        }
         
         const hubspotToken = await getHubSpotToken(jobForToken.simulationId);
         
