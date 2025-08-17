@@ -57,6 +57,31 @@ interface DemoCsvRow {
 // Job runner state
 let jobRunnerInterval: NodeJS.Timeout | null = null;
 
+// In-memory cancellation tracking for simulations
+const cancelledSimulations = new Set<number>();
+
+/**
+ * Add a simulation to the cancellation set for immediate effect
+ */
+export function markSimulationForCancellation(simulationId: number): void {
+  cancelledSimulations.add(simulationId);
+  console.log(`🛑 Marked simulation ${simulationId} for immediate cancellation`);
+}
+
+/**
+ * Remove a simulation from the cancellation set (if needed for restart)
+ */
+export function unmarkSimulationForCancellation(simulationId: number): void {
+  cancelledSimulations.delete(simulationId);
+}
+
+/**
+ * Check if a simulation is marked for cancellation
+ */
+export function isSimulationCancelled(simulationId: number): boolean {
+  return cancelledSimulations.has(simulationId);
+}
+
 // Search fallback configuration
 const ENABLE_SEARCH_FALLBACK = process.env.ENABLE_SEARCH_FALLBACK === 'true';
 
@@ -1032,14 +1057,11 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
       try {
         processed++;
         
-        // Mark step as processing
-        await storage.updateJobStepStatus(step.id, 'processing');
-
-        // Get HubSpot token for search operations
-        const job = await getJobById(step.jobId);
+        // Get job details to check simulation status
+        const jobForToken = await getJobById(step.jobId);
         
-        // Skip this step if job or simulation no longer exists
-        if (!job) {
+        // Skip if job doesn't exist
+        if (!jobForToken) {
           console.warn(`Job ${step.jobId} not found - marking step as cancelled`);
           await storage.updateJobStepStatus(step.id, 'cancelled', {
             error: 'Job not found',
@@ -1049,11 +1071,48 @@ export async function runDueJobSteps(): Promise<{ processed: number; successful:
           continue;
         }
         
-        const hubspotToken = await getHubSpotToken(job.simulationId);
+        // Check if simulation is marked for immediate cancellation
+        if (isSimulationCancelled(jobForToken.simulationId)) {
+          console.log(`🛑 Skipping step ${step.id} - simulation ${jobForToken.simulationId} marked for cancellation`);
+          await storage.updateJobStepStatus(step.id, 'cancelled', {
+            error: 'Simulation stopped',
+            timestamp: new Date().toISOString()
+          });
+          failed++;
+          continue;
+        }
+        
+        // Double-check simulation status from database (in case of recent stop)
+        const simulation = await storage.getSimulationById(jobForToken.simulationId);
+        if (!simulation || simulation.status === 'stopped') {
+          console.log(`🛑 Skipping step ${step.id} - simulation ${jobForToken.simulationId} is stopped`);
+          await storage.updateJobStepStatus(step.id, 'cancelled', {
+            error: 'Simulation stopped',
+            timestamp: new Date().toISOString()
+          });
+          failed++;
+          continue;
+        }
+        
+        // Mark step as processing only after all checks pass
+        await storage.updateJobStepStatus(step.id, 'processing');
+        
+        // Skip this step if job or simulation no longer exists
+        if (!jobForToken) {
+          console.warn(`Job ${step.jobId} not found - marking step as cancelled`);
+          await storage.updateJobStepStatus(step.id, 'cancelled', {
+            error: 'Job not found',
+            timestamp: new Date().toISOString()
+          });
+          failed++;
+          continue;
+        }
+        
+        const hubspotToken = await getHubSpotToken(jobForToken.simulationId);
         
         // Skip this step if token not available (simulation deleted/invalid)
         if (!hubspotToken) {
-          console.warn(`No HubSpot token for simulation ${job.simulationId} - marking step as cancelled`);
+          console.warn(`No HubSpot token for simulation ${jobForToken.simulationId} - marking step as cancelled`);
           await storage.updateJobStepStatus(step.id, 'cancelled', {
             error: 'Simulation deleted or HubSpot token not available',
             timestamp: new Date().toISOString()
@@ -1193,6 +1252,11 @@ async function executeJobStepAction(step: any): Promise<any> {
       throw new Error('Simulation not found');
     }
     
+    // Check for cancellation before proceeding with expensive operations
+    if (simulation.status === 'stopped' || isSimulationCancelled(job.simulationId)) {
+      throw new Error('Simulation was stopped');
+    }
+    
     // Fetch CRM metadata for pipeline/stage validation
     let crmMetadata = null;
     if (['create_deal', 'update_deal', 'create_ticket', 'update_ticket', 'close_ticket'].includes(typeOfAction)) {
@@ -1214,6 +1278,11 @@ async function executeJobStepAction(step: any): Promise<any> {
       // Extract properties from payload
       const payloadProps = actionTpl.properties || {};
       
+      // Check for cancellation before expensive LLM call
+      if (isSimulationCancelled(job.simulationId)) {
+        throw new Error('Simulation was stopped');
+      }
+      
       // Generate data to fill in empty fields
       const llmData = await generateRealisticData(
         typeOfAction, 
@@ -1225,6 +1294,11 @@ async function executeJobStepAction(step: any): Promise<any> {
         true, // useSeed
         crmMetadata
       );
+      
+      // Check for cancellation after LLM call
+      if (isSimulationCancelled(job.simulationId)) {
+        throw new Error('Simulation was stopped');
+      }
       
       // Merge payload with LLM data (payload takes precedence for non-empty values)
       generatedData = {} as any;
@@ -1303,6 +1377,11 @@ async function executeJobStepAction(step: any): Promise<any> {
       }
     }
 
+    // Final cancellation check before execution
+    if (isSimulationCancelled(job.simulationId)) {
+      throw new Error('Simulation was stopped');
+    }
+    
     // Execute the specific action
     switch (typeOfAction) {
       case 'create_contact':

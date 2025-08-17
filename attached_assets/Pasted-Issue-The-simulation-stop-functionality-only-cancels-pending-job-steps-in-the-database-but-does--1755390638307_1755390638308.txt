@@ -1,0 +1,48 @@
+Issue:  
+The simulation stop functionality only cancels pending job steps in the database but does not stop the background job runner.  
+- The stop endpoint updates simulation status to "stopped" and cancels pending/paused steps in the database.  
+- The background job runner (`runDueJobSteps()`) executes independently every 30 seconds and continues processing steps already in flight.  
+- Race conditions occur when steps are picked up by the job runner between the "stop" request and the database update.  
+- There is no mechanism for runtime termination or graceful interruption of steps already executing.  
+- Operational impact: Users see simulations marked as "stopped," but the system continues processing steps, leading to misleading state and wasted resources.  
+
+Plan:  
+1. **Job Runner Runtime Awareness**  
+   - Add simulation status checks in the job runner before selecting or executing steps.  
+   - Filter `getDueJobSteps()` queries by simulation status to exclude stopped simulations.  
+   - Validate simulation status before marking steps as "processing."  
+
+2. **Step-Level Cancellation Handling**  
+   - Implement cancellation checks inside step execution logic (periodic checkpoints).  
+   - Introduce in-memory cancellation flags for quick lookups.  
+
+3. **Graceful Termination of In-Flight Steps**  
+   - Implement mechanism to interrupt API calls or step execution mid-process.  
+   - Add cooperative cancellation patterns (e.g., cancellation tokens, signals) so steps can exit cleanly.  
+
+4. **Concurrency and Race Condition Safeguards**  
+   - Make stop operations atomic to prevent job runner from picking up new steps during cancellation.  
+   - Lock step state transitions during stop requests.  
+
+5. **User Experience Updates**  
+   - Provide immediate UI feedback when "stop" is clicked.  
+   - Show progress indicators for cancellation in progress.  
+   - Display clear messaging distinguishing between cancelled, completed, and still-terminating steps.  
+
+Verification:  
+- Run the **1-hour demo simulation**, click "stop," and confirm:  
+  1. **Database State:**  
+     - Simulation status transitions to "stopped."  
+     - All pending/paused steps marked "cancelled."  
+  2. **Job Runner Behavior:**  
+     - Job runner does not pick up new steps once stop is initiated.  
+     - In-progress steps check cancellation flag and terminate early.  
+  3. **No Race Conditions:**  
+     - Steps started after stop request must not enter "processing."  
+  4. **User Experience:**  
+     - UI immediately reflects "stopping" state, then "stopped" when termination completes.  
+     - Clear indication of which steps were completed before stop and which were cancelled.  
+  5. **Edge Cases:**  
+     - Stop requested just before job runner picks up steps.  
+     - Multiple stop requests sent concurrently.  
+     - Simulation with multiple concurrent steps.  

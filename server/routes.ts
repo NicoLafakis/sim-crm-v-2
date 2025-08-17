@@ -495,16 +495,16 @@ export function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Simulation not found" });
       }
       
-      // Get jobs for this simulation
-      const simulationJobs = await storage.getJobs();
-      const job = simulationJobs.find(j => j.simulationId === simulationId);
+      // Query jobs and steps directly from database for this simulation
+      const jobsData = await db.select().from(jobs).where(eq(jobs.simulationId, simulationId));
+      const job = jobsData[0];
       
       if (!job) {
         return res.status(404).json({ error: "No job found for this simulation" });
       }
       
       // Get job steps for detailed logs
-      const jobSteps = await storage.getJobSteps(job.id);
+      const jobSteps = await db.select().from(jobSteps).where(eq(jobSteps.jobId, job.id));
       
       // Format logs for display
       const logs = {
@@ -524,20 +524,20 @@ export function registerRoutes(app: Express) {
           completedAt: job.completedAt,
           metadata: job.metadata
         },
-        steps: jobSteps.map(step => ({
+        steps: jobSteps.map((step: any) => ({
           id: step.id,
           stepIndex: step.stepIndex,
-          actionType: step.actionType,
+          actionType: step.typeOfAction || 'unknown',
           status: step.status,
           scheduledAt: step.scheduledAt,
-          executedAt: step.executedAt,
-          result: step.result ? JSON.parse(step.result as string) : null,
-          error: step.error
+          executedAt: step.executedAt || null,
+          result: step.result ? (typeof step.result === 'string' ? JSON.parse(step.result) : step.result) : null,
+          error: step.error || null
         })),
         summary: {
           totalSteps: jobSteps.length,
-          completedSteps: jobSteps.filter(s => s.status === 'completed').length,
-          failedSteps: jobSteps.filter(s => s.status === 'failed').length,
+          completedSteps: jobSteps.filter((s: any) => s.status === 'completed').length,
+          failedSteps: jobSteps.filter((s: any) => s.status === 'failed').length,
           pendingSteps: jobSteps.filter(s => s.status === 'pending').length
         }
       };
@@ -577,8 +577,8 @@ export function registerRoutes(app: Express) {
         <div class="header">
             <h1>📊 Simulation Logs</h1>
             <h2>${simulation.name}</h2>
-            <p><strong>Status:</strong> <span class="status-${simulation.status}">${simulation.status.toUpperCase()}</span></p>
-            <p><strong>Started:</strong> ${new Date(simulation.startedAt).toLocaleString()}</p>
+            <p><strong>Status:</strong> <span class="status-${simulation.status || 'unknown'}">${(simulation.status || 'unknown').toUpperCase()}</span></p>
+            <p><strong>Started:</strong> ${simulation.startedAt ? new Date(simulation.startedAt).toLocaleString() : 'Unknown'}</p>
             ${simulation.completedAt ? `<p><strong>Completed:</strong> ${new Date(simulation.completedAt).toLocaleString()}</p>` : ''}
         </div>
         
@@ -602,7 +602,7 @@ export function registerRoutes(app: Express) {
         </div>
         
         <h3>Execution Steps</h3>
-        ${jobSteps.map(step => `
+        ${jobSteps.map((step: any) => `
             <div class="log-entry ${step.status === 'failed' ? 'error' : step.status === 'completed' ? 'success' : ''}">
                 <div><strong>Step ${step.stepIndex}:</strong> ${step.actionType}</div>
                 <div class="timestamp">Scheduled: ${new Date(step.scheduledAt).toLocaleString()}</div>
@@ -881,30 +881,60 @@ export function registerRoutes(app: Express) {
     try {
       const simulationId = parseInt(req.params.simulationId);
       
-      // Update simulation status to stopped
-      await storage.updateSimulation(simulationId, { 
-        status: 'stopped',
-        completedAt: new Date()
+      // Import the cancellation tracking function
+      const { markSimulationForCancellation } = await import('./orchestrator');
+      
+      // Mark simulation for immediate cancellation (prevents new steps from being picked up)
+      markSimulationForCancellation(simulationId);
+      
+      // Perform atomic operation to stop simulation and cancel steps
+      await db.transaction(async (tx) => {
+        // Update simulation status to stopped
+        await tx.update(simulations)
+          .set({ 
+            status: 'stopped',
+            completedAt: new Date()
+          })
+          .where(eq(simulations.id, simulationId));
+        
+        // Cancel all pending/paused job steps in a single operation
+        await tx.update(jobSteps)
+          .set({ 
+            status: 'cancelled',
+            result: {
+              error: 'Simulation stopped by user',
+              timestamp: new Date().toISOString(),
+              cancelled: true
+            }
+          })
+          .where(and(
+            or(
+              eq(jobSteps.status, 'pending'), 
+              eq(jobSteps.status, 'paused'),
+              eq(jobSteps.status, 'processing') // Also cancel processing steps
+            ),
+            inArray(jobSteps.jobId, 
+              tx.select({ id: jobs.id })
+                .from(jobs)
+                .where(eq(jobs.simulationId, simulationId))
+            )
+          ));
       });
       
-      // Cancel all pending/paused job steps
-      await db.update(jobSteps)
-        .set({ status: 'cancelled' })
-        .where(and(
-          or(eq(jobSteps.status, 'pending'), eq(jobSteps.status, 'paused')),
-          inArray(jobSteps.jobId, 
-            db.select({ id: jobs.id })
-              .from(jobs)
-              .where(eq(jobs.simulationId, simulationId))
-          )
-        ));
+      console.log(`🛑 Simulation ${simulationId} stopped successfully - all steps cancelled`);
       
       res.json({ 
         status: "stopped",
-        message: "Simulation stopped successfully"
+        message: "Simulation stopped successfully",
+        cancelled: true,
+        timestamp: new Date().toISOString()
       });
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error(`❌ Error stopping simulation ${req.params.simulationId}:`, error);
+      res.status(500).json({ 
+        message: error.message,
+        error: "Failed to stop simulation"
+      });
     }
   });
 

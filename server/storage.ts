@@ -31,7 +31,7 @@ import {
   hubspotOwners
 } from "../shared/schema";
 import { db } from "./db";
-import { eq, and, sql, or } from "drizzle-orm";
+import { eq, and, sql, or, ne } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -363,7 +363,9 @@ export class DatabaseStorage implements IStorage {
       or(
         eq(simulations.status, 'running'),
         eq(simulations.status, 'processing')
-      )
+      ),
+      // Explicitly exclude stopped simulations to prevent race conditions
+      ne(simulations.status, 'stopped')
     ))
     .orderBy(jobSteps.scheduledAt);
     return dueSteps;
